@@ -11,14 +11,6 @@ object database {
   trait Database {
     val profile: JdbcProfile
     val database: JdbcProfile#Backend#Database
-
-    import profile.api._
-
-    implicit def idColumnType[T] =
-      MappedColumnType.base[Id[T], Long]({ id => id: Long }, { id => Id[T](id) })
-
-    implicit def nameColumnType[T] =
-      MappedColumnType.base[Name[T], String]({ name => name: String }, { name => Name[T](name) })
   }
 
   object Database {
@@ -33,8 +25,28 @@ object database {
     }
   }
 
-  trait DatabaseObject {
+
+  trait IdColumnTypes {
+    val database: Database
+
+    import database.profile.api._
+
+    implicit def idColumnType[T] =
+      MappedColumnType.base[Id[T], Long]({ id => id: Long }, { id => Id[T](id) })
+
+    implicit def nameColumnType[T] =
+      MappedColumnType.base[Name[T], String]({ name => name: String }, { name => Name[T](name) })
+  }
+
+
+  trait DatabaseObject extends IdColumnTypes {
+
     def createTables(): Future[Unit]
     def disconnect(): Unit
+  }
+
+  abstract class DatabaseObjectAdapter extends DatabaseObject {
+    def createTables(): Future[Unit] = Future.successful(())
+    def disconnect(): Unit = {}
   }
 }

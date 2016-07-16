@@ -23,20 +23,29 @@ import scalaz.{Failure => _, Success => _, _}
 
 object rest {
 
-  class RestService(actorSystem: ActorSystem, log: Logger, stats: Stats,
-                    time: TimeProvider, executionContext: ExecutionContext) {
+  trait RestService {
+    def sendRequest(request: HttpRequest): Future[HttpResponse]
+  }
+
+  class AkkaHttpRestService(actorSystem: ActorSystem) extends RestService {
+    protected implicit val materializer = ActorMaterializer()(actorSystem)
+
+    def sendRequest(request: HttpRequest): Future[HttpResponse] =
+      Http()(actorSystem).singleRequest(request)(materializer)
+  }
+
+  class ProxyRestService(actorSystem: ActorSystem, log: Logger, stats: Stats,
+                         time: TimeProvider, executionContext: ExecutionContext)
+    extends AkkaHttpRestService(actorSystem) {
 
     protected implicit val timeout = Timeout(5 seconds)
 
-    implicit val materializer = ActorMaterializer()(actorSystem)
-
-
-    def sendRequest(request: HttpRequest): Future[HttpResponse] = {
+    override def sendRequest(request: HttpRequest): Future[HttpResponse] = {
 
       log.audit(s"Sending to ${request.uri} request $request")
 
       val requestTime = time.currentTime()
-      val response = Http()(actorSystem).singleRequest(request)(materializer)
+      val response = super.sendRequest(request)
 
       response.onComplete {
         case Success(_) =>
@@ -54,7 +63,6 @@ object rest {
       response
     }
   }
-
 
   object basicFormats {
 

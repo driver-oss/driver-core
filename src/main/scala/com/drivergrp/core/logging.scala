@@ -67,7 +67,7 @@ object logging {
     def debug(marker: Marker, message: String, args: AnyRef*): Unit = scalaLogging.debug(marker, message, args)
   }
 
-  class NopLogger() extends Logger {
+  class NoLogger() extends Logger {
 
     def fatal(message: String): Unit = {}
     def fatal(message: String, cause: Throwable): Unit = {}

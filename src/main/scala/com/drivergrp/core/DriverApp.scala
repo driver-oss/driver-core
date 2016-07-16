@@ -5,41 +5,42 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
 import akka.stream.ActorMaterializer
-import com.drivergrp.core.config.ConfigModule
-import com.drivergrp.core.logging.LoggerModule
+import com.drivergrp.core.logging.{Logger, TypesafeScalaLogger}
+import com.typesafe.config.Config
+import org.slf4j.LoggerFactory
 
 
-trait DriverApp {
-  this: ConfigModule with LoggerModule =>
+class DriverApp(services: Seq[Service],
+                log: Logger = new TypesafeScalaLogger(
+                  com.typesafe.scalalogging.Logger(LoggerFactory.getLogger(classOf[DriverApp]))),
+                config: Config = com.drivergrp.core.config.loadDefaultConfig,
+                interface: String = "localhost", port: Int = 8080) {
 
-  def interface: String = "localhost"
-  def port: Int = 8080
+  def run() = {
+    activateServices(services)
+    scheduleServicesDeactivation(services)
+    bindHttp(services)
+  }
 
-  def services: Seq[Service]
+  protected def bindHttp(services: Seq[Service]) {
+    implicit val actorSystem = ActorSystem("spray-routing", config)
+    implicit val executionContext = actorSystem.dispatcher
+    implicit val materializer = ActorMaterializer()(actorSystem)
 
+    val serviceTypes = services.flatMap(_.serviceTypes)
+    val swaggerService = new Swagger(actorSystem, serviceTypes, config)
+    val swaggerRoutes = swaggerService.routes ~ swaggerService.swaggerUI
 
-  val servicesInstances = services
-  activateServices(servicesInstances)
-  scheduleServicesDeactivation(servicesInstances)
-
-  implicit val actorSystem = ActorSystem("spray-routing", config)
-  implicit val executionContext = actorSystem.dispatcher
-  implicit val materializer = ActorMaterializer()(actorSystem)
-
-  val serviceTypes = servicesInstances.flatMap(_.serviceTypes)
-  val swaggerService = new Swagger(actorSystem, serviceTypes, config)
-  val swaggerRoutes = swaggerService.routes ~ swaggerService.swaggerUI
-
-  Http()(actorSystem).bindAndHandle(
-    route2HandlerFlow(logRequestResult("log")(servicesInstances.map(_.route).foldLeft(swaggerRoutes) { _ ~ _ })),
-    interface, port)(materializer)
-
+    Http()(actorSystem).bindAndHandle(
+      route2HandlerFlow(logRequestResult("log")(services.map(_.route).foldLeft(swaggerRoutes) { _ ~ _ })),
+      interface, port)(materializer)
+  }
 
   /**
     * Initializes services
     */
-  protected def activateServices(servicesInstances: Seq[Service]) = {
-    servicesInstances.foreach { service =>
+  protected def activateServices(services: Seq[Service]) = {
+    services.foreach { service =>
       Console.print(s"Service ${service.name} starts ...")
       try {
         service.activate()
@@ -55,10 +56,10 @@ trait DriverApp {
   /**
     * Schedules services to be deactivated on the app shutdown
     */
-  protected def scheduleServicesDeactivation(servicesInstances: Seq[Service]) = {
+  protected def scheduleServicesDeactivation(services: Seq[Service]) = {
     Runtime.getRuntime.addShutdownHook(new Thread() {
       override def run(): Unit = {
-        servicesInstances.foreach { service =>
+        services.foreach { service =>
           Console.print(s"Service ${service.name} shutting down ...")
           try {
             service.deactivate()

@@ -1,21 +1,21 @@
 package com.drivergrp.core
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
 import akka.http.scaladsl.server.{Directive, _}
 import akka.http.scaladsl.util.FastFuture._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import com.drivergrp.core.execution.{ActorSystemModule, ExecutionContextModule}
 import com.drivergrp.core.id.{Id, Name}
-import com.drivergrp.core.logging.LoggerModule
-import com.drivergrp.core.stats.StatsModule
+import com.drivergrp.core.logging.Logger
+import com.drivergrp.core.stats.Stats
 import com.drivergrp.core.time.TimeRange
-import com.drivergrp.core.time.provider.TimeModule
+import com.drivergrp.core.time.provider.TimeProvider
 import spray.json.{DeserializationException, JsNumber, JsString, JsValue, RootJsonFormat}
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 import scalaz.{Failure => _, Success => _, _}
@@ -23,8 +23,8 @@ import scalaz.{Failure => _, Success => _, _}
 
 object rest {
 
-  trait RestService {
-    this: ActorSystemModule with LoggerModule with StatsModule with TimeModule with ExecutionContextModule =>
+  class RestService(actorSystem: ActorSystem, log: Logger, stats: Stats,
+                    time: TimeProvider, executionContext: ExecutionContext) {
 
     protected implicit val timeout = Timeout(5 seconds)
 
@@ -68,7 +68,7 @@ object rest {
     }
 
     implicit def nameFormat[T] = new RootJsonFormat[Name[T]] {
-      def write(name: Name[T]) = JsNumber(name)
+      def write(name: Name[T]) = JsString(name)
 
       def read(value: JsValue): Name[T] = value match {
         case JsString(name) => Name[T](name)

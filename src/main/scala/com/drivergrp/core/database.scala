@@ -1,38 +1,16 @@
 package com.drivergrp.core
 
 import com.drivergrp.core.id.{Id, Name}
-
 import scala.concurrent.Future
+import slick.backend.DatabaseConfig
+import slick.driver.JdbcProfile
 
 
 object database {
 
-  import slick.backend.DatabaseConfig
-  import slick.driver.JdbcProfile
-
-
-  trait DatabaseModule {
+  trait Database {
     val profile: JdbcProfile
     val database: JdbcProfile#Backend#Database
-  }
-
-  trait ConfigDatabaseModule extends DatabaseModule {
-
-    protected def databaseConfigKey: String
-
-    private val dbConfig: DatabaseConfig[JdbcProfile] = DatabaseConfig.forConfig(databaseConfigKey)
-
-    val profile: JdbcProfile = dbConfig.driver
-    val database: JdbcProfile#Backend#Database = dbConfig.db
-  }
-
-  trait DatabaseObject {
-    def createTables(): Future[Unit]
-    def disconnect(): Unit
-  }
-
-  trait IdColumnTypes {
-    this: DatabaseModule =>
 
     import profile.api._
 
@@ -41,5 +19,22 @@ object database {
 
     implicit def nameColumnType[T] =
       MappedColumnType.base[Name[T], String]({ name => name: String }, { name => Name[T](name) })
+  }
+
+  object Database {
+
+    def fromConfig(databaseName: String): Database = {
+      val dbConfig: DatabaseConfig[JdbcProfile] = DatabaseConfig.forConfig(databaseName)
+
+      new Database {
+        val profile: JdbcProfile = dbConfig.driver
+        val database: JdbcProfile#Backend#Database = dbConfig.db
+      }
+    }
+  }
+
+  trait DatabaseObject {
+    def createTables(): Future[Unit]
+    def disconnect(): Unit
   }
 }

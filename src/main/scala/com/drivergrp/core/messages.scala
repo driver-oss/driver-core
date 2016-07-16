@@ -3,36 +3,22 @@ package com.drivergrp.core
 
 import java.util.Locale
 
-import com.drivergrp.core.config.ConfigModule
-import com.drivergrp.core.logging.{Logger, LoggerModule}
+import com.drivergrp.core.logging.Logger
+import com.typesafe.config.Config
 
 import scala.collection.JavaConverters._
-import scala.collection.concurrent.TrieMap
 
 /**
   * Scala internationalization (i18n) support
   */
 object messages {
 
-  trait MessagesModule {
-
-    def messages: Messages
-  }
-
-  trait ConfigMessagesModule extends MessagesModule {
-    this: ConfigModule with LoggerModule =>
-
-    private val loadedFromConfig = new TrieMap[Locale, Messages]()
-    val locale: Locale = Locale.US
-
-    val messages: Messages = {
-      loadedFromConfig.getOrElseUpdate(locale, {
-        val map = config.getConfig(locale.getISO3Language).root().unwrapped().asScala.mapValues(_.toString).toMap
-        Messages(map, locale, log)
-      })
+  object Messages {
+    def messages(config: Config, log: Logger, locale: Locale = Locale.US): Messages = {
+      val map = config.getConfig(locale.getLanguage).root().unwrapped().asScala.mapValues(_.toString).toMap
+      Messages(map, locale, log)
     }
   }
-
 
   case class Messages(map: Map[String, String], locale: Locale, log: Logger) {
 

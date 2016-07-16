@@ -1,41 +1,9 @@
 package com.drivergrp.core
 
-import com.typesafe.scalalogging.{LazyLogging, StrictLogging}
 import org.slf4j.Marker
 
 
 object logging {
-
-  trait LoggerModule {
-
-    def log: Logger
-  }
-
-  trait NopLoggerModule extends LoggerModule {
-
-    def log: Logger = new NopLogger()
-  }
-
-  /**
-    * Defines `logger` as a lazy value initialized with an underlying `org.slf4j.Logger`
-    * named according to the class into which this trait is mixed.
-    */
-  trait LazyLoggerModule extends LoggerModule {
-    this: LazyLogging =>
-
-    override val log: Logger = new TypesafeScalaLogger(logger)
-  }
-
-  /**
-    * Defines `logger` as a value initialized with an underlying `org.slf4j.Logger`
-    * named according to the class into which this trait is mixed.
-    */
-  trait StrictLoggerModule extends LoggerModule {
-    this: StrictLogging =>
-
-    override val log: Logger = new TypesafeScalaLogger(logger)
-  }
-
 
   trait Logger {
 

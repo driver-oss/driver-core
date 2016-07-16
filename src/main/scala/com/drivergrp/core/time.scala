@@ -59,11 +59,6 @@ object time {
       * All the calls to receive current time must be made using time
       * provider injected to the caller.
       */
-
-    trait TimeModule {
-      def time: TimeProvider
-    }
-
     trait TimeProvider {
       def currentTime(): Time
     }

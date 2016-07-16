@@ -1,6 +1,6 @@
 package com.drivergrp.core
 
-import com.drivergrp.core.logging.LoggerModule
+import com.drivergrp.core.logging.Logger
 import com.drivergrp.core.time.{Time, TimeRange}
 
 object stats {
@@ -8,11 +8,6 @@ object stats {
   type StatsKey = String
   type StatsKeys = Seq[StatsKey]
 
-
-  trait StatsModule {
-
-    def stats: Stats
-  }
 
   trait Stats {
 
@@ -40,9 +35,7 @@ object stats {
       recordStats(Vector(key), TimeRange(time, time), BigDecimal(value))
   }
 
-  trait LogStats extends Stats {
-    this: LoggerModule =>
-
+  class LogStats(log: Logger) extends Stats {
     def recordStats(keys: StatsKeys, interval: TimeRange, value: BigDecimal): Unit = {
       log.audit(s"${keys.mkString(".")}(${interval.start.millis}-${interval.end.millis})=${value.toString}")
     }

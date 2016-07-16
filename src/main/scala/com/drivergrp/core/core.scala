@@ -1,9 +1,24 @@
-package com.drivergrp.core
+package com.drivergrp
 
-import scalaz._
+import scalaz.Equal
 
 
-object id {
+package object core {
+  import scala.language.reflectiveCalls
+
+  def make[T](v: => T)(f: T => Unit): T = {
+    val value = v; f(value); value
+  }
+
+  def using[R <: { def close() }, P](r: => R)(f: R => P): P = {
+    val resource = r
+    try {
+      f(resource)
+    } finally {
+      resource.close()
+    }
+  }
+
 
   trait Tagged[+V, +Tag]
   type @@[+V, +Tag] = V with Tagged[V, Tag]

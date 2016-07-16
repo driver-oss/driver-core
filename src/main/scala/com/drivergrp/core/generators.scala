@@ -1,8 +1,6 @@
 package com.drivergrp.core
 
 import java.math.MathContext
-
-import com.drivergrp.core.id.{Id, Name}
 import com.drivergrp.core.time.{Time, TimeRange}
 
 import scala.reflect.ClassTag

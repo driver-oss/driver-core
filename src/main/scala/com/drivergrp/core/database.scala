@@ -1,6 +1,5 @@
 package com.drivergrp.core
 
-import com.drivergrp.core.id.{Id, Name}
 import scala.concurrent.Future
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile

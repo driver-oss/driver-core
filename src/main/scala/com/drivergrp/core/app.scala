@@ -2,6 +2,7 @@ package com.drivergrp.core
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
 import akka.stream.ActorMaterializer
@@ -89,6 +90,12 @@ object app {
 
     def activate(): Unit = {}
     def deactivate(): Unit = {}
+  }
+
+  class EmptyModule extends Module {
+    val name = "Nothing"
+    def route: Route = complete(StatusCodes.OK)
+    def routeTypes = Seq.empty[Type]
   }
 
   class SimpleModule(val name: String, val route: Route, routeType: Type) extends Module {

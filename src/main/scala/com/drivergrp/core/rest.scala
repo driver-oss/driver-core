@@ -2,7 +2,9 @@ package com.drivergrp.core
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.server.PathMatcher.Matched
 import akka.http.scaladsl.server.{Directive, _}
 import akka.http.scaladsl.util.FastFuture._
 import akka.stream.ActorMaterializer
@@ -68,13 +70,23 @@ object rest {
 
   object basicFormats {
 
-    implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
+    def IdInPath[T]: PathMatcher1[Id[T]] =
+      PathMatcher("""[+-]?\d*""".r) flatMap { string ⇒
+        try Some(Id[T](string.toLong))
+        catch { case _: IllegalArgumentException ⇒ None }
+      }
+
+    def IdFormat[T] = new RootJsonFormat[Id[T]] {
       def write(id: Id[T]) = JsNumber(id)
 
       def read(value: JsValue) = value match {
         case JsNumber(id) => Id[T](id.toLong)
         case _ => throw new DeserializationException("Id expects number")
       }
+    }
+
+    def NameInPath[T]: PathMatcher1[Name[T]] = new PathMatcher1[Name[T]] {
+      def apply(path: Path) = Matched(Path.Empty, Tuple1(Name[T](path.toString)))
     }
 
     implicit def nameFormat[T] = new RootJsonFormat[Name[T]] {

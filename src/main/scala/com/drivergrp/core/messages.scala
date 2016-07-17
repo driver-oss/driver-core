@@ -50,7 +50,7 @@ object messages {
 
       def format(formatString: String, params: Seq[Any]) =
         params.zipWithIndex.foldLeft(formatString) {
-          case (res, (value, index)) => res.replaceAll(s"{$index}", value.toString)
+          case (res, (value, index)) => res.replace(s"{$index}", value.toString)
         }
 
       val template = apply(key)

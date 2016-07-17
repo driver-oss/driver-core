@@ -13,7 +13,12 @@ object config {
     scala.sys.props.get("application.config") match {
 
       case Some(filename) =>
-        ConfigFactory.parseFile(new File(filename)).withFallback(configDefaults)
+        val configFile = new File(filename)
+        if(configFile.exists()) {
+          ConfigFactory.parseFile(configFile).withFallback(configDefaults)
+        } else {
+          throw new IllegalStateException(s"No config found at $filename")
+        }
 
       case None => configDefaults
     }

@@ -76,7 +76,7 @@ object rest {
         catch { case _: IllegalArgumentException ⇒ None }
       }
 
-    def IdFormat[T] = new RootJsonFormat[Id[T]] {
+    implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
       def write(id: Id[T]) = JsNumber(id)
 
       def read(value: JsValue) = value match {

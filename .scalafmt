@@ -16,7 +16,7 @@
 --alignByArrowEnumeratorGenerator true
 --binPackParentConstructors true
 --allowNewlineBeforeColonInMassiveReturnTypes true
---spacesInImportCurlyBraces true
+--spacesInImportCurlyBraces false
 
 # --alignByOpenParenCallSite <value>
 # --alignByOpenParenDefnSite <value>

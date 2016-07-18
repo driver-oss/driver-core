@@ -1,7 +1,6 @@
 import sbt._
 import Keys._
-
-import org.scalafmt.sbt.ScalaFmtPlugin.autoImport.scalafmtConfig
+import org.scalafmt.sbt.ScalaFmtPlugin.autoImport._
 import wartremover._
 import wartremover.WartRemover.autoImport.wartremoverErrors
 
@@ -24,7 +23,7 @@ object BuildSettings {
       "-Ywarn-infer-any", "-Ywarn-unused", "-Ywarn-unused-import"),
     scalafmtConfig := Some(file(".scalafmt")),
     fork in run := true
-  ) ++ wartRemoverSettings
+  ) ++ wartRemoverSettings ++ reformatOnCompileSettings
 }
 
 object DriverBuild extends Build {

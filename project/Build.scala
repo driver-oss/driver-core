@@ -6,7 +6,7 @@ object BuildSettings {
     organization := "com.drivergrp",
     name         := "core",
     version      := "0.0.1",
-    scalaVersion := "2.11.6",
+    scalaVersion := "2.11.8",
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8"),
     fork in run := true
   )

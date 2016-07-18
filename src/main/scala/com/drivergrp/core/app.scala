@@ -12,6 +12,9 @@ import com.drivergrp.core.rest.Swagger
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
 
 object app {
 
@@ -21,22 +24,33 @@ object app {
                   config: Config = com.drivergrp.core.config.loadDefaultConfig,
                   interface: String = "localhost", port: Int = 8080) {
 
+    implicit private lazy val actorSystem = ActorSystem("spray-routing", config)
+    implicit private lazy val executionContext = actorSystem.dispatcher
+    implicit private lazy val materializer = ActorMaterializer()(actorSystem)
+    private lazy val http = Http()(actorSystem)
+
+
     def run() = {
       activateServices(modules)
       scheduleServicesDeactivation(modules)
       bindHttp(modules)
+      Console.print(s"${this.getClass.getName} App is started")
     }
 
-    protected def bindHttp(modules: Seq[Module]) {
-      implicit val actorSystem = ActorSystem("spray-routing", config)
-      implicit val executionContext = actorSystem.dispatcher
-      implicit val materializer = ActorMaterializer()(actorSystem)
+    def stop() = {
+      http.shutdownAllConnectionPools().onComplete { _ =>
+        actorSystem.terminate()
+        Await.result(actorSystem.whenTerminated, 30.seconds)
+        Console.print(s"${this.getClass.getName} App is stopped")
+      }
+    }
 
+
+    protected def bindHttp(modules: Seq[Module]) {
       val serviceTypes = modules.flatMap(_.routeTypes)
       val swaggerService = new Swagger(actorSystem, serviceTypes, config)
       val swaggerRoutes = swaggerService.routes ~ swaggerService.swaggerUI
-
-      Http()(actorSystem).bindAndHandle(
+      http.bindAndHandle(
         route2HandlerFlow(logRequestResult("log")(modules.map(_.route).foldLeft(swaggerRoutes) { _ ~ _ })),
         interface, port)(materializer)
     }

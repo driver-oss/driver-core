@@ -11,12 +11,12 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.drivergrp.core.logging.Logger
 import com.drivergrp.core.stats.Stats
-import com.drivergrp.core.time.TimeRange
+import com.drivergrp.core.time.{Time, TimeRange}
 import com.drivergrp.core.time.provider.TimeProvider
 import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
-import spray.json.{DeserializationException, JsNumber, JsString, JsValue, RootJsonFormat}
+import spray.json.{DeserializationException, JsNumber, JsObject, JsString, JsValue, RootJsonFormat}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -72,8 +72,7 @@ object rest {
 
     def IdInPath[T]: PathMatcher1[Id[T]] =
       PathMatcher("""[+-]?\d*""".r) flatMap { string ⇒
-        try Some(Id[T](string.toLong))
-        catch { case _: IllegalArgumentException ⇒ None }
+        try Some(Id[T](string.toLong)) catch { case _: IllegalArgumentException ⇒ None }
       }
 
     implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
@@ -95,6 +94,24 @@ object rest {
       def read(value: JsValue): Name[T] = value match {
         case JsString(name) => Name[T](name)
         case _ => throw new DeserializationException("Name expects string")
+      }
+    }
+
+    def TimeInPath[T]: PathMatcher1[Time] =
+      PathMatcher("""[+-]?\d*""".r) flatMap { string ⇒
+        try Some(Time(string.toLong)) catch { case _: IllegalArgumentException ⇒ None }
+      }
+
+    implicit def timeFormat[T] = new RootJsonFormat[Time] {
+      def write(time: Time) = JsObject("timestamp" -> JsNumber(time.millis))
+
+      def read(value: JsValue): Time = value match {
+        case JsObject(fields) =>
+          fields.get("timestamp").flatMap {
+            case JsNumber(millis) => Some(Time(millis.toLong))
+            case _ => None
+          }.getOrElse(throw new DeserializationException("Time expects number"))
+        case _ => throw new DeserializationException("Time expects number")
       }
     }
   }

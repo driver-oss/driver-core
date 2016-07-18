@@ -1,0 +1,11 @@
+# scalafmt sbt plugin config
+# refer to https://olafurpg.github.io/scalafmt/#Configuration for properties
+
+--style defaultWithAlign # For pretty alignment.
+--maxColumn 100          # For my wide 30" display.
+
+--continuationIndentCallSite 4
+--continuationIndentDefnSite 4
+
+#--alignTokens
+#--assumeStandardLibraryStripMargin

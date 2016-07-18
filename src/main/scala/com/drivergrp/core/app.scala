@@ -69,7 +69,7 @@ object app {
 
       val _ = http.bindAndHandle(
         route2HandlerFlow(logRequestResult("log")(
-          modules.map(_.route).foldLeft(versionRoute ~ swaggerRoutes) { _ ~ _ })),
+          modules.map(_.route).foldLeft(versionRoute ~ swaggerRoutes)(_ ~ _))),
         interface, port)(materializer)
     }
 

@@ -156,7 +156,7 @@ object rest {
         config.getString("swagger.apiInfo.license"),
         config.getString("swagger.apiInfo.licenseUrl")
       )),
-      vendorExtensions = Map())
+      vendorExtensions = Map.empty[String, AnyRef])
 
     def swaggerUI = get {
       pathPrefix("") {

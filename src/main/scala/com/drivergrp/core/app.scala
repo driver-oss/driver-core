@@ -44,9 +44,10 @@ object app {
 
     def stop() = {
       http.shutdownAllConnectionPools().onComplete { _ =>
-        actorSystem.terminate()
-        Await.result(actorSystem.whenTerminated, 30.seconds)
-        Console.print(s"${this.getClass.getName} App is stopped")
+        val _ = actorSystem.terminate()
+        val terminated = Await.result(actorSystem.whenTerminated, 30.seconds)
+        val addressTerminated = if(terminated.addressTerminated) "is" else "is not"
+        Console.print(s"${this.getClass.getName} App $addressTerminated stopped ")
       }
     }
 
@@ -66,7 +67,7 @@ object app {
         ))
       }
 
-      http.bindAndHandle(
+      val _ = http.bindAndHandle(
         route2HandlerFlow(logRequestResult("log")(
           modules.map(_.route).foldLeft(versionRoute ~ swaggerRoutes) { _ ~ _ })),
         interface, port)(materializer)

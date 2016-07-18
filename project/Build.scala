@@ -1,7 +1,19 @@
 import sbt._
 import Keys._
 
+import org.scalafmt.sbt.ScalaFmtPlugin.autoImport.scalafmtConfig
+import wartremover._
+import wartremover.WartRemover.autoImport.wartremoverErrors
+
+
 object BuildSettings {
+
+  val wartRemoverSettings = Seq(
+    wartremoverErrors in (Compile, compile) ++= Warts.allBut(
+      Wart.AsInstanceOf, Wart.Nothing, Wart.Option2Iterable, Wart.ExplicitImplicitTypes,
+      Wart.Overloading, Wart.DefaultArguments, Wart.ToString, Wart.Any, Wart.Throw)
+  )
+
   val buildSettings = Defaults.coreDefaultSettings ++ Seq (
     organization := "com.drivergrp",
     name         := "core",
@@ -10,8 +22,9 @@ object BuildSettings {
     scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-encoding", "utf8",
       "-language:higherKinds", "-language:implicitConversions", "-language:postfixOps",
       "-Ywarn-infer-any", "-Ywarn-unused", "-Ywarn-unused-import"),
+    scalafmtConfig := Some(file(".scalafmt")),
     fork in run := true
-  )
+  ) ++ wartRemoverSettings
 }
 
 object DriverBuild extends Build {

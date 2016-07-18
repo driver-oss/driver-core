@@ -20,7 +20,7 @@ object messages {
     }
   }
 
-  case class Messages(map: Map[String, String], locale: Locale, log: Logger) {
+  final case class Messages(map: Map[String, String], locale: Locale, log: Logger) {
 
     /**
       * Returns message for the key

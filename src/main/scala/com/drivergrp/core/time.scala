@@ -21,7 +21,7 @@ object time {
   val Weeks = Week
 
 
-  case class Time(millis: Long) extends AnyVal {
+  final case class Time(millis: Long) extends AnyVal {
 
     def isBefore(anotherTime: Time): Boolean = millis < anotherTime.millis
 
@@ -30,17 +30,16 @@ object time {
     def advanceBy(duration: Duration): Time = Time(millis + duration.length)
   }
 
-  case class TimeRange(start: Time, end: Time)
+  final case class TimeRange(start: Time, end: Time)
 
   implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
 
 
   def startOfMonth(time: Time) = {
-    make(new GregorianCalendar()) { cal =>
+    Time(make(new GregorianCalendar()) { cal =>
       cal.setTime(new Date(time.millis))
       cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH))
-      Time(cal.getTime.getTime)
-    }
+    }.getTime.getTime)
   }
 
   def textualDate(time: Time): String =

@@ -4,7 +4,6 @@ import scala.concurrent.Future
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile
 
-
 object database {
 
   trait Database {
@@ -18,12 +17,11 @@ object database {
       val dbConfig: DatabaseConfig[JdbcProfile] = DatabaseConfig.forConfig(databaseName)
 
       new Database {
-        val profile: JdbcProfile = dbConfig.driver
+        val profile: JdbcProfile                   = dbConfig.driver
         val database: JdbcProfile#Backend#Database = dbConfig.db
       }
     }
   }
-
 
   trait IdColumnTypes {
     val database: Database
@@ -31,12 +29,11 @@ object database {
     import database.profile.api._
 
     implicit def idColumnType[T] =
-      MappedColumnType.base[Id[T], Long]({ id => id: Long }, { id => Id[T](id) })
+      MappedColumnType.base[Id[T], Long](id => id: Long, Id[T](_))
 
     implicit def nameColumnType[T] =
-      MappedColumnType.base[Name[T], String]({ name => name: String }, { name => Name[T](name) })
+      MappedColumnType.base[Name[T], String](name => name: String, Name[T](_))
   }
-
 
   trait DatabaseObject extends IdColumnTypes {
 
@@ -46,6 +43,6 @@ object database {
 
   abstract class DatabaseObjectAdapter extends DatabaseObject {
     def createTables(): Future[Unit] = Future.successful(())
-    def disconnect(): Unit = {}
+    def disconnect(): Unit           = {}
   }
 }

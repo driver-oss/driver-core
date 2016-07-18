@@ -5,21 +5,19 @@ import java.util.{Calendar, Date, GregorianCalendar}
 
 import scala.concurrent.duration.Duration
 
-
 object time {
 
   // The most useful time units
-  val Second = 1000L
+  val Second  = 1000L
   val Seconds = Second
-  val Minute = 60 * Seconds
+  val Minute  = 60 * Seconds
   val Minutes = Minute
-  val Hour = 60 * Minutes
-  val Hours = Hour
-  val Day = 24 * Hours
-  val Days = Day
-  val Week = 7 * Days
-  val Weeks = Week
-
+  val Hour    = 60 * Minutes
+  val Hours   = Hour
+  val Day     = 24 * Hours
+  val Days    = Day
+  val Week    = 7 * Days
+  val Weeks   = Week
 
   final case class Time(millis: Long) extends AnyVal {
 
@@ -34,7 +32,6 @@ object time {
 
   implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
 
-
   def startOfMonth(time: Time) = {
     Time(make(new GregorianCalendar()) { cal =>
       cal.setTime(new Date(time.millis))
@@ -47,7 +44,6 @@ object time {
 
   def textualTime(time: Time): String =
     new SimpleDateFormat("MMM dd, yyyy hh:mm:ss a").format(new Date(time.millis))
-
 
   object provider {
 

@@ -5,9 +5,8 @@ import com.drivergrp.core.time.{Time, TimeRange}
 
 object stats {
 
-  type StatsKey = String
+  type StatsKey  = String
   type StatsKeys = Seq[StatsKey]
-
 
   trait Stats {
 

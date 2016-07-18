@@ -2,10 +2,21 @@
 # refer to https://olafurpg.github.io/scalafmt/#Configuration for properties
 
 --style defaultWithAlign # For pretty alignment.
---maxColumn 100          # For my wide 30" display.
+--maxColumn 120          # For my wide 30" display.
+
+--reformatDocstrings true
+--scalaDocs
 
 --continuationIndentCallSite 4
 --continuationIndentDefnSite 4
 
-#--alignTokens
-#--assumeStandardLibraryStripMargin
+--rewriteTokens ⇒;=>,←;<-
+--danglingParentheses false
+--spaceAfterTripleEquals true
+--alignByArrowEnumeratorGenerator true
+--binPackParentConstructors true
+--allowNewlineBeforeColonInMassiveReturnTypes true
+--spacesInImportCurlyBraces true
+
+# --alignByOpenParenCallSite <value>
+# --alignByOpenParenDefnSite <value>

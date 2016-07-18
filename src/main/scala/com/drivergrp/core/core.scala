@@ -2,7 +2,6 @@ package com.drivergrp
 
 import scalaz.Equal
 
-
 package object core {
   import scala.language.reflectiveCalls
 
@@ -18,7 +17,6 @@ package object core {
       resource.close()
     }
   }
-
 
   private[core] trait Tagged[+V, +Tag]
   type @@[+V, +Tag] = V with Tagged[V, Tag]

@@ -6,7 +6,6 @@ import com.drivergrp.core.time.{Time, TimeRange}
 import scala.reflect.ClassTag
 import scala.util.Random
 
-
 object generators {
 
   private val random = new Random
@@ -14,14 +13,13 @@ object generators {
 
   private val DefaultMaxLength = 100
 
-
   def nextId[T](): Id[T] = Id[T](nextLong())
 
   def nextName[T](maxLength: Int = DefaultMaxLength): Name[T] = Name[T](nextString(maxLength))
 
   def nextString(maxLength: Int = DefaultMaxLength) = random.nextString(maxLength)
 
-  def nextOption[T](value: => T): Option[T] = if(nextBoolean) Option(value) else None
+  def nextOption[T](value: => T): Option[T] = if (nextBoolean) Option(value) else None
 
   def nextPair[L, R](left: => L, right: => R): (L, R) = (left, right)
 
@@ -36,7 +34,8 @@ object generators {
 
   def oneOf[T](items: Seq[T]): T = items(nextInt(items.size))
 
-  def arrayOf[T : ClassTag](generator: => T, maxLength: Int = DefaultMaxLength): Array[T] = Array.fill(maxLength)(generator)
+  def arrayOf[T: ClassTag](generator: => T, maxLength: Int = DefaultMaxLength): Array[T] =
+    Array.fill(maxLength)(generator)
 
   def seqOf[T](generator: => T, maxLength: Int = DefaultMaxLength): Seq[T] = Seq.fill(maxLength)(generator)
 

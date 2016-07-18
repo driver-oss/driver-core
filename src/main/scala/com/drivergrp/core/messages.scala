@@ -1,6 +1,5 @@
 package com.drivergrp.core
 
-
 import java.util.Locale
 
 import com.drivergrp.core.logging.Logger

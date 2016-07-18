@@ -2,15 +2,18 @@ package com.drivergrp.core
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
+import akka.http.scaladsl.server.{Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
 import com.drivergrp.core.logging.{Logger, TypesafeScalaLogger}
-import akka.http.scaladsl.server.{Route, RouteConcatenation}
 import com.drivergrp.core.rest.Swagger
+import com.drivergrp.core.time.provider.{SystemTimeProvider, TimeProvider}
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
+import spray.json.DefaultJsonProtocol
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -18,7 +21,9 @@ import scala.concurrent.duration._
 
 object app {
 
-  class DriverApp(modules: Seq[Module],
+  class DriverApp(version: String, buildNumber: Int,
+                  modules: Seq[Module],
+                  time: TimeProvider = new SystemTimeProvider(),
                   log: Logger = new TypesafeScalaLogger(
                     com.typesafe.scalalogging.Logger(LoggerFactory.getLogger(classOf[DriverApp]))),
                   config: Config = com.drivergrp.core.config.loadDefaultConfig,
@@ -45,13 +50,25 @@ object app {
       }
     }
 
-
     protected def bindHttp(modules: Seq[Module]) {
+      import SprayJsonSupport._
+      import DefaultJsonProtocol._
+
       val serviceTypes = modules.flatMap(_.routeTypes)
       val swaggerService = new Swagger(actorSystem, serviceTypes, config)
       val swaggerRoutes = swaggerService.routes ~ swaggerService.swaggerUI
+
+      val versionRoute = path("version") {
+        complete(Map(
+          "version" -> version,
+          "buildNumber" -> buildNumber.toString,
+          "serverTime" -> time.currentTime().millis.toString
+        ))
+      }
+
       http.bindAndHandle(
-        route2HandlerFlow(logRequestResult("log")(modules.map(_.route).foldLeft(swaggerRoutes) { _ ~ _ })),
+        route2HandlerFlow(logRequestResult("log")(
+          modules.map(_.route).foldLeft(versionRoute ~ swaggerRoutes) { _ ~ _ })),
         interface, port)(materializer)
     }
 

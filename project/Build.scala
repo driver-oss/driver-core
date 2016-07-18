@@ -7,7 +7,9 @@ object BuildSettings {
     name         := "core",
     version      := "0.0.1",
     scalaVersion := "2.11.8",
-    scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-encoding", "utf8"),
+    scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-encoding", "utf8",
+      "-language:higherKinds", "-language:implicitConversions", "-language:postfixOps",
+      "-Ywarn-infer-any", "-Ywarn-unused", "-Ywarn-unused-import"),
     fork in run := true
   )
 }

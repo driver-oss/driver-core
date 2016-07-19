@@ -44,7 +44,7 @@ object DriverBuild extends Build {
     "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpV,
     "org.scalatest"      %  "scalatest_2.11" % "2.2.1" % "test",
     "org.mockito"          % "mockito-core" % "1.9.5" % "test",
-    "com.typesafe.slick" %% "slick"  % "3.0.0",
+    "com.typesafe.slick" %% "slick"  % "3.1.1",
     "com.typesafe"       %  "config" % "1.2.1",
     "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
     "ch.qos.logback"     % "logback-classic" % "1.1.3",

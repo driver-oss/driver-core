@@ -52,14 +52,22 @@ object app {
     }
 
     protected def bindHttp(modules: Seq[Module]): Unit = {
-      import SprayJsonSupport._
-      import DefaultJsonProtocol._
-
       val serviceTypes   = modules.flatMap(_.routeTypes)
       val swaggerService = new Swagger(actorSystem, serviceTypes, config)
       val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
+      val versionRt      = versionRoute(version, buildNumber)
 
-      val versionRoute = path("version") {
+      val _ = http.bindAndHandle(
+          route2HandlerFlow(logRequestResult("log")(modules.map(_.route).foldLeft(versionRt ~ swaggerRoutes)(_ ~ _))),
+          interface,
+          port)(materializer)
+    }
+
+    protected def versionRoute(version: String, buildNumber: Int) = {
+      import SprayJsonSupport._
+      import DefaultJsonProtocol._
+
+      path("version") {
         complete(
             Map(
                 "version"     -> version,
@@ -67,12 +75,6 @@ object app {
                 "serverTime"  -> time.currentTime().millis.toString
             ))
       }
-
-      val _ = http.bindAndHandle(
-          route2HandlerFlow(
-              logRequestResult("log")(modules.map(_.route).foldLeft(versionRoute ~ swaggerRoutes)(_ ~ _))),
-          interface,
-          port)(materializer)
     }
 
     /**

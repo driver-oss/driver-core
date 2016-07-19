@@ -36,7 +36,8 @@ object stats {
 
   class LogStats(log: Logger) extends Stats {
     def recordStats(keys: StatsKeys, interval: TimeRange, value: BigDecimal): Unit = {
-      log.audit(s"${keys.mkString(".")}(${interval.start.millis}-${interval.end.millis})=${value.toString}")
+      val valueString = value.bigDecimal.toPlainString
+      log.audit(s"${keys.mkString(".")}(${interval.start.millis}-${interval.end.millis})=$valueString")
     }
   }
 }

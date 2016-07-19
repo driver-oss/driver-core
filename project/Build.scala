@@ -14,11 +14,6 @@ object BuildSettings {
       Wart.Overloading, Wart.DefaultArguments, Wart.ToString, Wart.Any, Wart.Throw)
   )
 
-  val acyclicSettings = Seq(
-    autoCompilerPlugins := true,
-    addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.4")
-  )
-
   val compileScalastyle = taskKey[Unit]("compileScalastyle")
 
   val buildSettings = Defaults.coreDefaultSettings ++ Seq (
@@ -33,7 +28,7 @@ object BuildSettings {
     fork in run := true,
     compileScalastyle := (scalastyle in Compile).toTask("").value,
     (compile in Compile) <<= ((compile in Compile) dependsOn compileScalastyle)
-  ) ++ wartRemoverSettings ++ acyclicSettings ++ reformatOnCompileSettings
+  ) ++ wartRemoverSettings ++ reformatOnCompileSettings
 }
 
 object DriverBuild extends Build {
@@ -48,6 +43,7 @@ object DriverBuild extends Build {
     "com.typesafe.akka"  %% "akka-http-spray-json-experimental" % akkaHttpV,
     "com.typesafe.akka"  %% "akka-http-testkit" % akkaHttpV,
     "org.scalatest"      %  "scalatest_2.11" % "2.2.1" % "test",
+    "org.mockito"          % "mockito-core" % "1.9.5" % "test",
     "com.typesafe.slick" %% "slick"  % "3.0.0",
     "com.typesafe"       %  "config" % "1.2.1",
     "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",

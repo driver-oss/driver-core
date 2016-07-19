@@ -35,6 +35,13 @@ object logging {
     def debug(marker: Marker, message: String, args: AnyRef*): Unit
   }
 
+  /**
+    * Logger implementation which uses `com.typesafe.scalalogging.Logger` on the back.
+    * It redefines the meaning of logging levels to fit to the Driver infrastructure design,
+    * and as using error and warn, debug and trace was always confusing and mostly done wrong.
+    *
+    * @param scalaLogging com.typesafe.scalalogging.Logger which logging will be delegated to
+    */
   class TypesafeScalaLogger(scalaLogging: com.typesafe.scalalogging.Logger) extends Logger {
 
     def fatal(message: String): Unit                                   = scalaLogging.error(message)

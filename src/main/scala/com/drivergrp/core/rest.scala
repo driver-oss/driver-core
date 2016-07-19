@@ -121,11 +121,11 @@ object rest {
     /**
       * "Unwraps" a `OptionT[Future, T]` and runs the inner route after future
       * completion with the future's value as an extraction of type `Try[T]`.
+      * Copied akka-http code with added `.run` call on `OptionT`.
       */
     def onComplete[T](optionT: OptionT[Future, T]): Directive1[Try[Option[T]]] =
       Directive { inner ⇒ ctx ⇒
-        import ctx.executionContext
-        optionT.run.fast.transformWith(t ⇒ inner(Tuple1(t))(ctx))
+        optionT.run.fast.transformWith(t ⇒ inner(Tuple1(t))(ctx))(ctx.executionContext)
       }
   }
 

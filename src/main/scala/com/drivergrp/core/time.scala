@@ -3,7 +3,7 @@ package com.drivergrp.core
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Date, GregorianCalendar}
 
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 object time {
 
@@ -25,10 +25,12 @@ object time {
 
     def isAfter(anotherTime: Time): Boolean = millis > anotherTime.millis
 
-    def advanceBy(duration: Duration): Time = Time(millis + duration.length)
+    def advanceBy(duration: Duration): Time = Time(millis + duration.toMillis)
   }
 
-  final case class TimeRange(start: Time, end: Time)
+  final case class TimeRange(start: Time, end: Time) {
+    def duration: Duration = FiniteDuration(end.millis - start.millis, MILLISECONDS)
+  }
 
   implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
 

@@ -31,7 +31,7 @@ object messages {
       map.get(key) match {
         case Some(message) => message
         case None =>
-          log.error(s"Message with key $key not found for locale " + locale.getDisplayName)
+          log.error(s"Message with key '$key' not found for locale '${locale.getLanguage}'")
           key
       }
     }

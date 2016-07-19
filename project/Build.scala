@@ -14,6 +14,11 @@ object BuildSettings {
       Wart.Overloading, Wart.DefaultArguments, Wart.ToString, Wart.Any, Wart.Throw)
   )
 
+  val acyclicSettings = Seq(
+    autoCompilerPlugins := true,
+    addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.4")
+  )
+
   val compileScalastyle = taskKey[Unit]("compileScalastyle")
 
   val buildSettings = Defaults.coreDefaultSettings ++ Seq (
@@ -28,7 +33,7 @@ object BuildSettings {
     fork in run := true,
     compileScalastyle := (scalastyle in Compile).toTask("").value,
     (compile in Compile) <<= ((compile in Compile) dependsOn compileScalastyle)
-  ) ++ wartRemoverSettings ++ reformatOnCompileSettings
+  ) ++ wartRemoverSettings ++ acyclicSettings ++ reformatOnCompileSettings
 }
 
 object DriverBuild extends Build {
@@ -49,7 +54,8 @@ object DriverBuild extends Build {
     "ch.qos.logback"     % "logback-classic" % "1.1.3",
     "org.slf4j"          % "slf4j-nop"    % "1.6.4",
     "org.scalaz"         %% "scalaz-core" % "7.2.4",
-    "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.7.1"
+    "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.7.1",
+    "com.lihaoyi" %% "acyclic" % "0.1.4" % "provided"
   )
 
   lazy val core = Project (

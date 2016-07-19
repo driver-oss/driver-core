@@ -1,6 +1,7 @@
 import sbt._
 import Keys._
 import org.scalafmt.sbt.ScalaFmtPlugin.autoImport._
+import org.scalastyle.sbt.ScalastylePlugin._
 import wartremover._
 import wartremover.WartRemover.autoImport.wartremoverErrors
 
@@ -13,6 +14,8 @@ object BuildSettings {
       Wart.Overloading, Wart.DefaultArguments, Wart.ToString, Wart.Any, Wart.Throw)
   )
 
+  val compileScalastyle = taskKey[Unit]("compileScalastyle")
+
   val buildSettings = Defaults.coreDefaultSettings ++ Seq (
     organization := "com.drivergrp",
     name         := "core",
@@ -22,7 +25,9 @@ object BuildSettings {
       "-language:higherKinds", "-language:implicitConversions", "-language:postfixOps",
       "-Ywarn-infer-any", "-Ywarn-unused", "-Ywarn-unused-import"),
     scalafmtConfig := Some(file(".scalafmt")),
-    fork in run := true
+    fork in run := true,
+    compileScalastyle := (scalastyle in Compile).toTask("").value,
+    (compile in Compile) <<= ((compile in Compile) dependsOn compileScalastyle)
   ) ++ wartRemoverSettings ++ reformatOnCompileSettings
 }
 

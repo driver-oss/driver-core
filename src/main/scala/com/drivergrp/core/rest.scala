@@ -138,7 +138,7 @@ object rest {
 
     val materializer = ActorMaterializer()(actorSystem)
 
-    override val host = "localhost:8080" //the url of your api, not swagger's json endpoint
+    override val host = "localhost:8080" // the url of your api, not swagger's json endpoint
     override val basePath = config.getString("swagger.basePath")
     override val apiDocsPath = config.getString("swagger.docsPath")
 

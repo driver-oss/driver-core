@@ -6,11 +6,11 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
-import akka.http.scaladsl.server.{ Route, RouteConcatenation }
+import akka.http.scaladsl.server.{Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
-import com.drivergrp.core.logging.{ Logger, TypesafeScalaLogger }
+import com.drivergrp.core.logging.{Logger, TypesafeScalaLogger}
 import com.drivergrp.core.rest.Swagger
-import com.drivergrp.core.time.provider.{ SystemTimeProvider, TimeProvider }
+import com.drivergrp.core.time.provider.{SystemTimeProvider, TimeProvider}
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 import spray.json.DefaultJsonProtocol
@@ -39,7 +39,7 @@ object app {
       activateServices(modules)
       scheduleServicesDeactivation(modules)
       bindHttp(modules)
-      Console.print(s"${ this.getClass.getName } App is started")
+      Console.print(s"${this.getClass.getName} App is started")
     }
 
     def stop() = {
@@ -47,11 +47,11 @@ object app {
         val _                 = actorSystem.terminate()
         val terminated        = Await.result(actorSystem.whenTerminated, 30.seconds)
         val addressTerminated = if (terminated.addressTerminated) "is" else "is not"
-        Console.print(s"${ this.getClass.getName } App $addressTerminated stopped ")
+        Console.print(s"${this.getClass.getName} App $addressTerminated stopped ")
       }
     }
 
-    protected def bindHttp(modules: Seq[Module]) {
+    protected def bindHttp(modules: Seq[Module]): Unit = {
       import SprayJsonSupport._
       import DefaultJsonProtocol._
 
@@ -80,12 +80,12 @@ object app {
       */
     protected def activateServices(services: Seq[Module]) = {
       services.foreach { service =>
-        Console.print(s"Service ${ service.name } starts ...")
+        Console.print(s"Service ${service.name} starts ...")
         try {
           service.activate()
         } catch {
           case t: Throwable =>
-            log.fatal(s"Service ${ service.name } failed to activate", t)
+            log.fatal(s"Service ${service.name} failed to activate", t)
             Console.print(" Failed! (check log)")
         }
         Console.println(" Done")
@@ -99,12 +99,12 @@ object app {
       Runtime.getRuntime.addShutdownHook(new Thread() {
         override def run(): Unit = {
           services.foreach { service =>
-            Console.print(s"Service ${ service.name } shutting down ...")
+            Console.print(s"Service ${service.name} shutting down ...")
             try {
               service.deactivate()
             } catch {
               case t: Throwable =>
-                log.fatal(s"Service ${ service.name } failed to deactivate", t)
+                log.fatal(s"Service ${service.name} failed to deactivate", t)
                 Console.print(" Failed! (check log)")
             }
             Console.println(" Done")

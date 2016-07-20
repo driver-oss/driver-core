@@ -8,6 +8,12 @@ lazy val wartRemoverSettings = Seq(
     Wart.Overloading, Wart.DefaultArguments, Wart.ToString, Wart.Any, Wart.Throw)
 )
 
+lazy val scalafmtSettings = Seq(
+  scalafmtConfig in ThisBuild := Some(file(".scalafmt")),
+  testExecution in (Test, test) <<=
+    (testExecution in (Test, test)) dependsOn (scalafmtTest in Compile, scalafmtTest in Test)
+)
+
 lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
 
 lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq (
@@ -18,11 +24,10 @@ lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq (
   scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-encoding", "utf8",
     "-language:higherKinds", "-language:implicitConversions", "-language:postfixOps",
     "-Ywarn-infer-any", "-Ywarn-unused", "-Ywarn-unused-import"),
-  scalafmtConfig := Some(file(".scalafmt")),
   fork in run := true,
   compileScalastyle := (scalastyle in Compile).toTask("").value,
   (compile in Compile) <<= ((compile in Compile) dependsOn compileScalastyle)
-) ++ wartRemoverSettings ++ reformatOnCompileSettings
+) ++ wartRemoverSettings ++ scalafmtSettings
 
 lazy val akkaHttpV = "2.4.8"
 

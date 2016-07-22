@@ -1,18 +1,7 @@
 import sbt._
 import Keys._
+import DriverConfigurations._
 
-
-lazy val wartRemoverSettings = Seq(
-  wartremoverErrors in (Compile, compile) ++= Warts.allBut(
-    Wart.AsInstanceOf, Wart.Nothing, Wart.Option2Iterable, Wart.ExplicitImplicitTypes,
-    Wart.Overloading, Wart.DefaultArguments, Wart.ToString, Wart.Any, Wart.Throw)
-)
-
-lazy val scalafmtSettings = Seq(
-  scalafmtConfig in ThisBuild := Some(file(".scalafmt")),
-  testExecution in (Test, test) <<=
-    (testExecution in (Test, test)) dependsOn (scalafmtTest in Compile, scalafmtTest in Test)
-)
 
 lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
 
@@ -27,7 +16,7 @@ lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq (
   fork in run := true,
   compileScalastyle := (scalastyle in Compile).toTask("").value,
   (compile in Compile) <<= ((compile in Compile) dependsOn compileScalastyle)
-) ++ wartRemoverSettings ++ scalafmtSettings
+) ++ wartRemoverSettings ++ DriverConfigurations.scalafmtSettings
 
 lazy val akkaHttpV = "2.4.8"
 
@@ -51,3 +40,5 @@ lazy val core = (project in file(".")).
       "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.7.1",
       "com.lihaoyi" %% "acyclic" % "0.1.4" % "provided"
     ))
+  .gitPluginConfiguration
+  .settings(publicationSettings() ++ releaseSettings())

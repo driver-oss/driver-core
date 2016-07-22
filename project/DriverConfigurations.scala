@@ -1,11 +1,10 @@
-import org.scalafmt.sbt.ScalaFmtPlugin.autoImport._
-import sbt.Keys._
-import sbt._
-import wartremover.WartRemover.autoImport._
 import com.typesafe.sbt.SbtGit.git
 import com.typesafe.sbt.{GitBranchPrompt, GitVersioning}
 import org.scalafmt.sbt.ScalaFmtPlugin.autoImport._
+import sbt.Keys._
+import sbt._
 import sbtrelease.{Version, _}
+import wartremover.WartRemover.autoImport._
 // we hide the existing definition for setReleaseVersion to replace it with our own
 import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 import sbtrelease.ReleasePlugin.autoImport._

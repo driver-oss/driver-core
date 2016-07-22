@@ -8,7 +8,6 @@ lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
 lazy val buildSettings = Defaults.coreDefaultSettings ++ Seq (
   organization := "com.drivergrp",
   name         := "core",
-  version      := "0.0.1",
   scalaVersion := "2.11.8",
   scalacOptions := Seq("-unchecked", "-deprecation", "-feature", "-Xlint", "-encoding", "utf8",
     "-language:higherKinds", "-language:implicitConversions", "-language:postfixOps",

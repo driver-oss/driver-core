@@ -9,10 +9,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceId = Id[String](1312L)
 
-    val writtenJson = com.drivergrp.core.json.basicFormats.idFormat.write(referenceId)
+    val writtenJson = com.drivergrp.core.json.idFormat.write(referenceId)
     writtenJson.prettyPrint should be("1312")
 
-    val parsedId = com.drivergrp.core.json.basicFormats.idFormat.read(writtenJson)
+    val parsedId = com.drivergrp.core.json.idFormat.read(writtenJson)
     parsedId should be(referenceId)
   }
 
@@ -20,10 +20,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceName = Name[String]("Homer")
 
-    val writtenJson = com.drivergrp.core.json.basicFormats.nameFormat.write(referenceName)
+    val writtenJson = com.drivergrp.core.json.nameFormat.write(referenceName)
     writtenJson.prettyPrint should be("\"Homer\"")
 
-    val parsedName = com.drivergrp.core.json.basicFormats.nameFormat.read(writtenJson)
+    val parsedName = com.drivergrp.core.json.nameFormat.read(writtenJson)
     parsedName should be(referenceName)
   }
 
@@ -31,10 +31,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceTime = new SystemTimeProvider().currentTime()
 
-    val writtenJson = com.drivergrp.core.json.basicFormats.timeFormat.write(referenceTime)
+    val writtenJson = com.drivergrp.core.json.timeFormat.write(referenceTime)
     writtenJson.prettyPrint should be("{\n  \"timestamp\": " + referenceTime.millis + "\n}")
 
-    val parsedTime = com.drivergrp.core.json.basicFormats.timeFormat.read(writtenJson)
+    val parsedTime = com.drivergrp.core.json.timeFormat.read(writtenJson)
     parsedTime should be(referenceTime)
   }
 }

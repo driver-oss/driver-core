@@ -97,12 +97,12 @@ object rest {
       }
     }
 
-    def TimeInPath[T]: PathMatcher1[Time] =
+    def TimeInPath: PathMatcher1[Time] =
       PathMatcher("""[+-]?\d*""".r) flatMap { string ⇒
         try Some(Time(string.toLong)) catch { case _: IllegalArgumentException ⇒ None }
       }
 
-    implicit def timeFormat[T] = new RootJsonFormat[Time] {
+    implicit val timeFormat = new RootJsonFormat[Time] {
       def write(time: Time) = JsObject("timestamp" -> JsNumber(time.millis))
 
       def read(value: JsValue): Time = value match {

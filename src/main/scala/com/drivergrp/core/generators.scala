@@ -57,7 +57,7 @@ object generators {
     List.fill(nextInt(maxLength))(generator)
 
   def setOf[T](generator: => T, maxLength: Int = DefaultMaxLength): Set[T] =
-    seqOf(generator, nextInt(maxLength)).toSet
+    seqOf(generator, maxLength).toSet
 
   def mapOf[K, V](maxLength: Int, keyGenerator: => K, valueGenerator: => V): Map[K, V] =
     seqOf(nextPair(keyGenerator, valueGenerator), maxLength).toMap

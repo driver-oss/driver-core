@@ -53,7 +53,9 @@ object app {
 
     protected def bindHttp(modules: Seq[Module]): Unit = {
       val serviceTypes   = modules.flatMap(_.routeTypes)
-      val swaggerService = new Swagger(actorSystem, serviceTypes, config)
+      val swaggerService = new Swagger(actorSystem, serviceTypes, config) {
+        override val host = interface + ":" + port
+      }
       val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
       val versionRt      = versionRoute(version, buildNumber)
 

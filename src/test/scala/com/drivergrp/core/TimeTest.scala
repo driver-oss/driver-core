@@ -1,5 +1,7 @@
 package com.drivergrp.core
 
+import java.util.TimeZone
+
 import com.drivergrp.core.time.{Time, _}
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -44,8 +46,8 @@ class TimeTest extends FlatSpec with Matchers {
 
   it should "have correct textual representations" in {
 
-    textualDate(Time(1468937089834L)) should be("July 19, 2016")
-    textualTime(Time(1468937089834L)) should be("Jul 19, 2016 10:04:49 AM")
+    textualDate(TimeZone.getTimeZone("EDT"))(Time(1468937089834L)) should be("July 19, 2016")
+    textualTime(TimeZone.getTimeZone("PDT"))(Time(1468937089834L)) should be("Jul 19, 2016 02:04:49 PM")
   }
 
   "TimeRange" should "have duration defined as a difference of start and end times" in {

@@ -3,8 +3,6 @@ package com.drivergrp.core
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
-import akka.http.scaladsl.server.{Directive, _}
-import akka.http.scaladsl.util.FastFuture._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.drivergrp.core.logging.Logger
@@ -18,8 +16,8 @@ import com.typesafe.config.Config
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
-import scala.util.{Failure, Success, Try}
-import scalaz.{Failure => _, Success => _, _}
+import scala.util.{Failure, Success}
+import scalaz.{Failure => _, Success => _}
 
 object rest {
 
@@ -64,29 +62,15 @@ object rest {
     }
   }
 
-  trait OptionTDirectives {
-
-    /**
-      * "Unwraps" a `OptionT[Future, T]` and runs the inner route after future
-      * completion with the future's value as an extraction of type `Try[T]`.
-      * Copied akka-http code with added `.run` call on `OptionT`.
-      */
-    def onComplete[T](optionT: OptionT[Future, T]): Directive1[Try[Option[T]]] =
-      Directive { inner ⇒ ctx ⇒
-        optionT.run.fast.transformWith(t ⇒ inner(Tuple1(t))(ctx))(ctx.executionContext)
-      }
-  }
-
-
   import scala.reflect.runtime.universe._
 
-  class Swagger(override val actorSystem: ActorSystem,
+  class Swagger(override val host: String,
+                override val actorSystem: ActorSystem,
                 override val apiTypes: Seq[Type],
                 val config: Config) extends SwaggerHttpService with HasActorSystem {
 
     val materializer = ActorMaterializer()(actorSystem)
 
-    override val host = "localhost:8080" // the url of your api, not swagger's json endpoint
     override val basePath = config.getString("swagger.basePath")
     override val apiDocsPath = config.getString("swagger.docsPath")
 

@@ -1,7 +1,7 @@
 package com.drivergrp.core
 
 import java.text.SimpleDateFormat
-import java.util.{Calendar, Date, GregorianCalendar}
+import java.util._
 
 import scala.concurrent.duration._
 
@@ -41,11 +41,11 @@ object time {
     }.getTime.getTime)
   }
 
-  def textualDate(time: Time): String =
-    new SimpleDateFormat("MMMM d, yyyy").format(new Date(time.millis))
+  def textualDate(timezone: TimeZone)(time: Time): String =
+    make(new SimpleDateFormat("MMMM d, yyyy"))(_.setTimeZone(timezone)).format(new Date(time.millis))
 
-  def textualTime(time: Time): String =
-    new SimpleDateFormat("MMM dd, yyyy hh:mm:ss a").format(new Date(time.millis))
+  def textualTime(timezone: TimeZone)(time: Time): String =
+    make(new SimpleDateFormat("MMM dd, yyyy hh:mm:ss a"))(_.setTimeZone(timezone)).format(new Date(time.millis))
 
   object provider {
 

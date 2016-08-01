@@ -2,9 +2,14 @@ package com.drivergrp.core
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.http.scaladsl.marshalling.{Marshal, Marshaller}
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.ActorMaterializer
-import akka.util.Timeout
+import akka.stream.scaladsl.Flow
+import akka.util.{ByteString, Timeout}
+import com.drivergrp.core.crypto.{AuthToken, Crypto}
 import com.drivergrp.core.logging.Logger
 import com.drivergrp.core.stats.Stats
 import com.drivergrp.core.time.TimeRange
@@ -18,47 +23,84 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.{Failure, Success}
 import scalaz.{Failure => _, Success => _}
+import scalaz.Scalaz._
 
 object rest {
 
-  trait RestService {
-    def sendRequest(request: HttpRequest): Future[HttpResponse]
+  final case class ServiceVersion(majorVersion: Int, minorVersion: Int) {
+    def isCompatible(otherVersion: ServiceVersion) =
+      this.majorVersion === otherVersion.majorVersion
   }
 
-  class AkkaHttpRestService(actorSystem: ActorSystem) extends RestService {
+  trait Service {
+
+    def sendRequest[I,O](authToken: AuthToken)(requestInput: I)
+                        (implicit marshaller: Marshaller[I, RequestEntity],
+                                  unmarshaller: Unmarshaller[ResponseEntity, O]): Future[O]
+  }
+
+  trait ServiceDiscovery {
+
+    def discover(serviceName: Name[Service], version: ServiceVersion): Service
+  }
+
+  class HttpRestService(method: HttpMethod, uri: Uri, version: ServiceVersion,
+                        actorSystem: ActorSystem, executionContext: ExecutionContext,
+                        crypto: Crypto, log: Logger, stats: Stats, time: TimeProvider) extends Service {
+
     protected implicit val materializer = ActorMaterializer()(actorSystem)
-
-    def sendRequest(request: HttpRequest): Future[HttpResponse] =
-      Http()(actorSystem).singleRequest(request)(materializer)
-  }
-
-  class ProxyRestService(actorSystem: ActorSystem, log: Logger, stats: Stats,
-                         time: TimeProvider, executionContext: ExecutionContext)
-    extends AkkaHttpRestService(actorSystem) {
-
+    protected implicit val execution = executionContext
     protected implicit val timeout = Timeout(5 seconds)
 
-    override def sendRequest(request: HttpRequest): Future[HttpResponse] = {
-
-      log.audit(s"Sending to ${request.uri} request $request")
+    def sendRequest[I,O](authToken: AuthToken)(requestInput: I)
+                        (implicit marshaller: Marshaller[I, RequestEntity],
+                                  unmarshaller: Unmarshaller[ResponseEntity, O]): Future[O] = {
 
       val requestTime = time.currentTime()
-      val response = super.sendRequest(request)
+      val encryptionFlow = Flow[ByteString] map { bytes =>
+        ByteString(crypto.encrypt(crypto.keyForToken(authToken))(bytes.toArray))
+      }
+      val decryptionFlow = Flow[ByteString] map { bytes =>
+        ByteString(crypto.decrypt(crypto.keyForToken(authToken))(bytes.toArray))
+      }
+
+      val response: Future[O] = for {
+        requestData: RequestEntity <- Marshal(requestInput).to[RequestEntity](marshaller, executionContext)
+        encryptedMessage = requestData.transformDataBytes(encryptionFlow)
+        request: HttpRequest = buildRequest(authToken, requestData)
+        _ = log.audit(s"Sending to ${request.uri} request $request")
+        response <- Http()(actorSystem).singleRequest(request)(materializer)
+        decryptedResponse = requestData.transformDataBytes(decryptionFlow)
+        responseEntity <- Unmarshal(decryptedResponse).to[O](unmarshaller, executionContext, materializer)
+      } yield {
+        responseEntity
+      }
 
       response.onComplete {
-        case Success(_) =>
+        case Success(r) =>
           val responseTime = time.currentTime()
-          log.audit(s"Response from ${request.uri} to request $request is successful")
-          stats.recordStats(Seq("request", request.uri.toString, "success"), TimeRange(requestTime, responseTime), 1)
+          log.audit(s"Response from $uri to request $requestInput is successful")
+          stats.recordStats(Seq("request", uri.toString, "success"), TimeRange(requestTime, responseTime), 1)
 
-        case Failure(t) =>
+        case Failure(t: Throwable) =>
           val responseTime = time.currentTime()
-          log.audit(s"Failed to receive response from ${request.uri} to request $request")
-          log.error(s"Failed to receive response from ${request.uri} to request $request", t)
-          stats.recordStats(Seq("request", request.uri.toString, "fail"), TimeRange(requestTime, responseTime), 1)
+          log.audit(s"Failed to receive response from $uri of version $version to request $requestInput")
+          log.error(s"Failed to receive response from $uri of version $version to request $requestInput", t)
+          stats.recordStats(Seq("request", uri.toString, "fail"), TimeRange(requestTime, responseTime), 1)
       } (executionContext)
 
       response
+    }
+
+    private def buildRequest(authToken: AuthToken, requestData: RequestEntity): HttpRequest = {
+
+      HttpRequest(
+        method, uri,
+        headers = Vector(
+          RawHeader("WWW-Authenticate", s"Macaroon ${authToken.value.value}"),
+          RawHeader("Api-Version", version.majorVersion + "." + version.minorVersion)
+        ),
+        entity = requestData)
     }
   }
 

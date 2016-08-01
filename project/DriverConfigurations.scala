@@ -16,7 +16,8 @@ object DriverConfigurations {
   lazy val wartRemoverSettings = Seq(
     wartremoverErrors in (Compile, compile) ++= Warts.allBut(
       Wart.AsInstanceOf, Wart.Nothing, Wart.Overloading, Wart.DefaultArguments, Wart.Any,
-      Wart.Option2Iterable, Wart.ExplicitImplicitTypes, Wart.Throw, Wart.ToString)
+      Wart.Option2Iterable, Wart.ExplicitImplicitTypes, Wart.Throw, Wart.ToString, Wart.NoNeedForMonad
+    )
   )
 
   lazy val acyclicSettings = Seq(

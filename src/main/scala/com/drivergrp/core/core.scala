@@ -18,8 +18,10 @@ package object core {
     }
   }
 
-  private[core] trait Tagged[+V, +Tag]
-  type @@[+V, +Tag] = V with Tagged[V, Tag]
+  object tagging {
+    private[core] trait Tagged[+V, +Tag]
+  }
+  type @@[+V, +Tag] = V with tagging.Tagged[V, Tag]
 
   type Id[+Tag] = Long @@ Tag
   object Id {

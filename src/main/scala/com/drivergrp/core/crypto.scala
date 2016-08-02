@@ -1,12 +1,8 @@
 package com.drivergrp.core
 
+import com.drivergrp.core.auth.AuthToken
+
 object crypto {
-
-  final case class Macaroon(value: String)
-
-  final case class Base64[T](value: String)
-
-  final case class AuthToken(value: Base64[Macaroon])
 
   final case class EncryptionKey(value: String)
 

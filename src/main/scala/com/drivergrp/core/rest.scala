@@ -30,16 +30,16 @@ object rest {
       this.majorVersion === otherVersion.majorVersion
   }
 
-  type Service = AnyRef
+  trait Service
 
   trait ServiceTransport {
 
     def sendRequest(authToken: AuthToken)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]]
   }
 
-  trait ServiceDiscovery[T <: Service] {
+  trait ServiceDiscovery {
 
-    def discover(serviceName: Name[Service], version: ServiceVersion): T
+    def discover[T <: Service](serviceName: Name[Service], version: ServiceVersion): T
   }
 
   class HttpRestServiceTransport(actorSystem: ActorSystem, executionContext: ExecutionContext,

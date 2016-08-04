@@ -1,5 +1,7 @@
 package com.drivergrp.core
 
+import com.drivergrp.core.time.Time
+
 import scala.concurrent.Future
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile
@@ -33,6 +35,8 @@ object database {
 
     implicit def nameColumnType[T] =
       MappedColumnType.base[Name[T], String](name => name: String, Name[T](_))
+
+    implicit val timeColumnType = MappedColumnType.base[Time, Long](time => time.millis, Time(_))
   }
 
   trait DatabaseObject extends IdColumnTypes {

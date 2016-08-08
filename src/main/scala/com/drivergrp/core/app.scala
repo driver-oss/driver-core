@@ -3,10 +3,11 @@ package com.drivergrp.core
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
+import StatusCodes._
 import akka.http.scaladsl.server.RouteResult._
-import akka.http.scaladsl.server.{Route, RouteConcatenation}
+import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
 import com.drivergrp.core.logging.{Logger, TypesafeScalaLogger}
 import com.drivergrp.core.rest.Swagger
@@ -57,10 +58,21 @@ object app {
       val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
       val versionRt      = versionRoute(version, buildNumber)
 
-      val _ = http.bindAndHandle(
-          route2HandlerFlow(logRequestResult("log")(modules.map(_.route).foldLeft(versionRt ~ swaggerRoutes)(_ ~ _))),
-          interface,
-          port)(materializer)
+      val generalExceptionHandler = ExceptionHandler {
+        case t: Throwable =>
+          extractUri { uri =>
+            // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
+            def requestUuid = java.util.UUID.randomUUID.toString
+
+            log.error(s"Request to $uri could not be handled normally ($requestUuid)", t)
+            complete(HttpResponse(InternalServerError,
+              entity = s"""{ "requestUuid": "$requestUuid", "message": "${t.getMessage}" }"""))
+          }
+      }
+
+      val _ = http.bindAndHandle(route2HandlerFlow(handleExceptions(generalExceptionHandler) {
+        logRequestResult("log")(modules.map(_.route).foldLeft(versionRt ~ swaggerRoutes)(_ ~ _))
+      }), interface, port)(materializer)
     }
 
     protected def versionRoute(version: String, buildNumber: Int) = {

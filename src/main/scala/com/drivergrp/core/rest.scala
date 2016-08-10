@@ -20,15 +20,9 @@ import com.typesafe.config.Config
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-import scalaz.Scalaz._
 import scalaz.{Failure => _, Success => _}
 
 object rest {
-
-  final case class ServiceVersion(majorVersion: Int, minorVersion: Int) {
-    def isCompatible(otherVersion: ServiceVersion) =
-      this.majorVersion === otherVersion.majorVersion
-  }
 
   trait Service
 
@@ -39,7 +33,7 @@ object rest {
 
   trait ServiceDiscovery {
 
-    def discover[T <: Service](serviceName: Name[Service], version: ServiceVersion): T
+    def discover[T <: Service](serviceName: Name[Service]): T
   }
 
   class HttpRestServiceTransport(actorSystem: ActorSystem, executionContext: ExecutionContext,

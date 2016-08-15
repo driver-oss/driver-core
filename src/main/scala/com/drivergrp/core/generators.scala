@@ -1,6 +1,8 @@
 package com.drivergrp.core
 
 import java.math.MathContext
+
+import com.drivergrp.core.revision.Revision
 import com.drivergrp.core.time.{Time, TimeRange}
 
 import scala.reflect.ClassTag
@@ -17,6 +19,10 @@ object generators {
   def nextId[T](): Id[T] = Id[T](scala.math.abs(nextLong()))
 
   def nextName[T](maxLength: Int = DefaultMaxLength): Name[T] = Name[T](nextString(maxLength))
+
+  def nextUuid() = java.util.UUID.randomUUID
+
+  def nextRevision[T]() = Revision[T](nextUuid())
 
   def nextString(maxLength: Int = DefaultMaxLength): String =
     (oneOf[Char](StringLetters) +: arrayOf(oneOf[Char](StringLetters), maxLength - 1)).mkString

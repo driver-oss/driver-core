@@ -73,14 +73,16 @@ object json {
     }
 
   implicit def revisionFromStringUnmarshaller[T]: Unmarshaller[String, Revision[T]] =
-    Unmarshaller.strict[String, Revision[T]] { string => Revision[T](UUID.fromString(string)) }
+    Unmarshaller.strict[String, Revision[T]] { string =>
+      Revision[T](UUID.fromString(string))
+    }
 
   implicit def revisionFormat[T] = new RootJsonFormat[Revision[T]] {
     def write(revision: Revision[T]) = JsString(revision.id.toString)
 
     def read(value: JsValue): Revision[T] = value match {
       case JsString(revision) => Revision[T](UUID.fromString(revision))
-      case _              => throw new DeserializationException("Revision expects uuid string")
+      case _                  => throw new DeserializationException("Revision expects uuid string")
     }
   }
 

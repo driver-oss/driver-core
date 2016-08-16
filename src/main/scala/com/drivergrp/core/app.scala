@@ -16,6 +16,7 @@ import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 import spray.json.DefaultJsonProtocol
 
+import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -59,14 +60,38 @@ object app {
       val versionRt      = versionRoute(version, buildNumber)
 
       val generalExceptionHandler = ExceptionHandler {
+
+        case is: IllegalStateException =>
+          extractUri { uri =>
+            // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
+            def requestUuid = java.util.UUID.randomUUID.toString
+
+            log.debug(s"Request is not allowed to $uri ($requestUuid)", is)
+            complete(
+              HttpResponse(BadRequest,
+                entity = s"""{ "requestUuid": "$requestUuid", "message": "${is.getMessage}" }"""))
+          }
+
+        case cm: ConcurrentModificationException =>
+          extractUri { uri =>
+            // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
+            def requestUuid = java.util.UUID.randomUUID.toString
+
+            log.debug(s"Concurrent modification of the resource $uri ($requestUuid)", cm)
+            complete(
+              HttpResponse(Conflict,
+                entity = s"""{ "requestUuid": "$requestUuid", "message": "${cm.getMessage}" }"""))
+          }
+
         case t: Throwable =>
           extractUri { uri =>
             // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
             def requestUuid = java.util.UUID.randomUUID.toString
 
             log.error(s"Request to $uri could not be handled normally ($requestUuid)", t)
-            complete(HttpResponse(InternalServerError,
-              entity = s"""{ "requestUuid": "$requestUuid", "message": "${t.getMessage}" }"""))
+            complete(
+                HttpResponse(InternalServerError,
+                             entity = s"""{ "requestUuid": "$requestUuid", "message": "${t.getMessage}" }"""))
           }
       }
 

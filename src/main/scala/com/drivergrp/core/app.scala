@@ -68,8 +68,8 @@ object app {
 
             log.debug(s"Request is not allowed to $uri ($requestUuid)", is)
             complete(
-              HttpResponse(BadRequest,
-                entity = s"""{ "requestUuid": "$requestUuid", "message": "${is.getMessage}" }"""))
+                HttpResponse(BadRequest,
+                             entity = s"""{ "requestUuid": "$requestUuid", "message": "${is.getMessage}" }"""))
           }
 
         case cm: ConcurrentModificationException =>
@@ -79,8 +79,8 @@ object app {
 
             log.debug(s"Concurrent modification of the resource $uri ($requestUuid)", cm)
             complete(
-              HttpResponse(Conflict,
-                entity = s"""{ "requestUuid": "$requestUuid", "message": "${cm.getMessage}" }"""))
+                HttpResponse(Conflict,
+                             entity = s"""{ "requestUuid": "$requestUuid", "message": "${cm.getMessage}" }"""))
           }
 
         case t: Throwable =>

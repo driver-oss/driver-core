@@ -1,7 +1,7 @@
 package com.drivergrp.core
 
 import java.io.File
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import java.util.UUID._
 
 import com.amazonaws.services.s3.AmazonS3
@@ -13,12 +13,10 @@ import scalaz.ListT
 
 object file {
 
-  final case class FilePath(path: String)
-
   final case class FileLink(
       id: Id[File],
       name: Name[File],
-      location: FilePath,
+      location: Path,
       additionDate: Time
   )
 
@@ -31,13 +29,13 @@ object file {
 
   trait FileStorage {
 
-    def upload(localSource: File, destination: FilePath): Future[Unit]
+    def upload(localSource: File, destination: Path): Future[Unit]
 
-    def download(filePath: FilePath): Future[File]
+    def download(filePath: Path): Future[File]
 
-    def delete(filePath: FilePath): Future[Unit]
+    def delete(filePath: Path): Future[Unit]
 
-    def list(path: FilePath): ListT[Future, Name[File]]
+    def list(path: Path): ListT[Future, Name[File]]
 
     /** List of characters to avoid in S3 (I would say file names in general)
       *
@@ -45,8 +43,8 @@ object file {
       */
     private val illegalChars = "\\^`><{}][#%~|&@:,$=+?; "
 
-    protected def checkSafeFileName[T](filePath: FilePath)(f: => T): T = {
-      filePath.path.find(c => illegalChars.contains(c)) match {
+    protected def checkSafeFileName[T](filePath: Path)(f: => T): T = {
+      filePath.toString.find(c => illegalChars.contains(c)) match {
         case Some(illegalCharacter) =>
           throw new IllegalArgumentException(s"File name cannot contain character `$illegalCharacter`")
         case None => f
@@ -57,33 +55,33 @@ object file {
   class S3Storage(s3: AmazonS3, bucket: Name[Bucket], executionContext: ExecutionContext) extends FileStorage {
     implicit private val execution = executionContext
 
-    def upload(localSource: File, destination: FilePath): Future[Unit] = Future {
+    def upload(localSource: File, destination: Path): Future[Unit] = Future {
       checkSafeFileName(destination) {
-        val _ = s3.putObject(bucket, destination.path, localSource).getETag
+        val _ = s3.putObject(bucket, destination.toString, localSource).getETag
       }
     }
 
-    def download(filePath: FilePath): Future[File] = Future {
+    def download(filePath: Path): Future[File] = Future {
       val tempDir             = System.getProperty("java.io.tmpdir")
       val randomFolderName    = randomUUID().toString
-      val tempDestinationFile = new File(Paths.get(tempDir, randomFolderName, filePath.path).toString)
+      val tempDestinationFile = new File(Paths.get(tempDir, randomFolderName, filePath.toString).toString)
 
       if (!tempDestinationFile.getParentFile.mkdirs()) {
         throw new Exception(s"Failed to create temp directory to download file `$file`")
       } else {
-        val _ = s3.getObject(new GetObjectRequest(bucket, filePath.path), tempDestinationFile)
+        val _ = s3.getObject(new GetObjectRequest(bucket, filePath.toString), tempDestinationFile)
         tempDestinationFile
       }
     }
 
-    def delete(filePath: FilePath): Future[Unit] = Future {
-      s3.deleteObject(bucket, filePath.path)
+    def delete(filePath: Path): Future[Unit] = Future {
+      s3.deleteObject(bucket, filePath.toString)
     }
 
-    def list(path: FilePath): ListT[Future, Name[File]] =
+    def list(path: Path): ListT[Future, Name[File]] =
       ListT.listT(Future {
         import scala.collection.JavaConverters._
-        val req = new ListObjectsV2Request().withBucketName(bucket).withPrefix(path.path).withMaxKeys(2)
+        val req = new ListObjectsV2Request().withBucketName(bucket).withPrefix(path.toString).withMaxKeys(2)
 
         Iterator.continually(s3.listObjectsV2(req)).takeWhile { result =>
           req.setContinuationToken(result.getNextContinuationToken)
@@ -92,7 +90,7 @@ object file {
           result.getObjectSummaries.asScala
             .map(_.getKey)
             .toList
-            .filterNot(_.replace(path.path + "/", "").contains("/")) // filter out sub-folders or files in sub-folders
+            .filterNot(_.replace(path.toString + "/", "").contains("/")) // filter out sub-folders or files in sub-folders
             .map(item => Name[File](new File(item).getName))
         } toList
       })
@@ -101,9 +99,9 @@ object file {
   class FileSystemStorage(executionContext: ExecutionContext) extends FileStorage {
     implicit private val execution = executionContext
 
-    def upload(localSource: File, destination: FilePath): Future[Unit] = Future {
+    def upload(localSource: File, destination: Path): Future[Unit] = Future {
       checkSafeFileName(destination) {
-        val destinationFile = Paths.get(destination.path).toFile
+        val destinationFile = destination.toFile
 
         if (destinationFile.getParentFile.exists() || destinationFile.getParentFile.mkdirs()) {
           if (localSource.renameTo(destinationFile)) ()
@@ -117,23 +115,23 @@ object file {
       }
     }
 
-    def download(filePath: FilePath): Future[File] = Future {
-      make(new File(filePath.path)) { file =>
+    def download(filePath: Path): Future[File] = Future {
+      make(new File(filePath.toString)) { file =>
         assert(file.exists() && file.isFile)
       }
     }
 
-    def delete(filePath: FilePath): Future[Unit] = Future {
-      val file = new File(filePath.path)
+    def delete(filePath: Path): Future[Unit] = Future {
+      val file = new File(filePath.toString)
       if (file.delete()) ()
       else {
         throw new Exception(s"Failed to delete file $file" + (if (!file.exists()) ", file does not exist." else "."))
       }
     }
 
-    def list(path: FilePath): ListT[Future, Name[File]] =
+    def list(path: Path): ListT[Future, Name[File]] =
       ListT.listT(Future {
-        val file = new File(path.path)
+        val file = new File(path.toString)
         if (file.isDirectory) file.listFiles().filter(_.isFile).map(f => Name[File](f.getName)).toList
         else List.empty[Name[File]]
       })

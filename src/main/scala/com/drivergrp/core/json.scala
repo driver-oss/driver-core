@@ -1,7 +1,5 @@
 package com.drivergrp.core
 
-import java.util.UUID
-
 import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.server.PathMatcher.Matched
 import akka.http.scaladsl.server.{PathMatcher, _}
@@ -66,22 +64,17 @@ object json {
 
   def RevisionInPath[T]: PathMatcher1[Revision[T]] =
     PathMatcher("""[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}""".r) flatMap { string =>
-      try Some(Revision[T](UUID.fromString(string)))
-      catch {
-        case _: IllegalArgumentException => None
-      }
+      Some(Revision[T](string))
     }
 
   implicit def revisionFromStringUnmarshaller[T]: Unmarshaller[String, Revision[T]] =
-    Unmarshaller.strict[String, Revision[T]] { string =>
-      Revision[T](UUID.fromString(string))
-    }
+    Unmarshaller.strict[String, Revision[T]](Revision[T](_))
 
   implicit def revisionFormat[T] = new RootJsonFormat[Revision[T]] {
     def write(revision: Revision[T]) = JsString(revision.id.toString)
 
     def read(value: JsValue): Revision[T] = value match {
-      case JsString(revision) => Revision[T](UUID.fromString(revision))
+      case JsString(revision) => Revision[T](revision)
       case _                  => throw new DeserializationException("Revision expects uuid string")
     }
   }

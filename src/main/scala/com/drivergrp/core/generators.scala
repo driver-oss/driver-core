@@ -22,7 +22,7 @@ object generators {
 
   def nextUuid() = java.util.UUID.randomUUID
 
-  def nextRevision[T]() = Revision[T](nextUuid())
+  def nextRevision[T]() = Revision[T](nextUuid().toString)
 
   def nextString(maxLength: Int = DefaultMaxLength): String =
     (oneOf[Char](StringLetters) +: arrayOf(oneOf[Char](StringLetters), maxLength - 1)).mkString

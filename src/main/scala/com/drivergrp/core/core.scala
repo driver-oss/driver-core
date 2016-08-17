@@ -1,7 +1,5 @@
 package com.drivergrp
 
-import java.util.UUID
-
 import scalaz.Equal
 
 package object core {
@@ -41,7 +39,7 @@ package object core {
   implicit def nameOrdering[T]: Ordering[Name[T]] = Ordering.by(identity)
 
   object revision {
-    final case class Revision[T](id: UUID)
+    final case class Revision[T](id: String)
 
     implicit def revisionEqual[T]: Equal[Revision[T]] = Equal.equal[Revision[T]](_.id == _.id)
   }

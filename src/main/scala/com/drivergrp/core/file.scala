@@ -6,6 +6,7 @@ import java.util.UUID._
 
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.{Bucket, GetObjectRequest, ListObjectsV2Request}
+import com.drivergrp.core.revision.Revision
 import com.drivergrp.core.time.Time
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -14,15 +15,15 @@ import scalaz.{ListT, OptionT}
 object file {
 
   final case class FileLink(
-      id: Id[File],
       name: Name[File],
       location: Path,
-      additionDate: Time
+      revision: Revision[File],
+      lastModificationDate: Time
   )
 
   trait FileService {
 
-    def getFileLink(id: Id[File]): FileLink
+    def getFileLink(id: Name[File]): FileLink
 
     def getFile(fileLink: FileLink): File
   }
@@ -35,7 +36,7 @@ object file {
 
     def delete(filePath: Path): Future[Unit]
 
-    def list(path: Path): ListT[Future, Name[File]]
+    def list(path: Path): ListT[Future, FileLink]
 
     /** List of characters to avoid in S3 (I would say file names in general)
       *
@@ -79,20 +80,26 @@ object file {
       s3.deleteObject(bucket, filePath.toString)
     }
 
-    def list(path: Path): ListT[Future, Name[File]] =
+    def list(path: Path): ListT[Future, FileLink] =
       ListT.listT(Future {
         import scala.collection.JavaConverters._
         val req = new ListObjectsV2Request().withBucketName(bucket).withPrefix(path.toString).withMaxKeys(2)
+
+        def isInSubFolder(path: Path)(fileLink: FileLink) =
+          fileLink.location.toString.replace(path.toString + "/", "").contains("/")
 
         Iterator.continually(s3.listObjectsV2(req)).takeWhile { result =>
           req.setContinuationToken(result.getNextContinuationToken)
           result.isTruncated
         } flatMap { result =>
-          result.getObjectSummaries.asScala
-            .map(_.getKey)
-            .toList
-            .filterNot(_.replace(path.toString + "/", "").contains("/")) // filter out sub-folders or files in sub-folders
-            .map(item => Name[File](new File(item).getName))
+          result.getObjectSummaries.asScala.toList.map { summary =>
+            val file = new File(summary.getKey)
+            FileLink(
+              Name[File](file.getName),
+              Paths.get(file.getPath),
+              Revision[File](summary.getETag),
+              Time(summary.getLastModified.getTime))
+          } filterNot isInSubFolder(path)
         } toList
       })
   }
@@ -128,11 +135,19 @@ object file {
       }
     }
 
-    def list(path: Path): ListT[Future, Name[File]] =
+    def list(path: Path): ListT[Future, FileLink] =
       ListT.listT(Future {
         val file = new File(path.toString)
-        if (file.isDirectory) file.listFiles().filter(_.isFile).map(f => Name[File](f.getName)).toList
-        else List.empty[Name[File]]
+        if (file.isDirectory) {
+          file.listFiles().toList.filter(_.isFile).map { file =>
+            FileLink(
+              Name[File](file.getName),
+              Paths.get(file.getPath),
+              Revision[File](file.hashCode.toString),
+              Time(file.lastModified()))
+          }
+        }
+        else List.empty[FileLink]
       })
   }
 }

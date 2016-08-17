@@ -9,7 +9,7 @@ import com.amazonaws.services.s3.model.{Bucket, GetObjectRequest, ListObjectsV2R
 import com.drivergrp.core.time.Time
 
 import scala.concurrent.{ExecutionContext, Future}
-import scalaz.ListT
+import scalaz.{ListT, OptionT}
 
 object file {
 
@@ -31,7 +31,7 @@ object file {
 
     def upload(localSource: File, destination: Path): Future[Unit]
 
-    def download(filePath: Path): Future[File]
+    def download(filePath: Path): OptionT[Future, File]
 
     def delete(filePath: Path): Future[Unit]
 
@@ -61,7 +61,7 @@ object file {
       }
     }
 
-    def download(filePath: Path): Future[File] = Future {
+    def download(filePath: Path): OptionT[Future, File] = OptionT.optionT(Future {
       val tempDir             = System.getProperty("java.io.tmpdir")
       val randomFolderName    = randomUUID().toString
       val tempDestinationFile = new File(Paths.get(tempDir, randomFolderName, filePath.toString).toString)
@@ -69,10 +69,11 @@ object file {
       if (!tempDestinationFile.getParentFile.mkdirs()) {
         throw new Exception(s"Failed to create temp directory to download file `$file`")
       } else {
-        val _ = s3.getObject(new GetObjectRequest(bucket, filePath.toString), tempDestinationFile)
-        tempDestinationFile
+        Option(s3.getObject(new GetObjectRequest(bucket, filePath.toString), tempDestinationFile)).map { _ =>
+          tempDestinationFile
+        }
       }
-    }
+    })
 
     def delete(filePath: Path): Future[Unit] = Future {
       s3.deleteObject(bucket, filePath.toString)
@@ -115,11 +116,9 @@ object file {
       }
     }
 
-    def download(filePath: Path): Future[File] = Future {
-      make(new File(filePath.toString)) { file =>
-        assert(file.exists() && file.isFile)
-      }
-    }
+    def download(filePath: Path): OptionT[Future, File] = OptionT.optionT(Future {
+      Option(new File(filePath.toString)).filter(file => file.exists() && file.isFile)
+    })
 
     def delete(filePath: Path): Future[Unit] = Future {
       val file = new File(filePath.toString)

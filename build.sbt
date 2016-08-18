@@ -23,4 +23,5 @@ lazy val core = (project in file(".")).
       "com.github.swagger-akka-http" %% "swagger-akka-http" % "0.7.1"
     ))
   .gitPluginConfiguration
-  .settings(repositoriesSettings ++ publicationSettings ++ releaseSettings)
+  .settings (lintingSettings ++ formatSettings)
+  .settings (repositoriesSettings ++ publicationSettings ++ releaseSettings)

@@ -127,7 +127,7 @@ object app {
             log.fatal(s"Service ${service.name} failed to activate", t)
             Console.print(" Failed! (check log)")
         }
-        Console.println(" Done")
+        Console.print(" Done\n")
       }
     }
 
@@ -146,7 +146,7 @@ object app {
                 log.fatal(s"Service ${service.name} failed to deactivate", t)
                 Console.print(" Failed! (check log)")
             }
-            Console.println(" Done")
+            Console.print(" Done\n")
           }
         }
       })

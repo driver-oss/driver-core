@@ -57,6 +57,11 @@
     <check level="error" class="org.scalastyle.scalariform.NoCloneChecker" enabled="true"/>
     <check level="error" class="org.scalastyle.scalariform.NoFinalizeChecker" enabled="true"/>
     <check level="error" class="org.scalastyle.scalariform.CovariantEqualsChecker" enabled="true"/>
+    <check level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+        <parameters>
+            <parameter name="regex"><![CDATA[println]]></parameter>
+        </parameters>
+    </check>
     <check level="error" class="org.scalastyle.scalariform.NumberOfTypesChecker" enabled="true">
         <parameters>
             <parameter name="maxTypes"><![CDATA[30]]></parameter>
@@ -64,7 +69,7 @@
     </check>
     <check level="error" class="org.scalastyle.scalariform.CyclomaticComplexityChecker" enabled="true">
         <parameters>
-            <parameter name="maximum"><![CDATA[10]]></parameter>
+            <parameter name="maximum"><![CDATA[50]]></parameter>
         </parameters>
     </check>
     <check level="error" class="org.scalastyle.scalariform.UppercaseLChecker" enabled="true"/>
@@ -85,7 +90,7 @@
             <parameter name="regex"><![CDATA[^[A-Za-z\\*][A-Za-z0-9]*$]]></parameter>
         </parameters>
     </check>
-    <check level="error" class="org.scalastyle.scalariform.ClassTypeParameterChecker" enabled="true">
+    <check level="error" class="org.scalastyle.scalariform.ClassTypeParameterChecker" enabled="false">
         <parameters>
             <parameter name="regex"><![CDATA[^[A-Za-z]*$]]></parameter>
         </parameters>
@@ -105,5 +110,5 @@
     <check level="error" class="org.scalastyle.scalariform.SpaceAfterCommentStartChecker" enabled="true"/>
     <check level="error" class="org.scalastyle.scalariform.ProcedureDeclarationChecker" enabled="true"/>
     <check level="error" class="org.scalastyle.scalariform.NotImplementedErrorUsage" enabled="true"/>
-    <check level="error" class="org.scalastyle.scalariform.LowercasePatternMatchChecker" enabled="true"/>
 </scalastyle>
+          

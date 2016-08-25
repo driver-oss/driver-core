@@ -62,19 +62,20 @@ object file {
       }
     }
 
-    def download(filePath: Path): OptionT[Future, File] = OptionT.optionT(Future {
-      val tempDir             = System.getProperty("java.io.tmpdir")
-      val randomFolderName    = randomUUID().toString
-      val tempDestinationFile = new File(Paths.get(tempDir, randomFolderName, filePath.toString).toString)
+    def download(filePath: Path): OptionT[Future, File] =
+      OptionT.optionT(Future {
+        val tempDir             = System.getProperty("java.io.tmpdir")
+        val randomFolderName    = randomUUID().toString
+        val tempDestinationFile = new File(Paths.get(tempDir, randomFolderName, filePath.toString).toString)
 
-      if (!tempDestinationFile.getParentFile.mkdirs()) {
-        throw new Exception(s"Failed to create temp directory to download file `$file`")
-      } else {
-        Option(s3.getObject(new GetObjectRequest(bucket, filePath.toString), tempDestinationFile)).map { _ =>
-          tempDestinationFile
+        if (!tempDestinationFile.getParentFile.mkdirs()) {
+          throw new Exception(s"Failed to create temp directory to download file `$tempDestinationFile`")
+        } else {
+          Option(s3.getObject(new GetObjectRequest(bucket, filePath.toString), tempDestinationFile)).map { _ =>
+            tempDestinationFile
+          }
         }
-      }
-    })
+      })
 
     def delete(filePath: Path): Future[Unit] = Future {
       s3.deleteObject(bucket, filePath.toString)
@@ -94,11 +95,10 @@ object file {
         } flatMap { result =>
           result.getObjectSummaries.asScala.toList.map { summary =>
             val file = new File(summary.getKey)
-            FileLink(
-              Name[File](file.getName),
-              Paths.get(file.getPath),
-              Revision[File](summary.getETag),
-              Time(summary.getLastModified.getTime))
+            FileLink(Name[File](file.getName),
+                     Paths.get(file.getPath),
+                     Revision[File](summary.getETag),
+                     Time(summary.getLastModified.getTime))
           } filterNot isInSubFolder(path)
         } toList
       })
@@ -123,9 +123,10 @@ object file {
       }
     }
 
-    def download(filePath: Path): OptionT[Future, File] = OptionT.optionT(Future {
-      Option(new File(filePath.toString)).filter(file => file.exists() && file.isFile)
-    })
+    def download(filePath: Path): OptionT[Future, File] =
+      OptionT.optionT(Future {
+        Option(new File(filePath.toString)).filter(file => file.exists() && file.isFile)
+      })
 
     def delete(filePath: Path): Future[Unit] = Future {
       val file = new File(filePath.toString)
@@ -140,14 +141,12 @@ object file {
         val file = new File(path.toString)
         if (file.isDirectory) {
           file.listFiles().toList.filter(_.isFile).map { file =>
-            FileLink(
-              Name[File](file.getName),
-              Paths.get(file.getPath),
-              Revision[File](file.hashCode.toString),
-              Time(file.lastModified()))
+            FileLink(Name[File](file.getName),
+                     Paths.get(file.getPath),
+                     Revision[File](file.hashCode.toString),
+                     Time(file.lastModified()))
           }
-        }
-        else List.empty[FileLink]
+        } else List.empty[FileLink]
       })
   }
 }

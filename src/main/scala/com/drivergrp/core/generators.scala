@@ -18,6 +18,8 @@ object generators {
 
   def nextId[T](): Id[T] = Id[T](scala.math.abs(nextLong()))
 
+  def nextId[T](maxValue: Int): Id[T] = Id[T](scala.math.abs(nextInt(maxValue).toLong))
+
   def nextName[T](maxLength: Int = DefaultMaxLength): Name[T] = Name[T](nextString(maxLength))
 
   def nextUuid() = java.util.UUID.randomUUID

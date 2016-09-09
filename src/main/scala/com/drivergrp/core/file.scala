@@ -94,9 +94,8 @@ object file {
           result.isTruncated
         } flatMap { result =>
           result.getObjectSummaries.asScala.toList.map { summary =>
-            val file = new File(summary.getKey)
-            FileLink(Name[File](file.getName),
-                     Paths.get(file.getPath),
+            FileLink(Name[File](summary.getKey),
+                     Paths.get(path.toString + "/" + summary.getKey),
                      Revision[File](summary.getETag),
                      Time(summary.getLastModified.getTime))
           } filterNot isInSubFolder(path)

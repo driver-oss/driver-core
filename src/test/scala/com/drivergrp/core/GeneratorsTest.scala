@@ -18,6 +18,22 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
     generatedId2 should !==(generatedId3)
   }
 
+  it should "be able to generate com.drivergrp.core.Id identifiers with max value" in {
+
+    val generatedLimitedId1 = nextId[String](10000)
+    val generatedLimitedId2 = nextId[String](1000)
+    val generatedLimitedId3 = nextId[Long](2000)
+
+    generatedLimitedId1 should be >= 0L
+    generatedLimitedId1 should be < 10000L
+    generatedLimitedId2 should be >= 0L
+    generatedLimitedId2 should be < 1000L
+    generatedLimitedId3 should be >= 0L
+    generatedLimitedId3 should be < 2000L
+    generatedLimitedId1 should not be generatedLimitedId2
+    generatedLimitedId2 should !==(generatedLimitedId3)
+  }
+
   it should "be able to generate com.drivergrp.core.Name names" in {
 
     nextName[String]() should not be nextName[String]()
@@ -26,6 +42,18 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
     val fixedLengthName = nextName[String](10)
     fixedLengthName.length should be <= 10
     assert(!fixedLengthName.exists(_.isControl))
+  }
+
+  it should "be able to generate proper UUIDs" in {
+
+    nextUuid() should not be nextUuid()
+    nextUuid().toString.length should be (36)
+  }
+
+  it should "be able to generate new Revisions" in {
+
+    nextRevision[String]() should not be nextRevision[String]()
+    nextRevision[String]().id.length should be > 0
   }
 
   it should "be able to generate strings" in {

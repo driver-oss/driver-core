@@ -47,7 +47,7 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
   it should "be able to generate proper UUIDs" in {
 
     nextUuid() should not be nextUuid()
-    nextUuid().toString.length should be (36)
+    nextUuid().toString.length should be(36)
   }
 
   it should "be able to generate new Revisions" in {

@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory
 import spray.json.DefaultJsonProtocol
 
 import scala.compat.Platform.ConcurrentModificationException
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
 object app {
@@ -37,14 +37,14 @@ object app {
     implicit private lazy val materializer     = ActorMaterializer()(actorSystem)
     private lazy val http                      = Http()(actorSystem)
 
-    def run() = {
+    def run(): Unit = {
       activateServices(modules)
       scheduleServicesDeactivation(modules)
       bindHttp(modules)
-      Console.print(s"${this.getClass.getName} App is started")
+      Console.print(s"${this.getClass.getName} App is started\n")
     }
 
-    def stop() = {
+    def stop(): Unit = {
       http.shutdownAllConnectionPools().onComplete { _ =>
         val _                 = actorSystem.terminate()
         val terminated        = Await.result(actorSystem.whenTerminated, 30.seconds)
@@ -95,12 +95,14 @@ object app {
           }
       }
 
-      val _ = http.bindAndHandle(route2HandlerFlow(handleExceptions(generalExceptionHandler) {
-        logRequestResult("log")(modules.map(_.route).foldLeft(versionRt ~ swaggerRoutes)(_ ~ _))
-      }), interface, port)(materializer)
+      val _ = Future {
+        http.bindAndHandle(route2HandlerFlow(handleExceptions(generalExceptionHandler) {
+          logRequestResult("log")(modules.map(_.route).foldLeft(versionRt ~ swaggerRoutes)(_ ~ _))
+        }), interface, port)(materializer)
+      }
     }
 
-    protected def versionRoute(version: String, buildNumber: Int) = {
+    protected def versionRoute(version: String, buildNumber: Int): Route = {
       import SprayJsonSupport._
       import DefaultJsonProtocol._
 
@@ -117,7 +119,7 @@ object app {
     /**
       * Initializes services
       */
-    protected def activateServices(services: Seq[Module]) = {
+    protected def activateServices(services: Seq[Module]): Unit = {
       services.foreach { service =>
         Console.print(s"Service ${service.name} starts ...")
         try {

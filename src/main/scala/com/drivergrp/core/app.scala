@@ -3,9 +3,9 @@ package com.drivergrp.core
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
-import StatusCodes._
 import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory
 import spray.json.DefaultJsonProtocol
 
 import scala.compat.Platform.ConcurrentModificationException
-import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 object app {
 
@@ -29,7 +29,8 @@ object app {
                   log: Logger = new TypesafeScalaLogger(
                       com.typesafe.scalalogging.Logger(LoggerFactory.getLogger(classOf[DriverApp]))),
                   config: Config = com.drivergrp.core.config.loadDefaultConfig,
-                  interface: String = "localhost",
+                  interface: String = "::0",
+                  hostname: String = "localhost",
                   port: Int = 8080) {
 
     implicit private lazy val actorSystem      = ActorSystem("spray-routing", config)
@@ -55,7 +56,7 @@ object app {
 
     protected def bindHttp(modules: Seq[Module]): Unit = {
       val serviceTypes   = modules.flatMap(_.routeTypes)
-      val swaggerService = new Swagger(interface + ":" + port, actorSystem, serviceTypes, config)
+      val swaggerService = new Swagger(hostname + ":" + port, actorSystem, serviceTypes, config)
       val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
       val versionRt      = versionRoute(version, buildNumber)
 
@@ -103,8 +104,8 @@ object app {
     }
 
     protected def versionRoute(version: String, buildNumber: Int): Route = {
-      import SprayJsonSupport._
       import DefaultJsonProtocol._
+      import SprayJsonSupport._
 
       path("version") {
         complete(

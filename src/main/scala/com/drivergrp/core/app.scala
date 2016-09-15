@@ -30,7 +30,7 @@ object app {
                       com.typesafe.scalalogging.Logger(LoggerFactory.getLogger(classOf[DriverApp]))),
                   config: Config = com.drivergrp.core.config.loadDefaultConfig,
                   interface: String = "::0",
-                  hostname: String = "localhost",
+                  baseUrl: String = "localhost:8080",
                   port: Int = 8080) {
 
     implicit private lazy val actorSystem      = ActorSystem("spray-routing", config)
@@ -56,7 +56,7 @@ object app {
 
     protected def bindHttp(modules: Seq[Module]): Unit = {
       val serviceTypes   = modules.flatMap(_.routeTypes)
-      val swaggerService = new Swagger(hostname + ":" + port, actorSystem, serviceTypes, config)
+      val swaggerService = new Swagger(baseUrl, actorSystem, serviceTypes, config)
       val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
       val versionRt      = versionRoute(version, buildNumber)
 

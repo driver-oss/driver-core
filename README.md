@@ -1,4 +1,4 @@
-# Driver Core Library
+# Driver Core Library [![Build Status](https://travis-ci.com/drivergroup/driver-core.svg?token=sarWaLdsCrympszs6TRy&branch=master)](https://travis-ci.com/drivergroup/driver-core)
 
 Core library is used to provide ways to implement practices established in [Driver service template](http://github.com/drivergroup/driver-template) (check its [README.md](https://github.com/drivergroup/driver-template/blob/master/README.md)). Also it provides implementations for interaction with [Driver Infrastructure](https://drive.google.com/a/drivergrp.com/folderview?id=0BxKLZIfIpO8SOUdaRWtINzMxcE0&usp=sharing_eid&ts=578fbc14).
 

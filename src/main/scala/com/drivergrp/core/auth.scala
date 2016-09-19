@@ -16,50 +16,56 @@ object auth {
   trait Role {
     val id: Id[Role]
     val name: Name[Role]
+    val permissions: Set[Permission]
 
-    def hasPermission(permission: Permission): Boolean = false
+    def hasPermission(permission: Permission): Boolean = permissions.contains(permission)
   }
 
   case object ObserverRole extends Role {
-    val id   = Id(1L)
-    val name = Name("observer")
-
-    override def hasPermission(permission: Permission): Boolean =
-      Set[Permission](CanSeeUser, CanSeeAssay, CanSeeReport).contains(permission)
+    val id          = Id(1L)
+    val name        = Name("observer")
+    val permissions = Set[Permission](CanSeeUser, CanSeeAssay, CanSeeReport)
   }
 
   case object PatientRole extends Role {
-    val id   = Id(2L)
-    val name = Name("patient")
+    val id          = Id(2L)
+    val name        = Name("patient")
+    val permissions = Set.empty[Permission]
   }
 
   case object CuratorRole extends Role {
-    val id   = Id(3L)
-    val name = Name("curator")
-
-    override def hasPermission(permission: Permission): Boolean =
-      Set[Permission](CanSeeUser, CanSeeAssay, CanSeeReport, CanEditReport).contains(permission)
+    val id          = Id(3L)
+    val name        = Name("curator")
+    val permissions = Set[Permission](CanSeeUser, CanSeeAssay, CanSeeReport, CanEditReport)
   }
 
   case object PathologistRole extends Role {
     val id   = Id(4L)
     val name = Name("pathologist")
-
-    override def hasPermission(permission: Permission): Boolean =
+    val permissions =
       Set[Permission](CanSeeUser, CanSeeAssay, CanSeeReport, CanEditReport, CanSignOutReport, CanEditReviewingReport)
-        .contains(permission)
   }
 
   case object AdministratorRole extends Role {
     val id   = Id(5L)
     val name = Name("administrator")
-
-    override def hasPermission(permission: Permission): Boolean = true
+    val permissions = Set[Permission](
+        CanSeeUser,
+        CanSeeAssay,
+        CanSeeReport,
+        CanCreateReport,
+        CanEditReport,
+        CanEditReviewingReport,
+        CanSignOutReport,
+        CanShareReportWithPatient,
+        CanAssignRoles
+    )
   }
 
   trait User {
     def id: Id[User]
     def roles: Set[Role]
+    def permissions: Set[Permission] = roles.flatMap(_.permissions)
   }
 
   final case class Macaroon(value: String)
@@ -84,11 +90,19 @@ object auth {
     val AuthenticationTokenHeader = "WWW-Authenticate"
 
     def authorize(permission: Permission): Directive1[AuthToken] = {
-      headerValueByName(AuthenticationTokenHeader).flatMap { tokenValue =>
-        val token = AuthToken(Base64[Macaroon](tokenValue))
+      parameters('authToken.?).flatMap { parameterTokenValue =>
+        optionalHeaderValueByName(AuthenticationTokenHeader).flatMap { headerTokenValue =>
+          headerTokenValue.orElse(parameterTokenValue) match {
+            case Some(tokenValue) =>
+              val token = AuthToken(Base64[Macaroon](tokenValue))
 
-        if (extractUser(token).roles.exists(_.hasPermission(permission))) provide(token)
-        else reject(ValidationRejection(s"User does not have the required permission $permission"))
+              if (extractUser(token).roles.exists(_.hasPermission(permission))) provide(token)
+              else reject(ValidationRejection(s"User does not have the required permission $permission"))
+
+            case None =>
+              reject(MissingHeaderRejection("WWW-Authenticate"))
+          }
+        }
       }
     }
   }

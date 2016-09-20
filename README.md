@@ -4,12 +4,15 @@ Core library is used to provide ways to implement practices established in [Driv
 
 ## Components
 
- * `core package` provides `Id` and `Name` implementations and also `make` and `using` functions,
+ * `core package` provides `Id` and `Name` implementations (with equal and ordering) and also `make` and `using` functions,
  * `time` Primitives to deal with time and receive current times in code,
  * `config` Contains method `loadDefaultConfig` with default way of providing config to the application,
  * `messages` Localization messages supporting different locales and methods to read from config,
  * `database` Method for database initialization from config, `Id` and `Name` mapping and schema lifecycle,
  * `rest` Wrapper over call to external REST API, does logging and stats call,
+ * `json` Json formats for `Id`, `Name`, `Time`, `Revision` and converters for enums and value classes,
+ * `auth` Permissions and roles, auth token definitions, `authorize` directive to verify auth token,
+ * `file` Stub for file storage web-service and implementations for S3 and FS `FileStorage`,
  * `app` Base class for Driver service, which initializes swagger, app modules and its routes.
  * `generators` Set of functions to prototype APIs. Combine with `faker` package,
  * `stats` Interface to the infrastructure statistics service, currently just logs events,
@@ -94,8 +97,6 @@ For more examples check [project tests](https://github.com/drivergroup/driver-co
         $ sbt release
 
 ## Things to do
-
- * Bring sbt-release plugin to core
 
  * Logging:
 

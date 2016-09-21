@@ -11,6 +11,7 @@ import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
 import com.drivergrp.core.logging.{Logger, TypesafeScalaLogger}
 import com.drivergrp.core.rest.Swagger
+import com.drivergrp.core.time.Time
 import com.drivergrp.core.time.provider.{SystemTimeProvider, TimeProvider}
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
@@ -23,7 +24,7 @@ import scala.concurrent.{Await, Future}
 object app {
 
   class DriverApp(version: String,
-                  buildNumber: Int,
+                  gitHash: String,
                   modules: Seq[Module],
                   time: TimeProvider = new SystemTimeProvider(),
                   log: Logger = new TypesafeScalaLogger(
@@ -58,7 +59,7 @@ object app {
       val serviceTypes   = modules.flatMap(_.routeTypes)
       val swaggerService = new Swagger(baseUrl, actorSystem, serviceTypes, config)
       val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
-      val versionRt      = versionRoute(version, buildNumber)
+      val versionRt      = versionRoute(version, gitHash, time.currentTime())
 
       val generalExceptionHandler = ExceptionHandler {
 
@@ -103,7 +104,7 @@ object app {
       }
     }
 
-    protected def versionRoute(version: String, buildNumber: Int): Route = {
+    protected def versionRoute(version: String, gitHash: String, startupTime: Time): Route = {
       import DefaultJsonProtocol._
       import SprayJsonSupport._
 
@@ -111,7 +112,9 @@ object app {
         complete(
             Map(
                 "version"     -> version,
-                "buildNumber" -> buildNumber.toString,
+                "gitHash"     -> gitHash,
+                "modules"     -> modules.map(_.name).mkString(", "),
+                "startupTime" -> startupTime.millis.toString,
                 "serverTime"  -> time.currentTime().millis.toString
             ))
       }

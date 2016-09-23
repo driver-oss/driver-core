@@ -60,8 +60,11 @@ object rest {
       log.audit(s"Sending to ${request.uri} request $request")
 
       val responseEntity = Http()(actorSystem).singleRequest(request)(materializer) map { response =>
-        if(response.status.isFailure()) throw new Exception("Http status is failure " + response.status)
-        else Unmarshal(response.entity.transformDataBytes(decryptionFlow))
+        if(response.status.isFailure() && response.status != StatusCodes.NotFound) {
+          throw new Exception("Http status is failure " + response.status)
+        } else {
+          Unmarshal(response.entity.transformDataBytes(decryptionFlow))
+        }
       }
 
       responseEntity.onComplete {

@@ -68,6 +68,8 @@ object app {
             // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
             def requestUuid = java.util.UUID.randomUUID.toString
 
+            is.printStackTrace()
+
             log.debug(s"Request is not allowed to $uri ($requestUuid)", is)
             complete(
                 HttpResponse(BadRequest,
@@ -79,6 +81,8 @@ object app {
             // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
             def requestUuid = java.util.UUID.randomUUID.toString
 
+            cm.printStackTrace()
+
             log.debug(s"Concurrent modification of the resource $uri ($requestUuid)", cm)
             complete(
                 HttpResponse(Conflict,
@@ -89,6 +93,8 @@ object app {
           extractUri { uri =>
             // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
             def requestUuid = java.util.UUID.randomUUID.toString
+
+            t.printStackTrace()
 
             log.error(s"Request to $uri could not be handled normally ($requestUuid)", t)
             complete(

@@ -59,27 +59,25 @@ object rest {
 
       log.audit(s"Sending to ${request.uri} request $request")
 
-      Console.print("(((((((((((")
-
       val responseEntity = Http()(actorSystem).singleRequest(request)(materializer) map { response =>
         if(response.status.isFailure() && response.status != StatusCodes.NotFound) {
-          Console.print(")))))))))")
+          log.audit(")))))))))")
           throw new Exception("Http status is failure " + response.status)
         } else {
-          Console.print("OOOOOOOOOOOO")
+          log.audit("OOOOOOOOOOOO")
           Unmarshal(response.entity.transformDataBytes(decryptionFlow))
         }
       }
 
       responseEntity.onComplete {
         case Success(r) =>
-          Console.print("1111111111111")
+          log.audit("1111111111111")
           val responseTime = time.currentTime()
           log.audit(s"Response from ${request.uri} to request $requestStub is successful")
           stats.recordStats(Seq("request", request.uri.toString, "success"), TimeRange(requestTime, responseTime), 1)
 
         case Failure(t: Throwable) =>
-          Console.print("2222222222222")
+          log.audit("2222222222222")
           val responseTime = time.currentTime()
           log.audit(s"Failed to receive response from ${request.uri} to request $requestStub")
           log.error(s"Failed to receive response from ${request.uri} to request $requestStub", t)

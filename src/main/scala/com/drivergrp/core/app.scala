@@ -109,13 +109,15 @@ object app {
       import SprayJsonSupport._
 
       path("version") {
+        val currentTime = time.currentTime().millis
         complete(
             Map(
                 "version"     -> version,
                 "gitHash"     -> gitHash,
                 "modules"     -> modules.map(_.name).mkString(", "),
                 "startupTime" -> startupTime.millis.toString,
-                "serverTime"  -> time.currentTime().millis.toString
+                "serverTime"  -> currentTime.toString,
+                "uptime"      -> (currentTime - startupTime.millis).toString
             ))
       }
     }

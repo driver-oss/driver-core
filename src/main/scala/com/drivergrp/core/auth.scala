@@ -1,5 +1,8 @@
 package com.drivergrp.core
 
+import akka.http.scaladsl.model.headers.HttpChallenges
+import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
+
 object auth {
 
   sealed trait Permission
@@ -97,7 +100,10 @@ object auth {
               val token = AuthToken(Base64[Macaroon](tokenValue))
 
               if (extractUser(token).roles.exists(_.hasPermission(permission))) provide(token)
-              else reject(ValidationRejection(s"User does not have the required permission $permission"))
+              else {
+                val challenge = HttpChallenges.basic(s"User does not have the required permission $permission")
+                reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
+              }
 
             case None =>
               reject(MissingHeaderRejection("WWW-Authenticate"))

@@ -4,7 +4,8 @@ import com.drivergrp.core.auth._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import akka.http.scaladsl.server._
 import Directives._
-import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
+import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -34,7 +35,10 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
     } ~>
     check {
       handled shouldBe false
-      rejections should contain(ValidationRejection("User does not have the required permission CanAssignRoles", None))
+      rejections should contain(
+          AuthenticationFailedRejection(
+              CredentialsRejected,
+              HttpChallenges.basic("User does not have the required permission CanAssignRoles")))
     }
   }
 

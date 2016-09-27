@@ -89,6 +89,7 @@ object rest {
   import scala.reflect.runtime.universe._
 
   class Swagger(override val host: String,
+                version: String,
                 override val actorSystem: ActorSystem,
                 override val apiTypes: Seq[Type],
                 val config: Config) extends SwaggerHttpService with HasActorSystem {
@@ -100,7 +101,7 @@ object rest {
 
     override val info = Info(
       config.getString("swagger.apiInfo.description"),
-      config.getString("swagger.apiVersion"),
+      version,
       config.getString("swagger.apiInfo.title"),
       config.getString("swagger.apiInfo.termsOfServiceUrl"),
       contact = Some(Contact(

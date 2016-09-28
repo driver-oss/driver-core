@@ -77,6 +77,8 @@ object auth {
 
   final case class AuthToken(value: Base64[Macaroon])
 
+  final case class PasswordHash(value: String)
+
   def extractUser(authToken: AuthToken): User = {
     new User() {
       override def id: Id[User]     = Id[User](1L)

@@ -9,13 +9,28 @@ import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsReject
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 
+import scala.concurrent.Future
+import scalaz.OptionT
+
 class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRouteTest {
+
+  val authStatusService: AuthService[User] = new AuthService[User] {
+    override def authStatus(authToken: AuthToken): OptionT[Future, User] = OptionT.optionT[Future] {
+      Future.successful(Some(new User() {
+        override def id: Id[User]     = Id[User](1L)
+        override def roles: Set[Role] = Set(PathologistRole)
+      }))
+    }
+  }
+
+  import authStatusService._
 
   "'authorize' directive" should "throw error is auth token is not in the request" in {
 
     Get("/naive/attempt") ~>
-    auth.directives.authorize(CanSignOutReport) { authToken =>
-      complete("Never going to be here")
+    authorize(CanSignOutReport) {
+      case (authToken, user) =>
+        complete("Never going to be here")
     } ~>
     check {
       handled shouldBe false
@@ -28,10 +43,11 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
     val referenceAuthToken = AuthToken(Base64("I am a pathologist's token"))
 
     Post("/administration/attempt").addHeader(
-        RawHeader(auth.directives.AuthenticationTokenHeader, s"Macaroon ${referenceAuthToken.value.value}")
+        RawHeader(AuthService.AuthenticationTokenHeader, referenceAuthToken.value.value)
     ) ~>
-    auth.directives.authorize(CanAssignRoles) { authToken =>
-      complete("Never going to get here")
+    authorize(CanAssignRoles) {
+      case (authToken, user) =>
+        complete("Never going to get here")
     } ~>
     check {
       handled shouldBe false
@@ -47,14 +63,15 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
     val referenceAuthToken = AuthToken(Base64("I am token"))
 
     Get("/valid/attempt/?a=2&b=5").addHeader(
-        RawHeader(auth.directives.AuthenticationTokenHeader, s"Macaroon ${referenceAuthToken.value.value}")
+        RawHeader(AuthService.AuthenticationTokenHeader, referenceAuthToken.value.value)
     ) ~>
-    auth.directives.authorize(CanSignOutReport) { authToken =>
-      complete("Alright, \"" + authToken.value.value + "\" is handled")
+    authorize(CanSignOutReport) {
+      case (authToken, user) =>
+        complete("Alright, \"" + authToken.value.value + "\" is handled")
     } ~>
     check {
       handled shouldBe true
-      responseAs[String] shouldBe "Alright, \"Macaroon I am token\" is handled"
+      responseAs[String] shouldBe "Alright, \"I am token\" is handled"
     }
   }
 }

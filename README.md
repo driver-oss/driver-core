@@ -92,7 +92,7 @@ For more examples check [project tests](https://github.com/drivergroup/driver-co
 
         $ sbt publish-local
 
-3. TODO: Release new version of core:
+3. Release new version of core:
 
         $ sbt release
 

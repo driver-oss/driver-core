@@ -3,6 +3,10 @@ package com.drivergrp.core
 import akka.http.scaladsl.model.headers.HttpChallenges
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 
+import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
+import scalaz.OptionT
+
 object auth {
 
   sealed trait Permission
@@ -79,38 +83,54 @@ object auth {
 
   final case class PasswordHash(value: String)
 
-  def extractUser(authToken: AuthToken): User = {
-    new User() {
-      override def id: Id[User]     = Id[User](1L)
-      override def roles: Set[Role] = Set(PathologistRole)
-    }
-
-    // TODO: or reject(ValidationRejection(s"Wasn't able to extract user for the token provided")) if none
+  object AuthService {
+    val AuthenticationTokenHeader = "WWW-Authenticate"
   }
 
-  object directives {
+  trait AuthService[U <: User] {
+
     import akka.http.scaladsl.server._
     import Directives._
 
-    val AuthenticationTokenHeader = "WWW-Authenticate"
+    protected def authStatus(authToken: AuthToken): OptionT[Future, U]
 
-    def authorize(permission: Permission): Directive1[AuthToken] = {
+    def authorize(permission: Permission): Directive1[(AuthToken, U)] = {
       parameters('authToken.?).flatMap { parameterTokenValue =>
-        optionalHeaderValueByName(AuthenticationTokenHeader).flatMap { headerTokenValue =>
-          headerTokenValue.orElse(parameterTokenValue) match {
-            case Some(tokenValue) =>
-              val token = AuthToken(Base64[Macaroon](tokenValue))
-
-              if (extractUser(token).roles.exists(_.hasPermission(permission))) provide(token)
-              else {
-                val challenge = HttpChallenges.basic(s"User does not have the required permission $permission")
-                reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
-              }
-
-            case None =>
-              reject(MissingHeaderRejection("WWW-Authenticate"))
-          }
+        optionalHeaderValueByName(AuthService.AuthenticationTokenHeader).flatMap { headerTokenValue =>
+          verifyAuthToken(headerTokenValue.orElse(parameterTokenValue), permission)
         }
+      }
+    }
+
+    private def verifyAuthToken(tokenOption: Option[String], permission: Permission): Directive1[(AuthToken, U)] =
+      tokenOption match {
+        case Some(tokenValue) =>
+          val token = AuthToken(Base64[Macaroon](tokenValue))
+
+          onComplete(authStatus(token).run).flatMap { tokenUserResult =>
+            checkPermissions(tokenUserResult, permission, token)
+          }
+
+        case None =>
+          reject(MissingHeaderRejection(AuthService.AuthenticationTokenHeader))
+      }
+
+    private def checkPermissions(userResult: Try[Option[U]],
+                                 permission: Permission,
+                                 token: AuthToken): Directive1[(AuthToken, U)] = {
+      userResult match {
+        case Success(Some(user)) =>
+          if (user.roles.exists(_.hasPermission(permission))) provide(token -> user)
+          else {
+            val challenge = HttpChallenges.basic(s"User does not have the required permission $permission")
+            reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
+          }
+
+        case Success(None) =>
+          reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
+
+        case Failure(t) =>
+          reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))
       }
     }
   }

@@ -8,7 +8,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
-import com.drivergrp.core.auth.AuthToken
+import com.drivergrp.core.auth.{AuthService, AuthToken}
 import com.drivergrp.core.crypto.Crypto
 import com.drivergrp.core.logging.Logger
 import com.drivergrp.core.stats.Stats
@@ -55,7 +55,7 @@ object rest {
       val request = requestStub
         .withEntity(requestStub.entity.transformDataBytes(encryptionFlow))
         .withHeaders(
-          RawHeader(auth.directives.AuthenticationTokenHeader, s"Macaroon ${authToken.value.value}"))
+          RawHeader(AuthService.AuthenticationTokenHeader, authToken.value.value))
 
       log.audit(s"Sending to ${request.uri} request $request")
 

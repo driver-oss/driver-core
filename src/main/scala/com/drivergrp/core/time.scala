@@ -29,10 +29,8 @@ object time {
   }
 
   object Time {
-
     implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
   }
-
 
   final case class TimeRange(start: Time, end: Time) {
     def duration: Duration = FiniteDuration(end.millis - start.millis, MILLISECONDS)

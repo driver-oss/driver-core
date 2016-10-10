@@ -39,7 +39,6 @@ package object core {
     def apply[Tag](value: String) = value.asInstanceOf[Name[Tag]]
   }
 
-
   object revision {
     final case class Revision[T](id: String)
 

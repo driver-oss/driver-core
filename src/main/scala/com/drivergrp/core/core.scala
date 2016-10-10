@@ -25,18 +25,20 @@ package object core {
 
   type Id[+Tag] = Long @@ Tag
   object Id {
+    implicit def idEqual[T]: Equal[Id[T]]       = Equal.equal[Id[T]](_ == _)
+    implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by(i => i: Long)
+
     def apply[Tag](value: Long) = value.asInstanceOf[Id[Tag]]
   }
-  implicit def idEqual[T]: Equal[Id[T]]       = Equal.equal[Id[T]](_ == _)
-  implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by(i => i: Long)
 
   type Name[+Tag] = String @@ Tag
   object Name {
+    implicit def nameEqual[T]: Equal[Name[T]]       = Equal.equal[Name[T]](_ == _)
+    implicit def nameOrdering[T]: Ordering[Name[T]] = Ordering.by(n => n: String)
+
     def apply[Tag](value: String) = value.asInstanceOf[Name[Tag]]
   }
 
-  implicit def nameEqual[T]: Equal[Name[T]]       = Equal.equal[Name[T]](_ == _)
-  implicit def nameOrdering[T]: Ordering[Name[T]] = Ordering.by(n => n: String)
 
   object revision {
     final case class Revision[T](id: String)

@@ -29,6 +29,7 @@ object time {
   }
 
   object Time {
+
     implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
   }
 

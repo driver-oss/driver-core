@@ -15,8 +15,10 @@ object auth {
   case object CanSeeReport              extends Permission
   case object CanCreateReport           extends Permission
   case object CanEditReport             extends Permission
+  case object CanReviewReport           extends Permission
   case object CanEditReviewingReport    extends Permission
   case object CanSignOutReport          extends Permission
+  case object CanAmendReport            extends Permission
   case object CanShareReportWithPatient extends Permission
   case object CanAssignRoles            extends Permission
 
@@ -43,30 +45,21 @@ object auth {
   case object CuratorRole extends Role {
     val id          = Id(3L)
     val name        = Name("curator")
-    val permissions = Set[Permission](CanSeeUser, CanSeeAssay, CanSeeReport, CanEditReport)
+    val permissions = ObserverRole.permissions ++ Set[Permission](CanEditReport, CanReviewReport)
   }
 
   case object PathologistRole extends Role {
     val id   = Id(4L)
     val name = Name("pathologist")
-    val permissions =
-      Set[Permission](CanSeeUser, CanSeeAssay, CanSeeReport, CanEditReport, CanSignOutReport, CanEditReviewingReport)
+    val permissions = ObserverRole.permissions ++
+        Set[Permission](CanEditReport, CanSignOutReport, CanAmendReport, CanEditReviewingReport)
   }
 
   case object AdministratorRole extends Role {
     val id   = Id(5L)
     val name = Name("administrator")
-    val permissions = Set[Permission](
-        CanSeeUser,
-        CanSeeAssay,
-        CanSeeReport,
-        CanCreateReport,
-        CanEditReport,
-        CanEditReviewingReport,
-        CanSignOutReport,
-        CanShareReportWithPatient,
-        CanAssignRoles
-    )
+    val permissions = CuratorRole.permissions ++
+        Set[Permission](CanCreateReport, CanShareReportWithPatient, CanAssignRoles)
   }
 
   trait User {

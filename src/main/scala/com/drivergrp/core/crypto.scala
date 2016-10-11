@@ -16,4 +16,12 @@ object crypto {
 
     def decrypt(decryptionKey: EncryptionKey)(message: Array[Byte]): Array[Byte]
   }
+
+  object NoCrypto extends Crypto {
+
+    override def keyForToken(authToken: AuthToken): EncryptionKey = EncryptionKey(authToken.value.value)
+
+    override def decrypt(decryptionKey: EncryptionKey)(message: Array[Byte]): Array[Byte] = message
+    override def encrypt(encryptionKey: EncryptionKey)(message: Array[Byte]): Array[Byte] = message
+  }
 }

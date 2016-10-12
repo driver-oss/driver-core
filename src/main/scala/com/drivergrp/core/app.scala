@@ -11,6 +11,7 @@ import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
 import com.drivergrp.core.logging.{Logger, TypesafeScalaLogger}
 import com.drivergrp.core.rest.Swagger
+import com.drivergrp.core.stats.SystemStats
 import com.drivergrp.core.time.Time
 import com.drivergrp.core.time.provider.{SystemTimeProvider, TimeProvider}
 import com.typesafe.config.Config
@@ -99,7 +100,7 @@ object app {
 
       val _ = Future {
         http.bindAndHandle(route2HandlerFlow(handleExceptions(generalExceptionHandler) {
-          logRequestResult("log")(modules.map(_.route).foldLeft(versionRt ~ swaggerRoutes)(_ ~ _))
+          logRequestResult("log")(modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _))
         }), interface, port)(materializer)
       }
     }
@@ -118,6 +119,38 @@ object app {
                 "startupTime" -> startupTime.millis.toString,
                 "serverTime"  -> currentTime.toString,
                 "uptime"      -> (currentTime - startupTime.millis).toString
+            ))
+      }
+    }
+
+    protected def healthRoute: Route = {
+      import DefaultJsonProtocol._
+      import SprayJsonSupport._
+      import spray.json._
+
+      val memoryUsage = SystemStats.memoryUsage
+      val gcStats     = SystemStats.garbageCollectorStats
+
+      path("health") {
+        complete(
+            Map(
+                "availableProcessors" -> SystemStats.availableProcessors.toJson,
+                "memoryUsage" -> Map(
+                    "free"  -> memoryUsage.free.toJson,
+                    "total" -> memoryUsage.total.toJson,
+                    "max"   -> memoryUsage.max.toJson
+                ).toJson,
+                "gcStats" -> Map(
+                    "garbageCollectionTime"   -> gcStats.garbageCollectionTime.toJson,
+                    "totalGarbageCollections" -> gcStats.totalGarbageCollections.toJson
+                ).toJson,
+                "fileSystemSpace" -> SystemStats.fileSystemSpace.map { f =>
+              Map("path"        -> f.path.toJson,
+                  "freeSpace"   -> f.freeSpace.toJson,
+                  "totalSpace"  -> f.totalSpace.toJson,
+                  "usableSpace" -> f.usableSpace.toJson)
+            }.toJson,
+                "operatingSystem" -> SystemStats.operatingSystemStats.toJson
             ))
       }
     }

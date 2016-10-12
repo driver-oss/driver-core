@@ -45,7 +45,7 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     (Name[String]("foo") === Name[String]("bar")) should be(false)
     (Name[String]("bar") === Name[String]("foo")) should be(false)
 
-    Seq(Name[String]("d"), Name[String]("cc"),        Name[String]("a"), Name[String]("bbb")).sorted should contain
+    Seq(Name[String]("d"), Name[String]("cc"),    Name[String]("a"), Name[String]("bbb")).sorted should contain
     theSameElementsInOrderAs(Seq(Name[String]("a"), Name[String]("bbb"), Name[String]("cc"), Name[String]("d")))
   }
 

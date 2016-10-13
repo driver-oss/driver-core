@@ -68,7 +68,7 @@ object stats {
       val (totalGarbageCollections, garbageCollectionTime) =
         ManagementFactory.getGarbageCollectorMXBeans.asScala.foldLeft(0L -> 0L) {
           case ((total, collectionTime), gc) =>
-            (total + math.min(0L, gc.getCollectionCount)) -> (collectionTime + math.min(0L, gc.getCollectionTime))
+            (total + math.max(0L, gc.getCollectionCount)) -> (collectionTime + math.max(0L, gc.getCollectionTime))
         }
 
       GarbageCollectorStats(totalGarbageCollections, garbageCollectionTime)

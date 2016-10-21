@@ -4,9 +4,8 @@ import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.server.PathMatcher.Matched
 import akka.http.scaladsl.server.{PathMatcher, _}
 import akka.http.scaladsl.unmarshalling.Unmarshaller
-import xyz.driver.core.revision.Revision
-import xyz.driver.core.time.Time
 import spray.json.{DeserializationException, JsNumber, _}
+import xyz.driver.core.revision.Revision
 import xyz.driver.core.time.Time
 
 import scala.reflect.runtime.universe._

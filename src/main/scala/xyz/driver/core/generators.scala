@@ -1,9 +1,9 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.math.MathContext
 
-import com.drivergrp.core.revision.Revision
-import com.drivergrp.core.time.{Time, TimeRange}
+import xyz.driver.core.revision.Revision
+import xyz.driver.core.time.{Time, TimeRange}
 
 import scala.reflect.ClassTag
 import scala.util.Random

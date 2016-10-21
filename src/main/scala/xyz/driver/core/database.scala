@@ -1,6 +1,6 @@
-package com.drivergrp.core
+package xyz.driver.core
 
-import com.drivergrp.core.time.Time
+import xyz.driver.core.time.Time
 
 import scala.concurrent.Future
 import slick.backend.DatabaseConfig

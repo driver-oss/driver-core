@@ -1,4 +1,4 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import akka.http.scaladsl.model.headers.HttpChallenges
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
@@ -87,21 +87,22 @@ object auth {
 
     protected def authStatus(authToken: AuthToken): OptionT[Future, U]
 
-    def authorize(permission: Permission): Directive1[(AuthToken, U)] = {
+    def authorize(permissions: Permission*): Directive1[(AuthToken, U)] = {
       parameters('authToken.?).flatMap { parameterTokenValue =>
         optionalHeaderValueByName(AuthService.AuthenticationTokenHeader).flatMap { headerTokenValue =>
-          verifyAuthToken(headerTokenValue.orElse(parameterTokenValue), permission)
+          verifyAuthToken(headerTokenValue.orElse(parameterTokenValue), permissions.toSet)
         }
       }
     }
 
-    private def verifyAuthToken(tokenOption: Option[String], permission: Permission): Directive1[(AuthToken, U)] =
+    private def verifyAuthToken(tokenOption: Option[String],
+                                permissions: Set[Permission]): Directive1[(AuthToken, U)] =
       tokenOption match {
         case Some(tokenValue) =>
           val token = AuthToken(Base64[Macaroon](tokenValue))
 
           onComplete(authStatus(token).run).flatMap { tokenUserResult =>
-            checkPermissions(tokenUserResult, permission, token)
+            checkPermissions(tokenUserResult, permissions, token)
           }
 
         case None =>
@@ -109,13 +110,14 @@ object auth {
       }
 
     private def checkPermissions(userResult: Try[Option[U]],
-                                 permission: Permission,
+                                 permissions: Set[Permission],
                                  token: AuthToken): Directive1[(AuthToken, U)] = {
       userResult match {
         case Success(Some(user)) =>
-          if (user.roles.exists(_.hasPermission(permission))) provide(token -> user)
+          if (permissions.forall(user.permissions.contains)) provide(token -> user)
           else {
-            val challenge = HttpChallenges.basic(s"User does not have the required permission $permission")
+            val challenge =
+              HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
             reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
           }
 

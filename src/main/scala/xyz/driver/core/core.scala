@@ -1,4 +1,4 @@
-package com.drivergrp
+package xyz.driver
 
 import scalaz.Equal
 

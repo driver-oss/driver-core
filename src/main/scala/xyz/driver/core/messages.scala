@@ -1,9 +1,9 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.util.Locale
 
-import com.drivergrp.core.logging.Logger
 import com.typesafe.config.Config
+import xyz.driver.core.logging.Logger
 
 import scala.collection.JavaConverters._
 

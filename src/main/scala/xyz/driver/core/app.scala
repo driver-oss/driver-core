@@ -1,4 +1,4 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -9,14 +9,15 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
-import com.drivergrp.core.logging.{Logger, TypesafeScalaLogger}
-import com.drivergrp.core.rest.Swagger
-import com.drivergrp.core.stats.SystemStats
-import com.drivergrp.core.time.Time
-import com.drivergrp.core.time.provider.{SystemTimeProvider, TimeProvider}
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 import spray.json.DefaultJsonProtocol
+import xyz.driver.core
+import xyz.driver.core.logging.{Logger, TypesafeScalaLogger}
+import xyz.driver.core.rest.Swagger
+import xyz.driver.core.stats.SystemStats
+import xyz.driver.core.time.Time
+import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
 
 import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
@@ -29,8 +30,8 @@ object app {
                   modules: Seq[Module],
                   time: TimeProvider = new SystemTimeProvider(),
                   log: Logger = new TypesafeScalaLogger(
-                      com.typesafe.scalalogging.Logger(LoggerFactory.getLogger(classOf[DriverApp]))),
-                  config: Config = com.drivergrp.core.config.loadDefaultConfig,
+                    com.typesafe.scalalogging.Logger(LoggerFactory.getLogger(classOf[DriverApp]))),
+                  config: Config = core.config.loadDefaultConfig,
                   interface: String = "::0",
                   baseUrl: String = "localhost:8080",
                   port: Int = 8080) {
@@ -71,8 +72,8 @@ object app {
 
             log.debug(s"Request is not allowed to $uri ($requestUuid)", is)
             complete(
-                HttpResponse(BadRequest,
-                             entity = s"""{ "requestUuid": "$requestUuid", "message": "${is.getMessage}" }"""))
+              HttpResponse(BadRequest,
+                           entity = s"""{ "requestUuid": "$requestUuid", "message": "${is.getMessage}" }"""))
           }
 
         case cm: ConcurrentModificationException =>
@@ -82,8 +83,7 @@ object app {
 
             log.debug(s"Concurrent modification of the resource $uri ($requestUuid)", cm)
             complete(
-                HttpResponse(Conflict,
-                             entity = s"""{ "requestUuid": "$requestUuid", "message": "${cm.getMessage}" }"""))
+              HttpResponse(Conflict, entity = s"""{ "requestUuid": "$requestUuid", "message": "${cm.getMessage}" }"""))
           }
 
         case t: Throwable =>
@@ -93,8 +93,8 @@ object app {
 
             log.error(s"Request to $uri could not be handled normally ($requestUuid)", t)
             complete(
-                HttpResponse(InternalServerError,
-                             entity = s"""{ "requestUuid": "$requestUuid", "message": "${t.getMessage}" }"""))
+              HttpResponse(InternalServerError,
+                           entity = s"""{ "requestUuid": "$requestUuid", "message": "${t.getMessage}" }"""))
           }
       }
 
@@ -112,14 +112,14 @@ object app {
       path("version") {
         val currentTime = time.currentTime().millis
         complete(
-            Map(
-                "version"     -> version,
-                "gitHash"     -> gitHash,
-                "modules"     -> modules.map(_.name).mkString(", "),
-                "startupTime" -> startupTime.millis.toString,
-                "serverTime"  -> currentTime.toString,
-                "uptime"      -> (currentTime - startupTime.millis).toString
-            ))
+          Map(
+            "version"     -> version,
+            "gitHash"     -> gitHash,
+            "modules"     -> modules.map(_.name).mkString(", "),
+            "startupTime" -> startupTime.millis.toString,
+            "serverTime"  -> currentTime.toString,
+            "uptime"      -> (currentTime - startupTime.millis).toString
+          ))
       }
     }
 
@@ -133,25 +133,25 @@ object app {
 
       path("health") {
         complete(
-            Map(
-                "availableProcessors" -> SystemStats.availableProcessors.toJson,
-                "memoryUsage" -> Map(
-                    "free"  -> memoryUsage.free.toJson,
-                    "total" -> memoryUsage.total.toJson,
-                    "max"   -> memoryUsage.max.toJson
-                ).toJson,
-                "gcStats" -> Map(
-                    "garbageCollectionTime"   -> gcStats.garbageCollectionTime.toJson,
-                    "totalGarbageCollections" -> gcStats.totalGarbageCollections.toJson
-                ).toJson,
-                "fileSystemSpace" -> SystemStats.fileSystemSpace.map { f =>
+          Map(
+            "availableProcessors" -> SystemStats.availableProcessors.toJson,
+            "memoryUsage" -> Map(
+              "free"  -> memoryUsage.free.toJson,
+              "total" -> memoryUsage.total.toJson,
+              "max"   -> memoryUsage.max.toJson
+            ).toJson,
+            "gcStats" -> Map(
+              "garbageCollectionTime"   -> gcStats.garbageCollectionTime.toJson,
+              "totalGarbageCollections" -> gcStats.totalGarbageCollections.toJson
+            ).toJson,
+            "fileSystemSpace" -> SystemStats.fileSystemSpace.map { f =>
               Map("path"        -> f.path.toJson,
                   "freeSpace"   -> f.freeSpace.toJson,
                   "totalSpace"  -> f.totalSpace.toJson,
                   "usableSpace" -> f.usableSpace.toJson)
             }.toJson,
-                "operatingSystem" -> SystemStats.operatingSystemStats.toJson
-            ))
+            "operatingSystem" -> SystemStats.operatingSystemStats.toJson
+          ))
       }
     }
 
@@ -206,7 +206,7 @@ object app {
   }
 
   class EmptyModule extends Module {
-    val name = "Nothing"
+    val name         = "Nothing"
     def route: Route = complete(StatusCodes.OK)
     def routeTypes   = Seq.empty[Type]
   }

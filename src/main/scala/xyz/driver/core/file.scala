@@ -1,4 +1,4 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.io.File
 import java.nio.file.{Path, Paths}
@@ -6,8 +6,8 @@ import java.util.UUID._
 
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.{Bucket, GetObjectRequest, ListObjectsV2Request}
-import com.drivergrp.core.revision.Revision
-import com.drivergrp.core.time.Time
+import xyz.driver.core.revision.Revision
+import xyz.driver.core.time.Time
 
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, OptionT}
@@ -15,10 +15,10 @@ import scalaz.{ListT, OptionT}
 object file {
 
   final case class FileLink(
-      name: Name[File],
-      location: Path,
-      revision: Revision[File],
-      lastModificationDate: Time
+          name: Name[File],
+          location: Path,
+          revision: Revision[File],
+          lastModificationDate: Time
   )
 
   trait FileService {
@@ -114,7 +114,7 @@ object file {
           if (localSource.renameTo(destinationFile)) ()
           else {
             throw new Exception(
-                s"Failed to move file from `${localSource.getCanonicalPath}` to `${destinationFile.getCanonicalPath}`")
+              s"Failed to move file from `${localSource.getCanonicalPath}` to `${destinationFile.getCanonicalPath}`")
           }
         } else {
           throw new Exception(s"Failed to create parent directories for file `${destinationFile.getCanonicalPath}`")

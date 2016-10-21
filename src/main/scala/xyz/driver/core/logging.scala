@@ -1,4 +1,4 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -168,7 +168,7 @@ object logging {
     private def logContext(message: StringBuilder, loggingEvent: ILoggingEvent) = {
       Option(loggingEvent.getMDCPropertyMap).map(_.asScala).filter(_.nonEmpty).foreach { context =>
         message.append(
-            context map { case (key, value) => s"$key$FieldSeparator$value" } mkString ("Context: ", " ", newline)
+          context map { case (key, value) => s"$key$FieldSeparator$value" } mkString ("Context: ", " ", newline)
         )
       }
     }

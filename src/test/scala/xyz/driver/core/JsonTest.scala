@@ -1,9 +1,9 @@
-package com.drivergrp.core
+package xyz.driver.core
 
-import com.drivergrp.core.json.{EnumJsonFormat, ValueClassFormat}
-import com.drivergrp.core.revision.Revision
-import com.drivergrp.core.time.provider.SystemTimeProvider
 import org.scalatest.{FlatSpec, Matchers}
+import xyz.driver.core.json.{EnumJsonFormat, ValueClassFormat}
+import xyz.driver.core.revision.Revision
+import xyz.driver.core.time.provider.SystemTimeProvider
 
 class JsonTest extends FlatSpec with Matchers {
 
@@ -11,10 +11,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceId = Id[String](1312L)
 
-    val writtenJson = com.drivergrp.core.json.idFormat.write(referenceId)
+    val writtenJson = json.idFormat.write(referenceId)
     writtenJson.prettyPrint should be("1312")
 
-    val parsedId = com.drivergrp.core.json.idFormat.read(writtenJson)
+    val parsedId = json.idFormat.read(writtenJson)
     parsedId should be(referenceId)
   }
 
@@ -22,10 +22,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceName = Name[String]("Homer")
 
-    val writtenJson = com.drivergrp.core.json.nameFormat.write(referenceName)
+    val writtenJson = json.nameFormat.write(referenceName)
     writtenJson.prettyPrint should be("\"Homer\"")
 
-    val parsedName = com.drivergrp.core.json.nameFormat.read(writtenJson)
+    val parsedName = json.nameFormat.read(writtenJson)
     parsedName should be(referenceName)
   }
 
@@ -33,10 +33,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceTime = new SystemTimeProvider().currentTime()
 
-    val writtenJson = com.drivergrp.core.json.timeFormat.write(referenceTime)
+    val writtenJson = json.timeFormat.write(referenceTime)
     writtenJson.prettyPrint should be("{\n  \"timestamp\": " + referenceTime.millis + "\n}")
 
-    val parsedTime = com.drivergrp.core.json.timeFormat.read(writtenJson)
+    val parsedTime = json.timeFormat.read(writtenJson)
     parsedTime should be(referenceTime)
   }
 
@@ -44,10 +44,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceRevision = Revision[String]("037e2ec0-8901-44ac-8e53-6d39f6479db4")
 
-    val writtenJson = com.drivergrp.core.json.revisionFormat.write(referenceRevision)
+    val writtenJson = json.revisionFormat.write(referenceRevision)
     writtenJson.prettyPrint should be("\"" + referenceRevision.id + "\"")
 
-    val parsedRevision = com.drivergrp.core.json.revisionFormat.read(writtenJson)
+    val parsedRevision = json.revisionFormat.read(writtenJson)
     parsedRevision should be(referenceRevision)
   }
 

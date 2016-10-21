@@ -1,6 +1,6 @@
-package com.drivergrp.core
+package xyz.driver.core
 
-import com.drivergrp.core.auth.AuthToken
+import xyz.driver.core.auth.AuthToken
 
 object crypto {
 

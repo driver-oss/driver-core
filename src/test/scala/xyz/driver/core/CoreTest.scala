@@ -1,11 +1,11 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.io.ByteArrayOutputStream
 
-import com.drivergrp.core.revision.Revision
+import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
-import org.mockito.Mockito._
+import xyz.driver.core.revision.Revision
 
 class CoreTest extends FlatSpec with Matchers with MockitoSugar {
 

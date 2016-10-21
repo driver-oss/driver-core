@@ -1,15 +1,15 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.io.File
 import java.nio.file.Paths
 
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model._
-import com.drivergrp.core.file.{FileSystemStorage, S3Storage}
+import org.mockito.Matchers._
+import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
-import org.mockito.Mockito._
-import org.mockito.Matchers._
+import xyz.driver.core.file.{FileSystemStorage, S3Storage}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -44,9 +44,9 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
                                                false, // after file is uploaded it contains this one file (one page)
                                                false) // after file is deleted it is empty (zero pages) again
     when(s3ResultsMock.getObjectSummaries).thenReturn(
-        // before file created it is empty, `getObjectSummaries` is never called
-        List[S3ObjectSummary](s3ObjectSummaryMock).asJava, // after file is uploaded it contains this one file
-        List.empty[S3ObjectSummary].asJava) // after file is deleted it is empty again
+      // before file created it is empty, `getObjectSummaries` is never called
+      List[S3ObjectSummary](s3ObjectSummaryMock).asJava, // after file is uploaded it contains this one file
+      List.empty[S3ObjectSummary].asJava) // after file is deleted it is empty again
 
     val s3ObjectMetadataMock = mock[ObjectMetadata]
     val amazonS3Mock         = mock[AmazonS3]

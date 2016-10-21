@@ -1,11 +1,11 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.io.File
 import java.lang.management.ManagementFactory
 import java.lang.reflect.Modifier
 
-import com.drivergrp.core.logging.Logger
-import com.drivergrp.core.time.{Time, TimeRange}
+import xyz.driver.core.logging.Logger
+import xyz.driver.core.time.{Time, TimeRange}
 
 object stats {
 

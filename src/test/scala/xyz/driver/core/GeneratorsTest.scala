@@ -1,4 +1,4 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import org.scalatest.{Assertions, FlatSpec, Matchers}
 
@@ -86,7 +86,7 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
     generatedPair._2.length should be > 0
 
     nextPair(nextId[Int](), nextName[Int]()) should not be
-    nextPair(nextId[Int](), nextName[Int]())
+      nextPair(nextId[Int](), nextName[Int]())
   }
 
   it should "be able to generate a triad of two generated values" in {
@@ -103,7 +103,7 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
     generatedTriad._3 should be >= BigDecimal(0.00)
 
     nextTriad(nextId[Int](), nextName[Int](), nextBigDecimal()) should not be
-    nextTriad(nextId[Int](), nextName[Int](), nextBigDecimal())
+      nextTriad(nextId[Int](), nextName[Int](), nextBigDecimal())
   }
 
   it should "be able to generate a time value" in {

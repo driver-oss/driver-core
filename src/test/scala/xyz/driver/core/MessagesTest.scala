@@ -1,13 +1,13 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.util.Locale
 
-import com.drivergrp.core.logging.Logger
-import com.drivergrp.core.messages.Messages
 import com.typesafe.config.{ConfigException, ConfigFactory}
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
+import xyz.driver.core.logging.Logger
+import xyz.driver.core.messages.Messages
 
 import scala.collection.JavaConversions._
 
@@ -33,11 +33,11 @@ class MessagesTest extends FlatSpec with Matchers with MockitoSugar {
     val log = mock[Logger]
 
     val messagesConfig = ConfigFactory.parseMap(
-        englishLocaleMessages ++ Map(
-            "zh.hello"            -> "你好，世界!",
-            "zh.greeting"         -> "你好，{0}!",
-            "zh.greetingFullName" -> "你好，{0} {1} {2}!"
-        ))
+      englishLocaleMessages ++ Map(
+        "zh.hello"            -> "你好，世界!",
+        "zh.greeting"         -> "你好，{0}!",
+        "zh.greetingFullName" -> "你好，{0} {1} {2}!"
+      ))
 
     val englishMessages    = Messages.messages(messagesConfig, log, Locale.US)
     val englishMessagesToo = Messages.messages(messagesConfig, log, Locale.ENGLISH)
@@ -50,7 +50,7 @@ class MessagesTest extends FlatSpec with Matchers with MockitoSugar {
     englishMessagesToo("hello") should be(englishMessages("hello"))
     englishMessagesToo("greeting", "Homer") should be(englishMessages("greeting", "Homer"))
     englishMessagesToo("greetingFullName", "Homer", "J", "Simpson") should be(
-        englishMessages("greetingFullName", "Homer", "J", "Simpson"))
+      englishMessages("greetingFullName", "Homer", "J", "Simpson"))
 
     chineseMessages("hello") should be("你好，世界!")
     chineseMessages("greeting", "Homer") should be("你好，Homer!")
@@ -63,7 +63,7 @@ class MessagesTest extends FlatSpec with Matchers with MockitoSugar {
     val messagesConfig = ConfigFactory.parseMap(englishLocaleMessages)
 
     an[ConfigException.Missing] should be thrownBy
-    Messages.messages(messagesConfig, log, Locale.GERMAN)
+      Messages.messages(messagesConfig, log, Locale.GERMAN)
   }
 
   it should "log a problem, when there is no message for key" in {

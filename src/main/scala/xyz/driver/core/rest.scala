@@ -52,10 +52,9 @@ object rest {
         ByteString(crypto.decrypt(crypto.keyForToken(authToken))(bytes.toArray))
       }
 
-      val request = requestStub
-        .withEntity(requestStub.entity.transformDataBytes(encryptionFlow))
-        .withHeaders(
-          RawHeader(AuthService.AuthenticationTokenHeader, authToken.value.value))
+      val request = (if(requestStub.entity.isKnownEmpty()) requestStub else {
+        requestStub.withEntity(requestStub.entity.transformDataBytes(encryptionFlow))
+      }).withHeaders(RawHeader(AuthService.AuthenticationTokenHeader, authToken.value.value))
 
       log.audit(s"Sending to ${request.uri} request $request")
 

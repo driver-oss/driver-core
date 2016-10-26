@@ -87,7 +87,7 @@ object logging {
       scalaLogging.debug(marker, "DEBUG " + message, args)
   }
 
-  class NoLogger() extends Logger {
+  object NoLogger extends Logger {
 
     def fatal(message: String): Unit                                   = {}
     def fatal(message: String, cause: Throwable): Unit                 = {}
@@ -121,22 +121,17 @@ object logging {
   class DriverLayout extends LayoutBase[ILoggingEvent] {
     import scala.collection.JavaConverters._
 
-    private val AVERAGE_MAXIMAL_MESSAGE_LENGTH = 256
-    private val FieldSeparator                 = "="
-    private val DateFormatString               = "MM/dd/yyyy HH:mm:ss"
-    private val newline                        = System.getProperty("line.separator")
-    private val IgnoredClassesInStack          = Set("org.apache.catalina", "org.apache.coyote", "sun.reflect", "javax.servlet")
+    private val FieldSeparator        = "="
+    private val DateFormatString      = "MM/dd/yyyy HH:mm:ss"
+    private val newline               = System.getProperty("line.separator")
+    private val IgnoredClassesInStack = Set("org.apache.catalina", "org.apache.coyote", "sun.reflect", "javax.servlet")
 
     override def doLayout(loggingEvent: ILoggingEvent): String = {
 
-      val message = new StringBuilder(AVERAGE_MAXIMAL_MESSAGE_LENGTH)
-        .append(new SimpleDateFormat(DateFormatString).format(new Date(loggingEvent.getTimeStamp)))
-        .append(" [")
-        .append(StringUtils.rightPad(loggingEvent.getLevel.toString, 5))
-        .append(']')
-        .append(" - ")
-        .append(loggingEvent.getMessage)
-        .append(newline)
+      val date  = new SimpleDateFormat(DateFormatString).format(new Date(loggingEvent.getTimeStamp))
+      val level = StringUtils.rightPad(loggingEvent.getLevel.toString, 5)
+
+      val message = new StringBuilder(s"$date [$level] - loggingEvent.getMessage$newline")
 
       logContext(message, loggingEvent)
 
@@ -148,9 +143,7 @@ object logging {
 
           val _ = message
             .append(s"Location: ${location.getClassName}.${location.getMethodName}:${location.getLineNumber}$newline")
-            .append("Exception: ")
-            .append(location.toString)
-            .append(newline)
+            .append(s"Exception: ${location.toString}$newline")
 
           if (stacktraceLength > 1) {
             message.append(stacktrace.tail.filterNot { e =>

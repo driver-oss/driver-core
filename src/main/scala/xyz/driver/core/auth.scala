@@ -72,12 +72,13 @@ object auth {
 
   final case class Base64[T](value: String)
 
-  final case class AuthToken(value: Base64[Macaroon])
+  final case class AuthToken(value: Base64[Macaroon], trackingId: String)
 
   final case class PasswordHash(value: String)
 
   object AuthService {
     val AuthenticationTokenHeader = "WWW-Authenticate"
+    val TrackingIdHeader          = "l5d-ctx-trace" // https://linkerd.io/doc/0.7.4/linkerd/protocol-http/
   }
 
   trait AuthService[U <: User] {
@@ -90,16 +91,20 @@ object auth {
     def authorize(permissions: Permission*): Directive1[(AuthToken, U)] = {
       parameters('authToken.?).flatMap { parameterTokenValue =>
         optionalHeaderValueByName(AuthService.AuthenticationTokenHeader).flatMap { headerTokenValue =>
-          verifyAuthToken(headerTokenValue.orElse(parameterTokenValue), permissions.toSet)
+          optionalHeaderValueByName(AuthService.TrackingIdHeader).flatMap { trackingIdValue =>
+            verifyAuthToken(headerTokenValue.orElse(parameterTokenValue), trackingIdValue, permissions.toSet)
+          }
         }
       }
     }
 
     private def verifyAuthToken(tokenOption: Option[String],
+                                trackingIdValue: Option[String],
                                 permissions: Set[Permission]): Directive1[(AuthToken, U)] =
       tokenOption match {
         case Some(tokenValue) =>
-          val token = AuthToken(Base64[Macaroon](tokenValue))
+          val trackingId = trackingIdValue.getOrElse(java.util.UUID.randomUUID.toString)
+          val token      = AuthToken(Base64[Macaroon](tokenValue), trackingId)
 
           onComplete(authStatus(token).run).flatMap { tokenUserResult =>
             checkPermissions(tokenUserResult, permissions, token)

@@ -7,12 +7,13 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
-import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
+import akka.http.scaladsl.server.{ExceptionHandler, RequestContext, Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 import spray.json.DefaultJsonProtocol
 import xyz.driver.core
+import xyz.driver.core.auth.AuthService
 import xyz.driver.core.logging.{Logger, TypesafeScalaLogger}
 import xyz.driver.core.rest.Swagger
 import xyz.driver.core.stats.SystemStats
@@ -63,46 +64,49 @@ object app {
       val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
       val versionRt      = versionRoute(version, gitHash, time.currentTime())
 
-      val generalExceptionHandler = ExceptionHandler {
-
-        case is: IllegalStateException =>
-          extractUri { uri =>
-            // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
-            def requestUuid = java.util.UUID.randomUUID.toString
-
-            log.debug(s"Request is not allowed to $uri ($requestUuid)", is)
-            complete(
-              HttpResponse(BadRequest,
-                           entity = s"""{ "requestUuid": "$requestUuid", "message": "${is.getMessage}" }"""))
-          }
-
-        case cm: ConcurrentModificationException =>
-          extractUri { uri =>
-            // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
-            def requestUuid = java.util.UUID.randomUUID.toString
-
-            log.debug(s"Concurrent modification of the resource $uri ($requestUuid)", cm)
-            complete(
-              HttpResponse(Conflict, entity = s"""{ "requestUuid": "$requestUuid", "message": "${cm.getMessage}" }"""))
-          }
-
-        case t: Throwable =>
-          extractUri { uri =>
-            // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
-            def requestUuid = java.util.UUID.randomUUID.toString
-
-            log.error(s"Request to $uri could not be handled normally ($requestUuid)", t)
-            complete(
-              HttpResponse(InternalServerError,
-                           entity = s"""{ "requestUuid": "$requestUuid", "message": "${t.getMessage}" }"""))
-          }
-      }
-
       val _ = Future {
-        http.bindAndHandle(route2HandlerFlow(handleExceptions(generalExceptionHandler) {
-          logRequestResult("log")(modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _))
+        http.bindAndHandle(route2HandlerFlow(handleExceptions(exceptionHandler) { ctx =>
+          log.audit(s"Received request ${ctx.request}")
+          modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)(ctx)
         }), interface, port)(materializer)
       }
+    }
+
+    protected def extractTrackingId(ctx: RequestContext) = {
+      ctx.request.headers
+        .find(_.name == AuthService.TrackingIdHeader)
+        .map(_.value())
+        .getOrElse(java.util.UUID.randomUUID.toString)
+      // TODO: In the case when absent, should be taken the same generated id, as in `authorize`
+    }
+
+    protected def exceptionHandler = ExceptionHandler {
+
+      case is: IllegalStateException =>
+        ctx =>
+          val trackingId = extractTrackingId(ctx)
+          log.debug(s"Request is not allowed to ${ctx.request.uri} ($trackingId)", is)
+          complete(
+            HttpResponse(BadRequest, entity = s"""{ "trackingId": "$trackingId", "message": "${is.getMessage}" }"""))(
+            ctx)
+
+      case cm: ConcurrentModificationException =>
+        ctx =>
+          val trackingId                    = extractTrackingId(ctx)
+          val concurrentModificationMessage = "Resource was changed concurrently, try requesting a newer version"
+          log.audit(s"Concurrent modification of the resource ${ctx.request.uri} ($trackingId)", cm)
+          complete(
+            HttpResponse(
+              Conflict,
+              entity = s"""{ "trackingId": "$trackingId", "message": "$concurrentModificationMessage" }"""))(ctx)
+
+      case t: Throwable =>
+        ctx =>
+          val trackingId = extractTrackingId(ctx)
+          log.error(s"Request to ${ctx.request.uri} could not be handled normally ($trackingId)", t)
+          complete(
+            HttpResponse(InternalServerError,
+                         entity = s"""{ "trackingId": "$trackingId", "message": "${t.getMessage}" }"""))(ctx)
     }
 
     protected def versionRoute(version: String, gitHash: String, startupTime: Time): Route = {

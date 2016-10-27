@@ -40,7 +40,7 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
 
   it should "throw error is authorized user is not having the requested permission" in {
 
-    val referenceAuthToken = AuthToken(Base64("I am a pathologist's token"))
+    val referenceAuthToken = AuthToken(Base64("I am a pathologist's token"), "BC131CD")
 
     Post("/administration/attempt").addHeader(
       RawHeader(AuthService.AuthenticationTokenHeader, referenceAuthToken.value.value)
@@ -60,7 +60,7 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
 
   it should "pass and retrieve the token to client code, if token is in request and user has permission" in {
 
-    val referenceAuthToken = AuthToken(Base64("I am token"))
+    val referenceAuthToken = AuthToken(Base64("I am token"), "AAADDDFFF")
 
     Get("/valid/attempt/?a=2&b=5").addHeader(
       RawHeader(AuthService.AuthenticationTokenHeader, referenceAuthToken.value.value)

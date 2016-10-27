@@ -54,7 +54,8 @@ object rest {
 
       val request = (if(requestStub.entity.isKnownEmpty()) requestStub else {
         requestStub.withEntity(requestStub.entity.transformDataBytes(encryptionFlow))
-      }).withHeaders(RawHeader(AuthService.AuthenticationTokenHeader, authToken.value.value))
+      }).withHeaders(RawHeader(AuthService.AuthenticationTokenHeader, authToken.value.value),
+        RawHeader(AuthService.TrackingIdHeader, authToken.trackingId))
 
       log.audit(s"Sending to ${request.uri} request $request")
 

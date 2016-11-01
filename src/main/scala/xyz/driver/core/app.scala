@@ -4,18 +4,18 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
-import akka.http.scaladsl.server.{ExceptionHandler, RequestContext, Route, RouteConcatenation}
+import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 import spray.json.DefaultJsonProtocol
 import xyz.driver.core
-import xyz.driver.core.auth.AuthService
 import xyz.driver.core.logging.{Logger, TypesafeScalaLogger}
-import xyz.driver.core.rest.Swagger
+import xyz.driver.core.rest.{ContextHeaders, Swagger}
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
@@ -65,26 +65,23 @@ object app {
       val versionRt      = versionRoute(version, gitHash, time.currentTime())
 
       val _ = Future {
-        http.bindAndHandle(route2HandlerFlow(handleExceptions(exceptionHandler) { ctx =>
-          log.audit(s"Received request ${ctx.request}")
-          modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)(ctx)
+        http.bindAndHandle(route2HandlerFlow(handleExceptions(ExceptionHandler(exceptionHandler)) { ctx =>
+          val trackingId = rest.extractTrackingId(ctx)
+          val contextWithTrackingId =
+            ctx.withRequest(ctx.request.withHeaders(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
+
+          log.audit(s"Received request ${ctx.request} with tracking id $trackingId")
+
+          modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)(contextWithTrackingId)
         }), interface, port)(materializer)
       }
     }
 
-    protected def extractTrackingId(ctx: RequestContext) = {
-      ctx.request.headers
-        .find(_.name == AuthService.TrackingIdHeader)
-        .map(_.value())
-        .getOrElse(java.util.UUID.randomUUID.toString)
-      // TODO: In the case when absent, should be taken the same generated id, as in `authorize`
-    }
-
-    protected def exceptionHandler = ExceptionHandler {
+    protected def exceptionHandler = PartialFunction[Throwable, Route] {
 
       case is: IllegalStateException =>
         ctx =>
-          val trackingId = extractTrackingId(ctx)
+          val trackingId = rest.extractTrackingId(ctx)
           log.debug(s"Request is not allowed to ${ctx.request.uri} ($trackingId)", is)
           complete(
             HttpResponse(BadRequest, entity = s"""{ "trackingId": "$trackingId", "message": "${is.getMessage}" }"""))(
@@ -92,7 +89,7 @@ object app {
 
       case cm: ConcurrentModificationException =>
         ctx =>
-          val trackingId                    = extractTrackingId(ctx)
+          val trackingId                    = rest.extractTrackingId(ctx)
           val concurrentModificationMessage = "Resource was changed concurrently, try requesting a newer version"
           log.audit(s"Concurrent modification of the resource ${ctx.request.uri} ($trackingId)", cm)
           complete(
@@ -102,7 +99,7 @@ object app {
 
       case t: Throwable =>
         ctx =>
-          val trackingId = extractTrackingId(ctx)
+          val trackingId = rest.extractTrackingId(ctx)
           log.error(s"Request to ${ctx.request.uri} could not be handled normally ($trackingId)", t)
           complete(
             HttpResponse(InternalServerError,

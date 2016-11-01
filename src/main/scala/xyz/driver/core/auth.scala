@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.headers.HttpChallenges
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 import scalaz.OptionT
 
 object auth {
@@ -68,17 +68,12 @@ object auth {
     def permissions: Set[Permission] = roles.flatMap(_.permissions)
   }
 
-  final case class Macaroon(value: String)
-
-  final case class Base64[T](value: String)
-
-  final case class AuthToken(value: Base64[Macaroon], trackingId: String)
+  final case class AuthToken(value: String)
 
   final case class PasswordHash(value: String)
 
   object AuthService {
     val AuthenticationTokenHeader = "WWW-Authenticate"
-    val TrackingIdHeader          = "l5d-ctx-trace" // https://linkerd.io/doc/0.7.4/linkerd/protocol-http/
   }
 
   trait AuthService[U <: User] {
@@ -88,49 +83,25 @@ object auth {
 
     protected def authStatus(authToken: AuthToken): OptionT[Future, U]
 
-    def authorize(permissions: Permission*): Directive1[(AuthToken, U)] = {
-      parameters('authToken.?).flatMap { parameterTokenValue =>
-        optionalHeaderValueByName(AuthService.AuthenticationTokenHeader).flatMap { headerTokenValue =>
-          optionalHeaderValueByName(AuthService.TrackingIdHeader).flatMap { trackingIdValue =>
-            verifyAuthToken(headerTokenValue.orElse(parameterTokenValue), trackingIdValue, permissions.toSet)
-          }
+    def authorize(permissions: Permission*): Directive1[U] = {
+      headerValueByName(AuthService.AuthenticationTokenHeader).flatMap { tokenValue =>
+        val token = AuthToken(tokenValue)
+
+        onComplete(authStatus(token).run).flatMap {
+          case Success(Some(user)) =>
+            if (permissions.forall(user.permissions.contains)) provide(user)
+            else {
+              val challenge =
+                HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
+              reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
+            }
+
+          case Success(None) =>
+            reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
+
+          case Failure(t) =>
+            reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))
         }
-      }
-    }
-
-    private def verifyAuthToken(tokenOption: Option[String],
-                                trackingIdValue: Option[String],
-                                permissions: Set[Permission]): Directive1[(AuthToken, U)] =
-      tokenOption match {
-        case Some(tokenValue) =>
-          val trackingId = trackingIdValue.getOrElse(java.util.UUID.randomUUID.toString)
-          val token      = AuthToken(Base64[Macaroon](tokenValue), trackingId)
-
-          onComplete(authStatus(token).run).flatMap { tokenUserResult =>
-            checkPermissions(tokenUserResult, permissions, token)
-          }
-
-        case None =>
-          reject(MissingHeaderRejection(AuthService.AuthenticationTokenHeader))
-      }
-
-    private def checkPermissions(userResult: Try[Option[U]],
-                                 permissions: Set[Permission],
-                                 token: AuthToken): Directive1[(AuthToken, U)] = {
-      userResult match {
-        case Success(Some(user)) =>
-          if (permissions.forall(user.permissions.contains)) provide(token -> user)
-          else {
-            val challenge =
-              HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
-            reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
-          }
-
-        case Success(None) =>
-          reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
-
-        case Failure(t) =>
-          reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))
       }
     }
   }

@@ -2,6 +2,7 @@ package xyz.driver.core
 
 import akka.http.scaladsl.model.headers.HttpChallenges
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
+import xyz.driver.core.rest.ServiceRequestContext
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -73,7 +74,8 @@ object auth {
   final case class PasswordHash(value: String)
 
   object AuthService {
-    val AuthenticationTokenHeader = "WWW-Authenticate"
+    val AuthenticationTokenHeader    = rest.ContextHeaders.AuthenticationTokenHeader
+    val SetAuthenticationTokenHeader = "set-authorization"
   }
 
   trait AuthService[U <: User] {
@@ -81,13 +83,11 @@ object auth {
     import akka.http.scaladsl.server._
     import Directives._
 
-    protected def authStatus(authToken: AuthToken): OptionT[Future, U]
+    protected def authStatus(context: ServiceRequestContext): OptionT[Future, U]
 
     def authorize(permissions: Permission*): Directive1[U] = {
-      headerValueByName(AuthService.AuthenticationTokenHeader).flatMap { tokenValue =>
-        val token = AuthToken(tokenValue)
-
-        onComplete(authStatus(token).run).flatMap {
+      rest.serviceContext flatMap { ctx =>
+        onComplete(authStatus(ctx).run).flatMap {
           case Success(Some(user)) =>
             if (permissions.forall(user.permissions.contains)) provide(user)
             else {

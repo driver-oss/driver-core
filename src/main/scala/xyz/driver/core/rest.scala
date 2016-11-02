@@ -4,13 +4,11 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.server.RequestContext
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
-import xyz.driver.core.auth.AuthService
 import xyz.driver.core.logging.Logger
 import xyz.driver.core.stats.Stats
 import xyz.driver.core.time.TimeRange
@@ -23,15 +21,19 @@ import scalaz.Scalaz.{Id => _, _}
 object rest {
 
   object ContextHeaders {
-    val AuthenticationTokenHeader = AuthService.AuthenticationTokenHeader
+    val AuthenticationTokenHeader = "WWW-Authenticate"
     val TrackingIdHeader          = "l5d-ctx-trace" // https://linkerd.io/doc/0.7.4/linkerd/protocol-http/
   }
 
   final case class ServiceRequestContext(trackingId: String, contextHeaders: Map[String, String])
 
-  def serviceContext(ctx: RequestContext): ServiceRequestContext = {
+  import akka.http.scaladsl.server._
+  import Directives._
+
+  def serviceContext: Directive1[ServiceRequestContext] = extract(ctx => extractServiceContext(ctx))
+
+  def extractServiceContext(ctx: RequestContext): ServiceRequestContext =
     ServiceRequestContext(extractTrackingId(ctx), extractContextHeaders(ctx))
-  }
 
   def extractTrackingId(ctx: RequestContext): String = {
     ctx.request.headers
@@ -74,13 +76,13 @@ object rest {
         .withHeaders(RawHeader(ContextHeaders.TrackingIdHeader, context.trackingId))
         .withHeaders(context.contextHeaders.toSeq.map { h => RawHeader(h._1, h._2): HttpHeader }: _*)
 
-      log.audit(s"Sending to ${request.uri} request $request")
+      log.audit(s"Sending to ${request.uri} request $request with tracking id ${context.trackingId}")
 
       val responseEntity = Http()(actorSystem).singleRequest(request)(materializer) map { response =>
         if(response.status == StatusCodes.NotFound) {
           Unmarshal(HttpEntity.Empty: ResponseEntity)
         } else if(response.status.isFailure()) {
-          throw new Exception("Http status is failure " + response.status)
+          throw new Exception(s"Http status is failure ${response.status}")
         } else {
           Unmarshal(response.entity)
         }

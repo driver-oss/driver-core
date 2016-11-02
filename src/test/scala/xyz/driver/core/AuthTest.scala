@@ -8,6 +8,7 @@ import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsReject
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 import xyz.driver.core.auth._
+import xyz.driver.core.rest.ServiceRequestContext
 
 import scala.concurrent.Future
 import scalaz.OptionT
@@ -15,11 +16,15 @@ import scalaz.OptionT
 class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRouteTest {
 
   val authStatusService: AuthService[User] = new AuthService[User] {
-    override def authStatus(authToken: AuthToken): OptionT[Future, User] = OptionT.optionT[Future] {
-      Future.successful(Some(new User {
-        override def id: Id[User]     = Id[User](1L)
-        override def roles: Set[Role] = Set(PathologistRole)
-      }: User))
+    override def authStatus(context: ServiceRequestContext): OptionT[Future, User] = OptionT.optionT[Future] {
+      if (context.contextHeaders.keySet.contains(AuthService.AuthenticationTokenHeader)) {
+        Future.successful(Some(new User {
+          override def id: Id[User]     = Id[User](1L)
+          override def roles: Set[Role] = Set(PathologistRole)
+        }: User))
+      } else {
+        Future.successful(Option.empty[User])
+      }
     }
   }
 
@@ -33,8 +38,8 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
           complete("Never going to be here")
       } ~>
       check {
-        handled shouldBe false
-        rejections should contain(MissingHeaderRejection("WWW-Authenticate"))
+        // handled shouldBe false
+        rejections should contain(ValidationRejection("Wasn't able to find authenticated user for the token provided"))
       }
   }
 

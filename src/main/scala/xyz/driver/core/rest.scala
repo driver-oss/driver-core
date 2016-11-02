@@ -25,7 +25,9 @@ object rest {
     val TrackingIdHeader          = "l5d-ctx-trace" // https://linkerd.io/doc/0.7.4/linkerd/protocol-http/
   }
 
-  final case class ServiceRequestContext(trackingId: String, contextHeaders: Map[String, String])
+  final case class ServiceRequestContext(
+    trackingId: String = generators.nextUuid().toString,
+    contextHeaders: Map[String, String] = Map.empty[String, String])
 
   import akka.http.scaladsl.server._
   import Directives._

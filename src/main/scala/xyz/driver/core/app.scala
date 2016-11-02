@@ -68,7 +68,7 @@ object app {
         http.bindAndHandle(route2HandlerFlow(handleExceptions(ExceptionHandler(exceptionHandler)) { ctx =>
           val trackingId = rest.extractTrackingId(ctx)
           val contextWithTrackingId =
-            ctx.withRequest(ctx.request.withHeaders(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
+            ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
 
           log.audit(s"Received request ${ctx.request} with tracking id $trackingId")
 

@@ -1,10 +1,12 @@
 package xyz.driver.core
 
 import slick.backend.DatabaseConfig
+import slick.dbio.{DBIOAction, NoStream}
 import slick.driver.JdbcProfile
 import xyz.driver.core.time.Time
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.language.reflectiveCalls
 
 object database {
 
@@ -25,6 +27,11 @@ object database {
     }
   }
 
+  type Schema = {
+    def create: DBIOAction[Unit, NoStream, slick.dbio.Effect.Schema]
+    def drop: DBIOAction[Unit, NoStream, slick.dbio.Effect.Schema]
+  }
+
   trait IdColumnTypes {
     val database: Database
 
@@ -41,8 +48,20 @@ object database {
 
   trait DatabaseObject extends IdColumnTypes {
 
+    implicit val exec: ExecutionContext
+
     def createTables(): Future[Unit]
     def disconnect(): Unit
+
+    def ensureTableExist(schemas: Seq[Schema]): Future[Unit] =
+      for {
+        dropping <- Future.sequence(schemas.map { schema =>
+                     database.database.run(schema.drop).recover { case _: Throwable => () }
+                   })
+        creation <- Future.sequence(schemas.map { schema =>
+                     database.database.run(schema.create).recover { case _: Throwable => () }
+                   })
+      } yield ()
   }
 
   abstract class DatabaseObjectAdapter extends DatabaseObject {

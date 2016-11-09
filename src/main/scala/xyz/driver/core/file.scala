@@ -124,7 +124,8 @@ object file {
 
     def download(filePath: Path): OptionT[Future, File] =
       OptionT.optionT(Future {
-        Option(new File(filePath.toString)).filter(file => file.exists() && file.isFile)
+        val path = java.net.URLDecoder.decode(filePath.toString, "UTF-8")
+        Option(new File(path)).filter(file => file.exists() && file.isFile)
       })
 
     def delete(filePath: Path): Future[Unit] = Future {

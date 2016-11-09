@@ -1,10 +1,10 @@
 package xyz.driver.core
 
+import slick.backend.DatabaseConfig
+import slick.driver.JdbcProfile
 import xyz.driver.core.time.Time
 
 import scala.concurrent.Future
-import slick.backend.DatabaseConfig
-import slick.driver.JdbcProfile
 
 object database {
 

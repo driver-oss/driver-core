@@ -22,7 +22,12 @@ object rest {
 
   object ContextHeaders {
     val AuthenticationTokenHeader = "WWW-Authenticate"
-    val TrackingIdHeader          = "l5d-ctx-trace" // https://linkerd.io/doc/0.7.4/linkerd/protocol-http/
+    val TrackingIdHeader          = "X-Trace"
+
+    object LinkerD {
+      // https://linkerd.io/doc/0.7.4/linkerd/protocol-http/
+      def isLinkerD(headerName: String) = headerName.startsWith("l5d-")
+    }
   }
 
   final case class ServiceRequestContext(
@@ -45,7 +50,8 @@ object rest {
 
   def extractContextHeaders(ctx: RequestContext): Map[String, String] = {
     ctx.request.headers.filter { h =>
-      h.lowercaseName.startsWith("l5d-") || h.name === ContextHeaders.AuthenticationTokenHeader
+      h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader
+      // || ContextHeaders.LinkerD.isLinkerD(h.lowercaseName)
     } map { header =>
       header.name -> header.value
     } toMap

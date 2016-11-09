@@ -67,12 +67,14 @@ object app {
       val _ = Future {
         http.bindAndHandle(route2HandlerFlow(handleExceptions(ExceptionHandler(exceptionHandler)) { ctx =>
           val trackingId = rest.extractTrackingId(ctx)
+          log.audit(s"Received request ${ctx.request} with tracking id $trackingId")
+
           val contextWithTrackingId =
             ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
 
-          log.audit(s"Received request ${ctx.request} with tracking id $trackingId")
-
-          modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)(contextWithTrackingId)
+          respondWithHeaders(List(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))) {
+            modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
+          }(contextWithTrackingId)
         }), interface, port)(materializer)
       }
     }
@@ -83,27 +85,20 @@ object app {
         ctx =>
           val trackingId = rest.extractTrackingId(ctx)
           log.debug(s"Request is not allowed to ${ctx.request.uri} ($trackingId)", is)
-          complete(
-            HttpResponse(BadRequest, entity = s"""{ "trackingId": "$trackingId", "message": "${is.getMessage}" }"""))(
-            ctx)
+          complete(HttpResponse(BadRequest, entity = is.getMessage))(ctx)
 
       case cm: ConcurrentModificationException =>
         ctx =>
-          val trackingId                    = rest.extractTrackingId(ctx)
-          val concurrentModificationMessage = "Resource was changed concurrently, try requesting a newer version"
+          val trackingId = rest.extractTrackingId(ctx)
           log.audit(s"Concurrent modification of the resource ${ctx.request.uri} ($trackingId)", cm)
           complete(
-            HttpResponse(
-              Conflict,
-              entity = s"""{ "trackingId": "$trackingId", "message": "$concurrentModificationMessage" }"""))(ctx)
+            HttpResponse(Conflict, entity = "Resource was changed concurrently, try requesting a newer version"))(ctx)
 
       case t: Throwable =>
         ctx =>
           val trackingId = rest.extractTrackingId(ctx)
           log.error(s"Request to ${ctx.request.uri} could not be handled normally ($trackingId)", t)
-          complete(
-            HttpResponse(InternalServerError,
-                         entity = s"""{ "trackingId": "$trackingId", "message": "${t.getMessage}" }"""))(ctx)
+          complete(HttpResponse(InternalServerError, entity = t.getMessage))(ctx)
     }
 
     protected def versionRoute(version: String, gitHash: String, startupTime: Time): Route = {

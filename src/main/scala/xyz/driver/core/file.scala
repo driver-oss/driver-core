@@ -18,7 +18,8 @@ object file {
           name: Name[File],
           location: Path,
           revision: Revision[File],
-          lastModificationDate: Time
+          lastModificationDate: Time,
+          fileSize: Long
   )
 
   trait FileService {
@@ -97,7 +98,8 @@ object file {
             FileLink(Name[File](summary.getKey),
                      Paths.get(path.toString + "/" + summary.getKey),
                      Revision[File](summary.getETag),
-                     Time(summary.getLastModified.getTime))
+                     Time(summary.getLastModified.getTime),
+                     summary.getSize)
           } filterNot isInSubFolder(path)
         } toList
       })
@@ -143,7 +145,8 @@ object file {
             FileLink(Name[File](file.getName),
                      Paths.get(file.getPath),
                      Revision[File](file.hashCode.toString),
-                     Time(file.lastModified()))
+                     Time(file.lastModified()),
+                     file.length())
           }
         } else List.empty[FileLink]
       })

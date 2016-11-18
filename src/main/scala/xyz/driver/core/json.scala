@@ -23,7 +23,7 @@ object json {
 
     def read(value: JsValue) = value match {
       case JsNumber(id) => Id[T](id.toLong)
-      case _            => throw new DeserializationException("Id expects number")
+      case _            => throw DeserializationException("Id expects number")
     }
   }
 
@@ -36,7 +36,7 @@ object json {
 
     def read(value: JsValue): Name[T] = value match {
       case JsString(name) => Name[T](name)
-      case _              => throw new DeserializationException("Name expects string")
+      case _              => throw DeserializationException("Name expects string")
     }
   }
 
@@ -57,8 +57,8 @@ object json {
             case JsNumber(millis) => Some(Time(millis.toLong))
             case _                => None
           }
-          .getOrElse(throw new DeserializationException("Time expects number"))
-      case _ => throw new DeserializationException("Time expects number")
+          .getOrElse(throw DeserializationException("Time expects number"))
+      case _ => throw DeserializationException("Time expects number")
     }
   }
 
@@ -75,11 +75,11 @@ object json {
 
     def read(value: JsValue): Revision[T] = value match {
       case JsString(revision) => Revision[T](revision)
-      case _                  => throw new DeserializationException("Revision expects uuid string")
+      case _                  => throw DeserializationException("Revision expects uuid string")
     }
   }
 
-  class EnumJsonFormat[T](mapping: (String, T)*) extends JsonFormat[T] {
+  class EnumJsonFormat[T](mapping: (String, T)*) extends RootJsonFormat[T] {
     private val map = mapping.toMap
 
     override def write(value: T): JsValue = {
@@ -91,7 +91,7 @@ object json {
 
     override def read(json: JsValue): T = json match {
       case JsString(name) =>
-        map.getOrElse(name, throw new DeserializationException(s"Value $name is not found in the mapping $map"))
+        map.getOrElse(name, throw DeserializationException(s"Value $name is not found in the mapping $map"))
       case _ => deserializationError("Expected string as enumeration value, but got " + json)
     }
   }

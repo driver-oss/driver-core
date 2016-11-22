@@ -36,13 +36,13 @@ object database {
 
     import database.profile.api._
 
-    implicit def `xyz.driver.core.Id-columnType`[T] =
+    implicit def `xyz.driver.core.Id.columnType`[T] =
       MappedColumnType.base[Id[T], Long](id => id: Long, Id[T](_))
 
-    implicit def `xyz.driver.core.Name-columnType`[T] =
+    implicit def `xyz.driver.core.Name.columnType`[T] =
       MappedColumnType.base[Name[T], String](name => name: String, Name[T](_))
 
-    implicit def `xyz.driver.core.time.Time-columnType` =
+    implicit def `xyz.driver.core.time.Time.columnType` =
       MappedColumnType.base[Time, Long](time => time.millis, Time(_))
   }
 

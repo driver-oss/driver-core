@@ -31,21 +31,22 @@ object database {
     def drop: DBIOAction[Unit, NoStream, slick.dbio.Effect.Schema]
   }
 
-  trait IdColumnTypes {
+  trait ColumnTypes {
     val database: Database
 
     import database.profile.api._
 
-    implicit def idColumnType[T] =
-      MappedColumnType.base[Id[T], String](_.value, Id[T](_))
+    implicit def `xyz.driver.core.Id.columnType`[T] =
+      MappedColumnType.base[Id[T], Long](id => id: Long, Id[T](_))
 
-    implicit def nameColumnType[T] =
-      MappedColumnType.base[Name[T], String](_.value, Name[T](_))
+    implicit def `xyz.driver.core.Name.columnType`[T] =
+      MappedColumnType.base[Name[T], String](name => name: String, Name[T](_))
 
-    implicit val timeColumnType = MappedColumnType.base[Time, Long](_.millis, Time.apply)
+    implicit def `xyz.driver.core.time.Time.columnType` =
+      MappedColumnType.base[Time, Long](time => time.millis, Time(_))
   }
 
-  trait DatabaseObject extends IdColumnTypes {
+  trait DatabaseObject extends ColumnTypes {
 
 //    implicit val exec: ExecutionContext
 

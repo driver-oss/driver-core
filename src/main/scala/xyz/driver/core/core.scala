@@ -3,10 +3,13 @@ package xyz.driver
 import scalaz.Equal
 
 package object core {
+
   import scala.language.reflectiveCalls
 
   def make[T](v: => T)(f: T => Unit): T = {
-    val value = v; f(value); value
+    val value = v
+    f(value)
+    value
   }
 
   def using[R <: { def close() }, P](r: => R)(f: R => P): P = {
@@ -17,26 +20,29 @@ package object core {
       resource.close()
     }
   }
+}
 
-  object tagging {
-    private[core] trait Tagged[+V, +Tag]
+package core {
+
+  final case class Id[+Tag](value: String) extends AnyVal {
+    @inline def length: Int       = value.length
+    override def toString: String = value
   }
-  type @@[+V, +Tag] = V with tagging.Tagged[V, Tag]
 
-  type Id[+Tag] = Long @@ Tag
   object Id {
-    def apply[Tag](value: Long) = value.asInstanceOf[Id[Tag]]
+    implicit def idEqual[T]: Equal[Id[T]]       = Equal.equal[Id[T]](_ == _)
+    implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by[Id[T], String](_.value)
   }
-  implicit def idEqual[T]: Equal[Id[T]]       = Equal.equal[Id[T]](_ == _)
-  implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by(i => i: Long)
 
-  type Name[+Tag] = String @@ Tag
+  final case class Name[+Tag](value: String) extends AnyVal {
+    @inline def length: Int       = value.length
+    override def toString: String = value
+  }
+
   object Name {
-    def apply[Tag](value: String) = value.asInstanceOf[Name[Tag]]
+    implicit def nameEqual[T]: Equal[Name[T]]       = Equal.equal[Name[T]](_ == _)
+    implicit def nameOrdering[T]: Ordering[Name[T]] = Ordering.by(_.value)
   }
-
-  implicit def nameEqual[T]: Equal[Name[T]]       = Equal.equal[Name[T]](_ == _)
-  implicit def nameOrdering[T]: Ordering[Name[T]] = Ordering.by(n => n: String)
 
   object revision {
     final case class Revision[T](id: String)

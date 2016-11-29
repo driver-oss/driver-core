@@ -51,7 +51,7 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
     val s3ObjectMetadataMock = mock[ObjectMetadata]
     val amazonS3Mock         = mock[AmazonS3]
     when(amazonS3Mock.listObjectsV2(any[ListObjectsV2Request]())).thenReturn(s3ResultsMock)
-    when(amazonS3Mock.putObject(testBucket, testFilePath.toString, sourceTestFile)).thenReturn(s3PutMock)
+    when(amazonS3Mock.putObject(testBucket.value, testFilePath.toString, sourceTestFile)).thenReturn(s3PutMock)
     when(amazonS3Mock.getObject(any[GetObjectRequest](), any[File]())).thenReturn(s3ObjectMetadataMock)
 
     val s3Storage = new S3Storage(amazonS3Mock, testBucket, scala.concurrent.ExecutionContext.global)

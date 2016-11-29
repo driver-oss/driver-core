@@ -25,7 +25,7 @@ package object core {
 package core {
 
   final case class Id[+Tag](value: String) extends AnyVal {
-    def length: Int               = value.length
+    @inline def length: Int       = value.length
     override def toString: String = value
   }
 
@@ -35,7 +35,7 @@ package core {
   }
 
   final case class Name[+Tag](value: String) extends AnyVal {
-    def length: Int               = value.length
+    @inline def length: Int       = value.length
     override def toString: String = value
   }
 

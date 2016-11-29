@@ -19,7 +19,7 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
     override def authStatus(context: ServiceRequestContext): OptionT[Future, User] = OptionT.optionT[Future] {
       if (context.contextHeaders.keySet.contains(AuthService.AuthenticationTokenHeader)) {
         Future.successful(Some(new User {
-          override def id: Id[User]     = Id[User](1L)
+          override def id: Id[User]     = Id[User]("1")
           override def roles: Set[Role] = Set(PathologistRole)
         }: User))
       } else {
@@ -33,9 +33,8 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
   "'authorize' directive" should "throw error is auth token is not in the request" in {
 
     Get("/naive/attempt") ~>
-      authorize(CanSignOutReport) {
-        case user =>
-          complete("Never going to be here")
+      authorize(CanSignOutReport) { user =>
+        complete("Never going to be here")
       } ~>
       check {
         // handled shouldBe false
@@ -50,9 +49,8 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
     Post("/administration/attempt").addHeader(
       RawHeader(AuthService.AuthenticationTokenHeader, referenceAuthToken.value)
     ) ~>
-      authorize(CanAssignRoles) {
-        case user =>
-          complete("Never going to get here")
+      authorize(CanAssignRoles) { user =>
+        complete("Never going to get here")
       } ~>
       check {
         handled shouldBe false
@@ -70,9 +68,8 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
     Get("/valid/attempt/?a=2&b=5").addHeader(
       RawHeader(AuthService.AuthenticationTokenHeader, referenceAuthToken.value)
     ) ~>
-      authorize(CanSignOutReport) {
-        case user =>
-          complete("Alright, user \"" + user.id + "\" is authorized")
+      authorize(CanSignOutReport) { user =>
+        complete("Alright, user \"" + user.id + "\" is authorized")
       } ~>
       check {
         handled shouldBe true

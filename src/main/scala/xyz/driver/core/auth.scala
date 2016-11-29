@@ -32,32 +32,32 @@ object auth {
   }
 
   case object ObserverRole extends Role {
-    val id          = Id(1L)
+    val id          = Id("1")
     val name        = Name("observer")
     val permissions = Set[Permission](CanSeeUser, CanSeeAssay, CanSeeReport)
   }
 
   case object PatientRole extends Role {
-    val id          = Id(2L)
+    val id          = Id("2")
     val name        = Name("patient")
     val permissions = Set.empty[Permission]
   }
 
   case object CuratorRole extends Role {
-    val id          = Id(3L)
+    val id          = Id("3")
     val name        = Name("curator")
     val permissions = ObserverRole.permissions ++ Set[Permission](CanEditReport, CanReviewReport)
   }
 
   case object PathologistRole extends Role {
-    val id   = Id(4L)
+    val id   = Id("4")
     val name = Name("pathologist")
     val permissions = ObserverRole.permissions ++
         Set[Permission](CanEditReport, CanSignOutReport, CanAmendReport, CanEditReviewingReport)
   }
 
   case object AdministratorRole extends Role {
-    val id   = Id(5L)
+    val id   = Id("5")
     val name = Name("administrator")
     val permissions = CuratorRole.permissions ++
         Set[Permission](CanCreateReport, CanShareReportWithPatient, CanAssignRoles)

@@ -37,12 +37,12 @@ object database {
     import database.profile.api._
 
     implicit def idColumnType[T] =
-      MappedColumnType.base[Id[T], Long](id => id: Long, Id[T](_))
+      MappedColumnType.base[Id[T], String](_.value, Id[T](_))
 
     implicit def nameColumnType[T] =
-      MappedColumnType.base[Name[T], String](name => name: String, Name[T](_))
+      MappedColumnType.base[Name[T], String](_.value, Name[T](_))
 
-    implicit val timeColumnType = MappedColumnType.base[Time, Long](time => time.millis, Time(_))
+    implicit val timeColumnType = MappedColumnType.base[Time, Long](_.millis, Time.apply)
   }
 
   trait DatabaseObject extends IdColumnTypes {

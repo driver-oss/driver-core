@@ -9,10 +9,10 @@ class JsonTest extends FlatSpec with Matchers {
 
   "Json format for Id" should "read and write correct JSON" in {
 
-    val referenceId = Id[String](1312L)
+    val referenceId = Id[String]("1312-34A")
 
     val writtenJson = json.idFormat.write(referenceId)
-    writtenJson.prettyPrint should be("1312")
+    writtenJson.prettyPrint should be("\"1312-34A\"")
 
     val parsedId = json.idFormat.read(writtenJson)
     parsedId should be(referenceId)

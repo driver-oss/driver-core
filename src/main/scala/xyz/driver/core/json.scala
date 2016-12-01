@@ -12,18 +12,16 @@ import scala.reflect.runtime.universe._
 
 object json {
 
-  def IdInPath[T]: PathMatcher1[Id[T]] =
-    PathMatcher("""[+-]?\d*""".r) flatMap { string =>
-      try Some(Id[T](string.toLong))
-      catch { case _: IllegalArgumentException => None }
-    }
+  def IdInPath[T]: PathMatcher1[Id[T]] = new PathMatcher1[Id[T]] {
+    def apply(path: Path) = Matched(Path.Empty, Tuple1(Id[T](path.toString)))
+  }
 
   implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
-    def write(id: Id[T]) = JsNumber(id)
+    def write(id: Id[T]) = JsString(id.value)
 
     def read(value: JsValue) = value match {
-      case JsNumber(id) => Id[T](id.toLong)
-      case _            => throw DeserializationException("Id expects number")
+      case JsString(id) => Id[T](id)
+      case _            => throw DeserializationException("Id expects string")
     }
   }
 
@@ -32,7 +30,7 @@ object json {
   }
 
   implicit def nameFormat[T] = new RootJsonFormat[Name[T]] {
-    def write(name: Name[T]) = JsString(name)
+    def write(name: Name[T]) = JsString(name.value)
 
     def read(value: JsValue): Name[T] = value match {
       case JsString(name) => Name[T](name)

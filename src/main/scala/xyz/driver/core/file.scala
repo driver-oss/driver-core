@@ -59,7 +59,7 @@ object file {
 
     def upload(localSource: File, destination: Path): Future[Unit] = Future {
       checkSafeFileName(destination) {
-        val _ = s3.putObject(bucket, destination.toString, localSource).getETag
+        val _ = s3.putObject(bucket.value, destination.toString, localSource).getETag
       }
     }
 
@@ -72,20 +72,20 @@ object file {
         if (!tempDestinationFile.getParentFile.mkdirs()) {
           throw new Exception(s"Failed to create temp directory to download file `$tempDestinationFile`")
         } else {
-          Option(s3.getObject(new GetObjectRequest(bucket, filePath.toString), tempDestinationFile)).map { _ =>
+          Option(s3.getObject(new GetObjectRequest(bucket.value, filePath.toString), tempDestinationFile)).map { _ =>
             tempDestinationFile
           }
         }
       })
 
     def delete(filePath: Path): Future[Unit] = Future {
-      s3.deleteObject(bucket, filePath.toString)
+      s3.deleteObject(bucket.value, filePath.toString)
     }
 
     def list(path: Path): ListT[Future, FileLink] =
       ListT.listT(Future {
         import scala.collection.JavaConverters._
-        val req = new ListObjectsV2Request().withBucketName(bucket).withPrefix(path.toString).withMaxKeys(2)
+        val req = new ListObjectsV2Request().withBucketName(bucket.value).withPrefix(path.toString).withMaxKeys(2)
 
         def isInSubFolder(path: Path)(fileLink: FileLink) =
           fileLink.location.toString.replace(path.toString + "/", "").contains("/")

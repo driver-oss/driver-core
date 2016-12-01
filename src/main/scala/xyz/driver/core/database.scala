@@ -37,31 +37,19 @@ object database {
     import profile.api._
 
     implicit def `xyz.driver.core.Id.columnType`[T] =
-      MappedColumnType.base[Id[T], Long](id => id: Long, Id[T](_))
+      MappedColumnType.base[Id[T], String](_.value, Id[T](_))
 
     implicit def `xyz.driver.core.Name.columnType`[T] =
-      MappedColumnType.base[Name[T], String](name => name: String, Name[T](_))
+      MappedColumnType.base[Name[T], String](_.value, Name[T](_))
 
     implicit def `xyz.driver.core.time.Time.columnType` =
-      MappedColumnType.base[Time, Long](time => time.millis, Time(_))
+      MappedColumnType.base[Time, Long](_.millis, Time(_))
   }
 
   trait DatabaseObject extends ColumnTypes {
 
-//    implicit val exec: ExecutionContext
-
     def createTables(): Future[Unit]
     def disconnect(): Unit
-
-//    def ensureTableExist(schemas: Seq[Schema]): Future[Unit] =
-//      for {
-//        dropping <- Future.sequence(schemas.map { schema =>
-//                     database.database.run(schema.drop).recover { case _: Throwable => () }
-//                   })
-//        creation <- Future.sequence(schemas.map { schema =>
-//                     database.database.run(schema.create).recover { case _: Throwable => () }
-//                   })
-//      } yield ()
   }
 
   abstract class DatabaseObjectAdapter extends DatabaseObject {

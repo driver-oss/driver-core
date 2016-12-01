@@ -13,12 +13,18 @@ object generators {
   private val random = new Random
   import random._
 
-  private val DefaultMaxLength = 100
+  private val DefaultMaxLength = 10
   private val StringLetters    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ".toSet
 
-  def nextId[T](): Id[T] = Id[T](scala.math.abs(nextLong()))
+  def nextInt(maxValue: Int): Int = random.nextInt(maxValue)
 
-  def nextId[T](maxValue: Int): Id[T] = Id[T](scala.math.abs(nextInt(maxValue).toLong))
+  def nextBoolean(): Boolean = random.nextBoolean()
+
+  def nextDouble(): Double = random.nextDouble()
+
+  def nextId[T](): Id[T] = Id[T](nextString(DefaultMaxLength))
+
+  def nextId[T](maxLength: Int): Id[T] = Id[T](nextString(maxLength))
 
   def nextName[T](maxLength: Int = DefaultMaxLength): Name[T] = Name[T](nextString(maxLength))
 
@@ -29,7 +35,7 @@ object generators {
   def nextString(maxLength: Int = DefaultMaxLength): String =
     (oneOf[Char](StringLetters) +: arrayOf(oneOf[Char](StringLetters), maxLength - 1)).mkString
 
-  def nextOption[T](value: => T): Option[T] = if (nextBoolean) Option(value) else None
+  def nextOption[T](value: => T): Option[T] = if (nextBoolean()) Option(value) else None
 
   def nextPair[L, R](left: => L, right: => R): (L, R) = (left, right)
 

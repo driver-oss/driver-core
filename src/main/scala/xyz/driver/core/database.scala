@@ -32,9 +32,9 @@ object database {
   }
 
   trait ColumnTypes {
-    val database: Database
+    val profile: JdbcProfile
 
-    import database.profile.api._
+    import profile.api._
 
     implicit def `xyz.driver.core.Id.columnType`[T] =
       MappedColumnType.base[Id[T], String](_.value, Id[T](_))

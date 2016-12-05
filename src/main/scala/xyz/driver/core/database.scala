@@ -64,7 +64,6 @@ object database {
     implicit val monadT: Monad[T]
 
     def execute[D](operations: T[D]): Future[D]
-    def executeTransaction[D](operations: T[D]): Future[D]
     def noAction[V](v: V): T[V]
     def customAction[R](action: => Future[R]): T[R]
   }
@@ -79,10 +78,9 @@ object database {
       override def bind[A, B](fa: T[A])(f: A => T[B]): T[B] = fa.flatMap(a => f(a.asInstanceOf[A]))
     }
 
-    def execute[D](operations: T[D]): Future[D]            = operations.asInstanceOf[Future[D]]
-    def executeTransaction[D](operations: T[D]): Future[D] = operations.asInstanceOf[Future[D]]
-    def noAction[V](v: V): T[V]                            = Future.successful(v)
-    def customAction[R](action: => Future[R]): T[R]        = action
+    def execute[D](operations: T[D]): Future[D]     = operations.asInstanceOf[Future[D]]
+    def noAction[V](v: V): T[V]                     = Future.successful(v)
+    def customAction[R](action: => Future[R]): T[R] = action
   }
 
   class SlickDal(database: Database, executionContext: ExecutionContext) extends Dal {
@@ -97,11 +95,7 @@ object database {
       override def bind[A, B](fa: T[A])(f: A => T[B]): T[B] = fa.flatMap(a => f(a.asInstanceOf[A]))
     }
 
-    def execute[D](operations: T[D]): Future[D] = {
-      database.database.run(operations.asInstanceOf[slick.dbio.DBIO[D]])
-    }
-
-    def executeTransaction[D](readOperations: T[D]): Future[D] = {
+    def execute[D](readOperations: T[D]): Future[D] = {
       database.database.run(readOperations.asInstanceOf[slick.dbio.DBIO[D]].transactionally)
     }
 

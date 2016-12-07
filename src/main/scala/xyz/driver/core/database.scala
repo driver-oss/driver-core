@@ -33,8 +33,9 @@ object database {
   }
 
   trait ColumnTypes {
-    val profile: JdbcProfile
+    import java.util.UUID
 
+    val profile: JdbcProfile
     import profile.api._
 
     implicit def `xyz.driver.core.Id.columnType`[T] =
@@ -45,6 +46,9 @@ object database {
 
     implicit def `xyz.driver.core.time.Time.columnType` =
       MappedColumnType.base[Time, Long](_.millis, Time(_))
+
+    implicit def `java.util.UUID.columnType`[T] =
+      MappedColumnType.base[Id[T], UUID](id => UUID.fromString(id.value), uuid => Id[T](uuid.toString))
   }
 
   trait DatabaseObject extends ColumnTypes {

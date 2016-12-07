@@ -1,7 +1,7 @@
 package xyz.driver.core
 
 import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.server.PathMatcher.Matched
+import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
 import akka.http.scaladsl.server.{PathMatcher, _}
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import spray.json.{DeserializationException, JsNumber, _}
@@ -13,7 +13,10 @@ import scala.reflect.runtime.universe._
 object json {
 
   def IdInPath[T]: PathMatcher1[Id[T]] = new PathMatcher1[Id[T]] {
-    def apply(path: Path) = Matched(Path.Empty, Tuple1(Id[T](path.toString)))
+    def apply(path: Path) = path match {
+      case Path.Segment(segment, tail) => Matched(tail, Tuple1(Id[T](segment)))
+      case _                           => Unmatched
+    }
   }
 
   implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
@@ -26,7 +29,10 @@ object json {
   }
 
   def NameInPath[T]: PathMatcher1[Name[T]] = new PathMatcher1[Name[T]] {
-    def apply(path: Path) = Matched(Path.Empty, Tuple1(Name[T](path.toString)))
+    def apply(path: Path) = path match {
+      case Path.Segment(segment, tail) => Matched(tail, Tuple1(Name[T](segment)))
+      case _                           => Unmatched
+    }
   }
 
   implicit def nameFormat[T] = new RootJsonFormat[Name[T]] {

@@ -38,16 +38,16 @@ object database {
     val profile: JdbcProfile
     import profile.api._
 
-    implicit def `xyz.driver.core.Id.columnType`[T] =
-      MappedColumnType.base[Id[T], String](_.value, Id[T](_))
+    implicit def `xyz.driver.core.Id.columnType`[T]: BaseColumnType[Id[T]] =
+      MappedColumnType.base[Id[T], Long](_.value.toLong, serialId => Id[T](serialId.toString))
 
-    implicit def `xyz.driver.core.Name.columnType`[T] =
+    implicit def `xyz.driver.core.Name.columnType`[T]: BaseColumnType[Name[T]] =
       MappedColumnType.base[Name[T], String](_.value, Name[T](_))
 
-    implicit def `xyz.driver.core.time.Time.columnType` =
+    implicit def `xyz.driver.core.time.Time.columnType`: BaseColumnType[Time] =
       MappedColumnType.base[Time, Long](_.millis, Time(_))
 
-    implicit def `java.util.UUID.columnType`[T] =
+    implicit def `java.util.UUID.columnType`[T]: BaseColumnType[Id[T]] =
       MappedColumnType.base[Id[T], UUID](id => UUID.fromString(id.value), uuid => Id[T](uuid.toString))
   }
 

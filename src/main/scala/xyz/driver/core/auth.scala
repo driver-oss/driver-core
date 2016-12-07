@@ -63,6 +63,18 @@ object auth {
         Set[Permission](CanCreateReport, CanShareReportWithPatient, CanAssignRoles)
   }
 
+  case object PhysicianRole extends Role {
+    val id          = Id("6")
+    val name        = Name("physician")
+    val permissions = Set[Permission]()
+  }
+
+  case object RelativeRole extends Role {
+    val id          = Id("7")
+    val name        = Name("relative")
+    val permissions = Set[Permission]()
+  }
+
   trait User {
     def id: Id[User]
     def roles: Set[Role]

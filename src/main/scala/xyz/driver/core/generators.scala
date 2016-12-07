@@ -26,6 +26,10 @@ object generators {
 
   def nextId[T](maxLength: Int): Id[T] = Id[T](nextString(maxLength))
 
+  def nextNumericId[T](): Id[T] = Id[T](nextLong.abs.toString)
+
+  def nextNumericId[T](maxValue: Int): Id[T] = Id[T](nextInt(maxValue).toString)
+
   def nextName[T](maxLength: Int = DefaultMaxLength): Name[T] = Name[T](nextString(maxLength))
 
   def nextUuid() = java.util.UUID.randomUUID

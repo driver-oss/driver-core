@@ -22,7 +22,7 @@ object generators {
 
   def nextDouble(): Double = random.nextDouble()
 
-  def nextId[T](): Id[T] = Id[T](nextString(DefaultMaxLength))
+  def nextId[T](): Id[T] = Id[T](nextUuid().toString)
 
   def nextId[T](maxLength: Int): Id[T] = Id[T](nextString(maxLength))
 

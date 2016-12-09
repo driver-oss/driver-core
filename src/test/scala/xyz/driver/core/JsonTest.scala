@@ -1,9 +1,11 @@
 package xyz.driver.core
 
 import org.scalatest.{FlatSpec, Matchers}
-import xyz.driver.core.json.{EnumJsonFormat, ValueClassFormat}
+import xyz.driver.core.json.{EnumJsonFormat, GadtJsonFormat, ValueClassFormat}
 import xyz.driver.core.revision.Revision
 import xyz.driver.core.time.provider.SystemTimeProvider
+import spray.json._
+import xyz.driver.core.TestTypes.CustomGADT
 
 class JsonTest extends FlatSpec with Matchers {
 
@@ -91,6 +93,40 @@ class JsonTest extends FlatSpec with Matchers {
 
     val writtenJson2 = format.write(referenceValue2)
     writtenJson2.prettyPrint should be("10")
+
+    val parsedValue1 = format.read(writtenJson1)
+    val parsedValue2 = format.read(writtenJson2)
+
+    parsedValue1 should be(referenceValue1)
+    parsedValue2 should be(referenceValue2)
+  }
+
+  "Json format for classes GADT" should "read and write correct JSON" in {
+
+    import CustomGADT._
+    import DefaultJsonProtocol._
+    implicit val case1Format = jsonFormat1(GadtCase1)
+    implicit val case2Format = jsonFormat1(GadtCase2)
+    implicit val case3Format = jsonFormat1(GadtCase3)
+
+    val format = GadtJsonFormat.create[CustomGADT]("gadtTypeField") {
+      case t1: CustomGADT.GadtCase1 => "case1"
+      case t2: CustomGADT.GadtCase2 => "case2"
+      case t3: CustomGADT.GadtCase3 => "case3"
+    } {
+      case "case1" => case1Format
+      case "case2" => case2Format
+      case "case3" => case3Format
+    }
+
+    val referenceValue1 = CustomGADT.GadtCase1("4")
+    val referenceValue2 = CustomGADT.GadtCase2("Hi!")
+
+    val writtenJson1 = format.write(referenceValue1)
+    writtenJson1 should be("{\n \"field\": \"4\",\n\"gadtTypeField\": \"case1\"\n}".parseJson)
+
+    val writtenJson2 = format.write(referenceValue2)
+    writtenJson2 should be("{\"field\":\"Hi!\",\"gadtTypeField\":\"case2\"}".parseJson)
 
     val parsedValue1 = format.read(writtenJson1)
     val parsedValue2 = format.read(writtenJson2)

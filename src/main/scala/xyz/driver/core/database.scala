@@ -46,23 +46,23 @@ object database {
   }
 
   object ColumnTypes {
-    trait UUIDPrimaryKey extends ColumnTypes {
-      import java.util.UUID
+    trait UUID extends ColumnTypes {
       import profile.api._
 
-      override implicit def `xyz.driver.core.Id.columnType`[T]: BaseColumnType[Id[T]] =
-        MappedColumnType.base[Id[T], UUID](id => UUID.fromString(id.value), uuid => Id[T](uuid.toString))
+      override implicit def `xyz.driver.core.Id.columnType`[T] =
+        MappedColumnType
+          .base[Id[T], java.util.UUID](id => java.util.UUID.fromString(id.value), uuid => Id[T](uuid.toString))
     }
-    trait SerialIdPrimaryKey extends ColumnTypes {
+    trait SerialId extends ColumnTypes {
       import profile.api._
 
-      override implicit def `xyz.driver.core.Id.columnType`[T]: BaseColumnType[Id[T]] =
+      override implicit def `xyz.driver.core.Id.columnType`[T] =
         MappedColumnType.base[Id[T], Long](_.value.toLong, serialId => Id[T](serialId.toString))
     }
-    trait NaturalPrimaryKey extends ColumnTypes {
+    trait NaturalId extends ColumnTypes {
       import profile.api._
 
-      override implicit def `xyz.driver.core.Id.columnType`[T]: BaseColumnType[Id[T]] =
+      override implicit def `xyz.driver.core.Id.columnType`[T] =
         MappedColumnType.base[Id[T], String](_.value, Id[T](_))
     }
   }

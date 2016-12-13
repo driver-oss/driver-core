@@ -34,17 +34,37 @@ object database {
 
   trait ColumnTypes {
     val profile: JdbcProfile
-
     import profile.api._
 
-    implicit def `xyz.driver.core.Id.columnType`[T] =
-      MappedColumnType.base[Id[T], String](_.value, Id[T](_))
+    implicit def `xyz.driver.core.Id.columnType`[T]: BaseColumnType[Id[T]]
 
-    implicit def `xyz.driver.core.Name.columnType`[T] =
+    implicit def `xyz.driver.core.Name.columnType`[T]: BaseColumnType[Name[T]] =
       MappedColumnType.base[Name[T], String](_.value, Name[T](_))
 
-    implicit def `xyz.driver.core.time.Time.columnType` =
+    implicit def `xyz.driver.core.time.Time.columnType`: BaseColumnType[Time] =
       MappedColumnType.base[Time, Long](_.millis, Time(_))
+  }
+
+  object ColumnTypes {
+    trait UUID extends ColumnTypes {
+      import profile.api._
+
+      override implicit def `xyz.driver.core.Id.columnType`[T] =
+        MappedColumnType
+          .base[Id[T], java.util.UUID](id => java.util.UUID.fromString(id.value), uuid => Id[T](uuid.toString))
+    }
+    trait SerialId extends ColumnTypes {
+      import profile.api._
+
+      override implicit def `xyz.driver.core.Id.columnType`[T] =
+        MappedColumnType.base[Id[T], Long](_.value.toLong, serialId => Id[T](serialId.toString))
+    }
+    trait NaturalId extends ColumnTypes {
+      import profile.api._
+
+      override implicit def `xyz.driver.core.Id.columnType`[T] =
+        MappedColumnType.base[Id[T], String](_.value, Id[T](_))
+    }
   }
 
   trait DatabaseObject extends ColumnTypes {

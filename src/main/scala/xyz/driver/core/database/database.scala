@@ -4,11 +4,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import scalaz.{Monad, ListT, OptionT}
 import slick.backend.DatabaseConfig
-import slick.dbio.{DBIOAction, NoStream}
 import slick.driver.JdbcProfile
 import xyz.driver.core.time.Time
 
-object database {
+package database {
 
   trait Database {
     val profile: JdbcProfile
@@ -25,11 +24,6 @@ object database {
         val database: JdbcProfile#Backend#Database = dbConfig.db
       }
     }
-  }
-
-  type Schema = {
-    def create: DBIOAction[Unit, NoStream, slick.dbio.Effect.Schema]
-    def drop: DBIOAction[Unit, NoStream, slick.dbio.Effect.Schema]
   }
 
   trait ColumnTypes {

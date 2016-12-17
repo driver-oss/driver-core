@@ -7,6 +7,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshaller
 import spray.json.{DeserializationException, JsNumber, _}
 import xyz.driver.core.revision.Revision
 import xyz.driver.core.time.Time
+import xyz.driver.core.date.Date
 
 import scala.reflect.runtime.universe._
 
@@ -63,6 +64,22 @@ object json {
           }
           .getOrElse(throw DeserializationException("Time expects number"))
       case _ => throw DeserializationException("Time expects number")
+    }
+  }
+
+  implicit val dateFormat = new RootJsonFormat[Date] {
+    def write(date: Date) = JsObject("calendarDate" -> JsString(date.iso8601))
+
+    def read(value: JsValue): Date = value match {
+      case JsObject(fields) =>
+        fields
+          .get("calendarDate")
+          .flatMap {
+            case JsString(iso) => Date.parseIso(iso)
+            case _             => None
+          }
+          .getOrElse(throw DeserializationException("Date expects YYYY-MM-DD"))
+      case _ => throw DeserializationException("Date expects YYYY-MM-DD")
     }
   }
 

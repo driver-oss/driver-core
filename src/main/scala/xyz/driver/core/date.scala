@@ -23,7 +23,7 @@ object date {
 
   final case class Date(year: Int, month: Month, day: Int) {
     def iso8601: String = f"$year%04d-${month + 1}%02d-$day%02d"
-    def toJavaSqlDate = new java.sql.Date(toJavaDate.getTime)
+    def toJavaSqlDate   = new java.sql.Date(toJavaDate.getTime)
     def toJavaDate: java.util.Date = {
       val cal = Calendar.getInstance()
       cal.set(Calendar.YEAR, year - 1900)
@@ -34,6 +34,11 @@ object date {
   }
 
   object Date {
+    def parseIso(iso: String): Option[Date] = {
+      util.Try(iso.split("-").map(_.toInt)).toOption collect {
+        case Array(year, month, day) => Date(year, tagMonth(month), day)
+      }
+    }
     def fromJavaDate(date: java.util.Date) = {
       val cal = Calendar.getInstance()
       cal.setTime(date)

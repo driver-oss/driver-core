@@ -4,6 +4,7 @@ import slick.backend.DatabaseConfig
 import slick.dbio.{DBIOAction, NoStream}
 import slick.driver.JdbcProfile
 import xyz.driver.core.time.Time
+import xyz.driver.core.date.Date
 
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.Monad
@@ -43,6 +44,9 @@ object database {
 
     implicit def `xyz.driver.core.time.Time.columnType`: BaseColumnType[Time] =
       MappedColumnType.base[Time, Long](_.millis, Time(_))
+
+    implicit def `xyz.driver.core.time.Date.columnType`: BaseColumnType[Date] =
+      MappedColumnType.base[Date, java.sql.Date](_.toJavaSqlDate, Date.fromJavaDate(_))
   }
 
   object ColumnTypes {

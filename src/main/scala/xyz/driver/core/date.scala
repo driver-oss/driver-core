@@ -25,6 +25,14 @@ object date {
 
   final case class Date(year: Int, month: Month, day: Int) {
     def iso8601: String = f"$year%04d-${Tag.unwrap(month) + 1}%02d-$day%02d"
+    def toJavaSqlDate = new java.sql.Date(toJavaDate.getTime)
+    def toJavaDate: java.util.Date = {
+      val cal = Calendar.getInstance()
+      cal.set(Calendar.YEAR, year - 1900)
+      cal.set(Calendar.MONTH, Tag.unwrap(month))
+      cal.set(Calendar.DAY_OF_MONTH, day)
+      cal.getTime
+    }
   }
 
   object Date {

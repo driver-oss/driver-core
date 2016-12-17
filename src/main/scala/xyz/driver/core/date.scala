@@ -2,12 +2,10 @@ package xyz.driver.core
 
 import java.util.Calendar
 
-import scalaz.{@@, Tag}
-
 object date {
 
   type Month = Int @@ Month.type
-  private[date] def tagMonth(value: Int): Month = Tag.of[Month.type](value)
+  private[date] def tagMonth(value: Int): Month = value.asInstanceOf[Month]
 
   object Month {
     val JANUARY   = tagMonth(Calendar.JANUARY)
@@ -24,12 +22,12 @@ object date {
   }
 
   final case class Date(year: Int, month: Month, day: Int) {
-    def iso8601: String = f"$year%04d-${Tag.unwrap(month) + 1}%02d-$day%02d"
+    def iso8601: String = f"$year%04d-${month + 1}%02d-$day%02d"
     def toJavaSqlDate = new java.sql.Date(toJavaDate.getTime)
     def toJavaDate: java.util.Date = {
       val cal = Calendar.getInstance()
       cal.set(Calendar.YEAR, year - 1900)
-      cal.set(Calendar.MONTH, Tag.unwrap(month))
+      cal.set(Calendar.MONTH, month)
       cal.set(Calendar.DAY_OF_MONTH, day)
       cal.getTime
     }

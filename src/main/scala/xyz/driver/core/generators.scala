@@ -4,6 +4,7 @@ import java.math.MathContext
 
 import xyz.driver.core.revision.Revision
 import xyz.driver.core.time.{Time, TimeRange}
+import xyz.driver.core.date.Date
 
 import scala.reflect.ClassTag
 import scala.util.Random
@@ -54,6 +55,8 @@ object generators {
     TimeRange(Time(scala.math.min(oneTime.millis, anotherTime.millis)),
               Time(scala.math.max(oneTime.millis, anotherTime.millis)))
   }
+
+  def nextDate(): Date = nextTime.toDate
 
   def nextBigDecimal(multiplier: Double = 1000000.00, precision: Int = 2): BigDecimal =
     BigDecimal(multiplier * nextDouble, new MathContext(precision))

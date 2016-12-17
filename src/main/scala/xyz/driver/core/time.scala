@@ -26,6 +26,8 @@ object time {
     def isAfter(anotherTime: Time): Boolean = millis > anotherTime.millis
 
     def advanceBy(duration: Duration): Time = Time(millis + duration.toMillis)
+
+    def toDate: date.Date = date.Date.fromJavaDate(new java.util.Date(millis))
   }
 
   final case class TimeRange(start: Time, end: Time) {

@@ -1,12 +1,12 @@
 package xyz.driver.core
 
+import scala.concurrent.{ExecutionContext, Future}
+
+import scalaz.{Monad, ListT, OptionT}
 import slick.backend.DatabaseConfig
 import slick.dbio.{DBIOAction, NoStream}
 import slick.driver.JdbcProfile
 import xyz.driver.core.time.Time
-
-import scala.concurrent.{ExecutionContext, Future}
-import scalaz.Monad
 
 object database {
 
@@ -80,46 +80,60 @@ object database {
 
   trait Dal {
 
-    type T[_]
-    implicit val monadT: Monad[T]
+    protected type T[D]
+    protected implicit val monadT: Monad[T]
 
-    def execute[D](operations: T[D]): Future[D]
-    def noAction[V](v: V): T[V]
-    def customAction[R](action: => Future[R]): T[R]
+    protected def execute[D](operations: T[D]): Future[D]
+    protected def execute[D](readOperations: OptionT[T, D]): OptionT[Future, D]
+    protected def execute[D](readOperations: ListT[T, D]): ListT[Future, D]
+
+    protected def noAction[V](v: V): T[V]
+    protected def customAction[R](action: => Future[R]): T[R]
   }
 
   class FutureDal(executionContext: ExecutionContext) extends Dal {
+    import scalaz.std.scalaFuture._
 
     implicit val exec = executionContext
 
-    override type T[_] = Future[_]
-    implicit val monadT: Monad[T] = new Monad[T] {
-      override def point[A](a: => A): T[A]                  = Future(a)
-      override def bind[A, B](fa: T[A])(f: A => T[B]): T[B] = fa.flatMap(a => f(a.asInstanceOf[A]))
-    }
+    override type T[D] = Future[D]
+    implicit val monadT = implicitly[Monad[Future]]
 
-    def execute[D](operations: T[D]): Future[D]     = operations.asInstanceOf[Future[D]]
-    def noAction[V](v: V): T[V]                     = Future.successful(v)
-    def customAction[R](action: => Future[R]): T[R] = action
+    def execute[D](operations: T[D]): Future[D]                   = operations
+    def execute[D](operations: OptionT[T, D]): OptionT[Future, D] = OptionT(operations.run)
+    def execute[D](operations: ListT[T, D]): ListT[Future, D]     = ListT(operations.run)
+    def noAction[V](v: V): T[V]                                   = Future.successful(v)
+    def customAction[R](action: => Future[R]): T[R]               = action
   }
 
   class SlickDal(database: Database, executionContext: ExecutionContext) extends Dal {
 
     import database.profile.api._
-
     implicit val exec = executionContext
+    override type T[D] = slick.dbio.DBIO[D]
 
-    override type T[_] = slick.dbio.DBIO[_]
-    val monadT: Monad[T] = new Monad[T] {
+    implicit protected class QueryOps[+E, U](query: Query[E, U, Seq]) {
+      def resultT: ListT[T, U] = ListT[T, U](query.result.map(_.toList))
+    }
+
+    override implicit val monadT: Monad[T] = new Monad[T] {
       override def point[A](a: => A): T[A]                  = DBIO.successful(a)
-      override def bind[A, B](fa: T[A])(f: A => T[B]): T[B] = fa.flatMap(a => f(a.asInstanceOf[A]))
+      override def bind[A, B](fa: T[A])(f: A => T[B]): T[B] = fa.flatMap(f)
     }
 
-    def execute[D](readOperations: T[D]): Future[D] = {
-      database.database.run(readOperations.asInstanceOf[slick.dbio.DBIO[D]].transactionally)
+    override def execute[D](readOperations: T[D]): Future[D] = {
+      database.database.run(readOperations.transactionally)
     }
 
-    def noAction[V](v: V): slick.dbio.DBIO[V]       = DBIO.successful(v)
-    def customAction[R](action: => Future[R]): T[R] = DBIO.from(action)
+    override def execute[D](readOperations: OptionT[T, D]): OptionT[Future, D] = {
+      OptionT(database.database.run(readOperations.run.transactionally))
+    }
+
+    override def execute[D](readOperations: ListT[T, D]): ListT[Future, D] = {
+      ListT(database.database.run(readOperations.run.transactionally))
+    }
+
+    override def noAction[V](v: V): T[V]                     = DBIO.successful(v)
+    override def customAction[R](action: => Future[R]): T[R] = DBIO.from(action)
   }
 }

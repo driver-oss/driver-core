@@ -25,6 +25,13 @@ package object core {
 
 package core {
 
+  /**
+    * Evidence that Id[A] can be safely converted to Id[B].
+    * e.g. `implicit val CaseId = Id.sameId[Case, CasesRow]`
+    * if `CaseId` is in scope, we can use either of:
+    * `casesRowId.asId[Case]` or `caseId.asId[CasesRow]`
+    *  Override convert for custom Id conversions.
+    */
   @implicitNotFound("No evidence that ${A} has the same Id as ${B}")
   sealed trait SameId[A, B] {
     def convert(id: Id[A]): Id[B] = Id[B](id.value)

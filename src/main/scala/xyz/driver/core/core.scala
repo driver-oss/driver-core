@@ -1,6 +1,7 @@
 package xyz.driver
 
 import scalaz.Equal
+import scala.annotation.implicitNotFound
 
 package object core {
 
@@ -24,6 +25,24 @@ package object core {
 
 package core {
 
+  @implicitNotFound("No evidence that ${A} has the same Id as ${B}")
+  sealed trait SameId[A, B] {
+    def convert(id: Id[A]): Id[B] = Id[B](id.value)
+  }
+
+  object SameId extends LowPrioritySameIdImplicits {
+    def apply[A, B] = new SameId[A, B] {}
+
+    implicit def reflexive[A]: A ~ A                        = SameId[A, A]
+    implicit def symmetric[A, B](implicit ab: A ~ B): B ~ A = SameId[B, A]
+  }
+
+  trait LowPrioritySameIdImplicits {
+    protected type ~[A, B] = SameId[A, B]
+
+    implicit def transitive[A, B, C](implicit ab: A ~ B, bc: B ~ C): A ~ C = SameId[A, C]
+  }
+
   final case class Id[+Tag](value: String) extends AnyVal {
     @inline def length: Int       = value.length
     override def toString: String = value
@@ -32,6 +51,12 @@ package core {
   object Id {
     implicit def idEqual[T]: Equal[Id[T]]       = Equal.equal[Id[T]](_ == _)
     implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by[Id[T], String](_.value)
+
+    implicit class InvariantIdOps[Tag](id: Id[Tag]) {
+      def asId[T](implicit eq: SameId[Tag, T]): Id[T] = eq.convert(id)
+    }
+
+    def sameId[A, B] = SameId[A, B]
   }
 
   final case class Name[+Tag](value: String) extends AnyVal {

@@ -71,7 +71,7 @@ object json {
     def write(month: Month) = JsNumber(month)
     def read(value: JsValue): Month = value match {
       case JsNumber(month) if 0 <= month && month <= 11 => date.tagMonth(month.toInt)
-      case _ => throw DeserializationException("Month is a 0-based number")
+      case _                                            => throw DeserializationException("Month is a 0-based number")
     }
   }
 

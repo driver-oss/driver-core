@@ -1,4 +1,4 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import org.scalatest.{Assertions, FlatSpec, Matchers}
 
@@ -11,25 +11,25 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
     val generatedId2 = nextId[String]()
     val generatedId3 = nextId[Long]()
 
-    generatedId1 should be >= 0L
-    generatedId2 should be >= 0L
-    generatedId3 should be >= 0L
+    generatedId1.length should be >= 0
+    generatedId2.length should be >= 0
+    generatedId3.length should be >= 0
     generatedId1 should not be generatedId2
     generatedId2 should !==(generatedId3)
   }
 
   it should "be able to generate com.drivergrp.core.Id identifiers with max value" in {
 
-    val generatedLimitedId1 = nextId[String](10000)
-    val generatedLimitedId2 = nextId[String](1000)
-    val generatedLimitedId3 = nextId[Long](2000)
+    val generatedLimitedId1 = nextId[String](5)
+    val generatedLimitedId2 = nextId[String](4)
+    val generatedLimitedId3 = nextId[Long](3)
 
-    generatedLimitedId1 should be >= 0L
-    generatedLimitedId1 should be < 10000L
-    generatedLimitedId2 should be >= 0L
-    generatedLimitedId2 should be < 1000L
-    generatedLimitedId3 should be >= 0L
-    generatedLimitedId3 should be < 2000L
+    generatedLimitedId1.length should be >= 0
+    generatedLimitedId1.length should be < 6
+    generatedLimitedId2.length should be >= 0
+    generatedLimitedId2.length should be < 5
+    generatedLimitedId3.length should be >= 0
+    generatedLimitedId3.length should be < 4
     generatedLimitedId1 should not be generatedLimitedId2
     generatedLimitedId2 should !==(generatedLimitedId3)
   }
@@ -37,11 +37,11 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
   it should "be able to generate com.drivergrp.core.Name names" in {
 
     nextName[String]() should not be nextName[String]()
-    nextName[String]().length should be >= 0
+    nextName[String]().value.length should be >= 0
 
     val fixedLengthName = nextName[String](10)
     fixedLengthName.length should be <= 10
-    assert(!fixedLengthName.exists(_.isControl))
+    assert(!fixedLengthName.value.exists(_.isControl))
   }
 
   it should "be able to generate proper UUIDs" in {
@@ -82,11 +82,11 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
 
     val generatedPair = nextPair(nextId[Int](), nextName[Int]())
 
-    generatedPair._1 should be > 0L
+    generatedPair._1.length should be > 0
     generatedPair._2.length should be > 0
 
     nextPair(nextId[Int](), nextName[Int]()) should not be
-    nextPair(nextId[Int](), nextName[Int]())
+      nextPair(nextId[Int](), nextName[Int]())
   }
 
   it should "be able to generate a triad of two generated values" in {
@@ -98,12 +98,12 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
 
     val generatedTriad = nextTriad(nextId[Int](), nextName[Int](), nextBigDecimal())
 
-    generatedTriad._1 should be > 0L
+    generatedTriad._1.length should be > 0
     generatedTriad._2.length should be > 0
     generatedTriad._3 should be >= BigDecimal(0.00)
 
     nextTriad(nextId[Int](), nextName[Int](), nextBigDecimal()) should not be
-    nextTriad(nextId[Int](), nextName[Int](), nextBigDecimal())
+      nextTriad(nextId[Int](), nextName[Int](), nextBigDecimal())
   }
 
   it should "be able to generate a time value" in {

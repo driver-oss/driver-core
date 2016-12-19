@@ -1,11 +1,11 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.io.ByteArrayOutputStream
 
-import com.drivergrp.core.revision.Revision
+import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
-import org.mockito.Mockito._
+import xyz.driver.core.revision.Revision
 
 class CoreTest extends FlatSpec with Matchers with MockitoSugar {
 
@@ -31,12 +31,12 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
 
   "Id" should "have equality and ordering working correctly" in {
 
-    (Id[String](1234213L) === Id[String](1234213L)) should be(true)
-    (Id[String](1234213L) === Id[String](213414L)) should be(false)
-    (Id[String](213414L) === Id[String](1234213L)) should be(false)
+    (Id[String]("1234213") === Id[String]("1234213")) should be(true)
+    (Id[String]("1234213") === Id[String]("213414")) should be(false)
+    (Id[String]("213414") === Id[String]("1234213")) should be(false)
 
-    Seq(Id[String](4L), Id[String](3L), Id[String](2L), Id[String](1L)).sorted should contain
-    theSameElementsInOrderAs(Seq(Id[String](1L), Id[String](2L), Id[String](3L), Id[String](4L)))
+    Seq(Id[String]("4"), Id[String]("3"), Id[String]("2"), Id[String]("1")).sorted should contain
+    theSameElementsInOrderAs(Seq(Id[String]("1"), Id[String]("2"), Id[String]("3"), Id[String]("4")))
   }
 
   "Name" should "have equality and ordering working correctly" in {

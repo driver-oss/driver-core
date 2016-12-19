@@ -1,13 +1,13 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.util.TimeZone
 
-import com.drivergrp.core.time.{Time, _}
-import org.scalacheck.{Arbitrary, Gen}
-import org.scalatest.{FlatSpec, Matchers}
-import org.scalatest.prop.Checkers
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Prop.BooleanOperators
+import org.scalacheck.{Arbitrary, Gen}
+import org.scalatest.prop.Checkers
+import org.scalatest.{FlatSpec, Matchers}
+import xyz.driver.core.time.{Time, _}
 
 import scala.concurrent.duration._
 
@@ -56,7 +56,7 @@ class TimeTest extends FlatSpec with Matchers with Checkers {
   it should "have ordering defined correctly" in {
 
     Seq(Time(321L), Time(123L), Time(231L)).sorted should
-    contain theSameElementsInOrderAs Seq(Time(123L), Time(231L), Time(321L))
+      contain theSameElementsInOrderAs Seq(Time(123L), Time(231L), Time(321L))
 
     check { times: List[Time] =>
       times.sorted.sliding(2).filter(_.size == 2).forall {

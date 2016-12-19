@@ -1,4 +1,4 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
@@ -6,29 +6,63 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Flow
-import akka.util.ByteString
-import com.drivergrp.core.auth.{AuthService, AuthToken}
-import com.drivergrp.core.crypto.Crypto
-import com.drivergrp.core.logging.Logger
-import com.drivergrp.core.stats.Stats
-import com.drivergrp.core.time.TimeRange
-import com.drivergrp.core.time.provider.TimeProvider
 import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
+import xyz.driver.core.logging.Logger
+import xyz.driver.core.stats.Stats
+import xyz.driver.core.time.TimeRange
+import xyz.driver.core.time.provider.TimeProvider
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-import scalaz.{Failure => _, Success => _}
+import scalaz.Scalaz.{Id => _, _}
 
 object rest {
+
+  object ContextHeaders {
+    val AuthenticationTokenHeader = "WWW-Authenticate"
+    val TrackingIdHeader          = "X-Trace"
+
+    object LinkerD {
+      // https://linkerd.io/doc/0.7.4/linkerd/protocol-http/
+      def isLinkerD(headerName: String) = headerName.startsWith("l5d-")
+    }
+  }
+
+  final case class ServiceRequestContext(
+    trackingId: String = generators.nextUuid().toString,
+    contextHeaders: Map[String, String] = Map.empty[String, String])
+
+  import akka.http.scaladsl.server._
+  import Directives._
+
+  def serviceContext: Directive1[ServiceRequestContext] = extract(ctx => extractServiceContext(ctx))
+
+  def extractServiceContext(ctx: RequestContext): ServiceRequestContext =
+    ServiceRequestContext(extractTrackingId(ctx), extractContextHeaders(ctx))
+
+  def extractTrackingId(ctx: RequestContext): String = {
+    ctx.request.headers
+      .find(_.name == ContextHeaders.TrackingIdHeader)
+      .fold(java.util.UUID.randomUUID.toString)(_.value())
+  }
+
+  def extractContextHeaders(ctx: RequestContext): Map[String, String] = {
+    ctx.request.headers.filter { h =>
+      h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader
+      // || ContextHeaders.LinkerD.isLinkerD(h.lowercaseName)
+    } map { header =>
+      header.name -> header.value
+    } toMap
+  }
+
 
   trait Service
 
   trait ServiceTransport {
 
-    def sendRequest(authToken: AuthToken)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]]
+    def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]]
   }
 
   trait ServiceDiscovery {
@@ -37,35 +71,28 @@ object rest {
   }
 
   class HttpRestServiceTransport(actorSystem: ActorSystem, executionContext: ExecutionContext,
-                                 crypto: Crypto, log: Logger, stats: Stats, time: TimeProvider) extends ServiceTransport {
+                                 log: Logger, stats: Stats, time: TimeProvider) extends ServiceTransport {
 
     protected implicit val materializer = ActorMaterializer()(actorSystem)
     protected implicit val execution = executionContext
 
-    def sendRequest(authToken: AuthToken)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]] = {
+    def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]] = {
 
       val requestTime = time.currentTime()
-      val encryptionFlow = Flow[ByteString] map { bytes =>
-        ByteString(crypto.encrypt(crypto.keyForToken(authToken))(bytes.toArray))
-      }
-      val decryptionFlow = Flow[ByteString] map { bytes =>
-        ByteString(crypto.decrypt(crypto.keyForToken(authToken))(bytes.toArray))
-      }
 
       val request = requestStub
-        .withEntity(requestStub.entity.transformDataBytes(encryptionFlow))
-        .withHeaders(
-          RawHeader(AuthService.AuthenticationTokenHeader, authToken.value.value))
+        .withHeaders(RawHeader(ContextHeaders.TrackingIdHeader, context.trackingId))
+        .withHeaders(context.contextHeaders.toSeq.map { h => RawHeader(h._1, h._2): HttpHeader }: _*)
 
-      log.audit(s"Sending to ${request.uri} request $request")
+      log.audit(s"Sending to ${request.uri} request $request with tracking id ${context.trackingId}")
 
       val responseEntity = Http()(actorSystem).singleRequest(request)(materializer) map { response =>
         if(response.status == StatusCodes.NotFound) {
           Unmarshal(HttpEntity.Empty: ResponseEntity)
         } else if(response.status.isFailure()) {
-          throw new Exception("Http status is failure " + response.status)
+          throw new Exception(s"Http status is failure ${response.status}")
         } else {
-          Unmarshal(response.entity.transformDataBytes(decryptionFlow))
+          Unmarshal(response.entity)
         }
       }
 

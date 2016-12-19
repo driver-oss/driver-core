@@ -1,11 +1,11 @@
-package com.drivergrp.core
+package xyz.driver.core
 
-import com.drivergrp.core.logging.Logger
-import com.drivergrp.core.stats.LogStats
-import com.drivergrp.core.time.{Time, TimeRange}
+import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
-import org.mockito.Mockito._
+import xyz.driver.core.logging.Logger
+import xyz.driver.core.stats.LogStats
+import xyz.driver.core.time.{Time, TimeRange}
 
 class StatsTest extends FlatSpec with Matchers with MockitoSugar {
 

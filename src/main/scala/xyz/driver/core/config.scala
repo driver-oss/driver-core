@@ -1,4 +1,4 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.io.File
 import com.typesafe.config.{Config, ConfigFactory}

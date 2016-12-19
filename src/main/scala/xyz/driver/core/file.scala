@@ -1,4 +1,4 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import java.io.File
 import java.nio.file.{Path, Paths}
@@ -6,8 +6,8 @@ import java.util.UUID._
 
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.{Bucket, GetObjectRequest, ListObjectsV2Request}
-import com.drivergrp.core.revision.Revision
-import com.drivergrp.core.time.Time
+import xyz.driver.core.revision.Revision
+import xyz.driver.core.time.Time
 
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, OptionT}
@@ -15,10 +15,11 @@ import scalaz.{ListT, OptionT}
 object file {
 
   final case class FileLink(
-      name: Name[File],
-      location: Path,
-      revision: Revision[File],
-      lastModificationDate: Time
+          name: Name[File],
+          location: Path,
+          revision: Revision[File],
+          lastModificationDate: Time,
+          fileSize: Long
   )
 
   trait FileService {
@@ -58,7 +59,7 @@ object file {
 
     def upload(localSource: File, destination: Path): Future[Unit] = Future {
       checkSafeFileName(destination) {
-        val _ = s3.putObject(bucket, destination.toString, localSource).getETag
+        val _ = s3.putObject(bucket.value, destination.toString, localSource).getETag
       }
     }
 
@@ -71,20 +72,20 @@ object file {
         if (!tempDestinationFile.getParentFile.mkdirs()) {
           throw new Exception(s"Failed to create temp directory to download file `$tempDestinationFile`")
         } else {
-          Option(s3.getObject(new GetObjectRequest(bucket, filePath.toString), tempDestinationFile)).map { _ =>
+          Option(s3.getObject(new GetObjectRequest(bucket.value, filePath.toString), tempDestinationFile)).map { _ =>
             tempDestinationFile
           }
         }
       })
 
     def delete(filePath: Path): Future[Unit] = Future {
-      s3.deleteObject(bucket, filePath.toString)
+      s3.deleteObject(bucket.value, filePath.toString)
     }
 
     def list(path: Path): ListT[Future, FileLink] =
       ListT.listT(Future {
         import scala.collection.JavaConverters._
-        val req = new ListObjectsV2Request().withBucketName(bucket).withPrefix(path.toString).withMaxKeys(2)
+        val req = new ListObjectsV2Request().withBucketName(bucket.value).withPrefix(path.toString).withMaxKeys(2)
 
         def isInSubFolder(path: Path)(fileLink: FileLink) =
           fileLink.location.toString.replace(path.toString + "/", "").contains("/")
@@ -97,7 +98,8 @@ object file {
             FileLink(Name[File](summary.getKey),
                      Paths.get(path.toString + "/" + summary.getKey),
                      Revision[File](summary.getETag),
-                     Time(summary.getLastModified.getTime))
+                     Time(summary.getLastModified.getTime),
+                     summary.getSize)
           } filterNot isInSubFolder(path)
         } toList
       })
@@ -114,7 +116,7 @@ object file {
           if (localSource.renameTo(destinationFile)) ()
           else {
             throw new Exception(
-                s"Failed to move file from `${localSource.getCanonicalPath}` to `${destinationFile.getCanonicalPath}`")
+              s"Failed to move file from `${localSource.getCanonicalPath}` to `${destinationFile.getCanonicalPath}`")
           }
         } else {
           throw new Exception(s"Failed to create parent directories for file `${destinationFile.getCanonicalPath}`")
@@ -143,7 +145,8 @@ object file {
             FileLink(Name[File](file.getName),
                      Paths.get(file.getPath),
                      Revision[File](file.hashCode.toString),
-                     Time(file.lastModified()))
+                     Time(file.lastModified()),
+                     file.length())
           }
         } else List.empty[FileLink]
       })

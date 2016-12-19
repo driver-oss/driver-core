@@ -1,21 +1,24 @@
-package com.drivergrp.core
+package xyz.driver.core
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
-import com.drivergrp.core.logging.{Logger, TypesafeScalaLogger}
-import com.drivergrp.core.rest.Swagger
-import com.drivergrp.core.time.Time
-import com.drivergrp.core.time.provider.{SystemTimeProvider, TimeProvider}
 import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
 import spray.json.DefaultJsonProtocol
+import xyz.driver.core
+import xyz.driver.core.logging.{Logger, TypesafeScalaLogger}
+import xyz.driver.core.rest.{ContextHeaders, Swagger}
+import xyz.driver.core.stats.SystemStats
+import xyz.driver.core.time.Time
+import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
 
 import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
@@ -28,8 +31,8 @@ object app {
                   modules: Seq[Module],
                   time: TimeProvider = new SystemTimeProvider(),
                   log: Logger = new TypesafeScalaLogger(
-                      com.typesafe.scalalogging.Logger(LoggerFactory.getLogger(classOf[DriverApp]))),
-                  config: Config = com.drivergrp.core.config.loadDefaultConfig,
+                    com.typesafe.scalalogging.Logger(LoggerFactory.getLogger(classOf[DriverApp]))),
+                  config: Config = core.config.loadDefaultConfig,
                   interface: String = "::0",
                   baseUrl: String = "localhost:8080",
                   port: Int = 8080) {
@@ -61,47 +64,41 @@ object app {
       val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
       val versionRt      = versionRoute(version, gitHash, time.currentTime())
 
-      val generalExceptionHandler = ExceptionHandler {
-
-        case is: IllegalStateException =>
-          extractUri { uri =>
-            // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
-            def requestUuid = java.util.UUID.randomUUID.toString
-
-            log.debug(s"Request is not allowed to $uri ($requestUuid)", is)
-            complete(
-                HttpResponse(BadRequest,
-                             entity = s"""{ "requestUuid": "$requestUuid", "message": "${is.getMessage}" }"""))
-          }
-
-        case cm: ConcurrentModificationException =>
-          extractUri { uri =>
-            // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
-            def requestUuid = java.util.UUID.randomUUID.toString
-
-            log.debug(s"Concurrent modification of the resource $uri ($requestUuid)", cm)
-            complete(
-                HttpResponse(Conflict,
-                             entity = s"""{ "requestUuid": "$requestUuid", "message": "${cm.getMessage}" }"""))
-          }
-
-        case t: Throwable =>
-          extractUri { uri =>
-            // TODO: extract `requestUuid` from request or thread, provided by linkerd/zipkin
-            def requestUuid = java.util.UUID.randomUUID.toString
-
-            log.error(s"Request to $uri could not be handled normally ($requestUuid)", t)
-            complete(
-                HttpResponse(InternalServerError,
-                             entity = s"""{ "requestUuid": "$requestUuid", "message": "${t.getMessage}" }"""))
-          }
-      }
-
       val _ = Future {
-        http.bindAndHandle(route2HandlerFlow(handleExceptions(generalExceptionHandler) {
-          logRequestResult("log")(modules.map(_.route).foldLeft(versionRt ~ swaggerRoutes)(_ ~ _))
+        http.bindAndHandle(route2HandlerFlow(handleExceptions(ExceptionHandler(exceptionHandler)) { ctx =>
+          val trackingId = rest.extractTrackingId(ctx)
+          log.audit(s"Received request ${ctx.request} with tracking id $trackingId")
+
+          val contextWithTrackingId =
+            ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
+
+          respondWithHeaders(List(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))) {
+            modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
+          }(contextWithTrackingId)
         }), interface, port)(materializer)
       }
+    }
+
+    protected def exceptionHandler = PartialFunction[Throwable, Route] {
+
+      case is: IllegalStateException =>
+        ctx =>
+          val trackingId = rest.extractTrackingId(ctx)
+          log.debug(s"Request is not allowed to ${ctx.request.uri} ($trackingId)", is)
+          complete(HttpResponse(BadRequest, entity = is.getMessage))(ctx)
+
+      case cm: ConcurrentModificationException =>
+        ctx =>
+          val trackingId = rest.extractTrackingId(ctx)
+          log.audit(s"Concurrent modification of the resource ${ctx.request.uri} ($trackingId)", cm)
+          complete(
+            HttpResponse(Conflict, entity = "Resource was changed concurrently, try requesting a newer version"))(ctx)
+
+      case t: Throwable =>
+        ctx =>
+          val trackingId = rest.extractTrackingId(ctx)
+          log.error(s"Request to ${ctx.request.uri} could not be handled normally ($trackingId)", t)
+          complete(HttpResponse(InternalServerError, entity = t.getMessage))(ctx)
     }
 
     protected def versionRoute(version: String, gitHash: String, startupTime: Time): Route = {
@@ -111,14 +108,46 @@ object app {
       path("version") {
         val currentTime = time.currentTime().millis
         complete(
-            Map(
-                "version"     -> version,
-                "gitHash"     -> gitHash,
-                "modules"     -> modules.map(_.name).mkString(", "),
-                "startupTime" -> startupTime.millis.toString,
-                "serverTime"  -> currentTime.toString,
-                "uptime"      -> (currentTime - startupTime.millis).toString
-            ))
+          Map(
+            "version"     -> version,
+            "gitHash"     -> gitHash,
+            "modules"     -> modules.map(_.name).mkString(", "),
+            "startupTime" -> startupTime.millis.toString,
+            "serverTime"  -> currentTime.toString,
+            "uptime"      -> (currentTime - startupTime.millis).toString
+          ))
+      }
+    }
+
+    protected def healthRoute: Route = {
+      import DefaultJsonProtocol._
+      import SprayJsonSupport._
+      import spray.json._
+
+      val memoryUsage = SystemStats.memoryUsage
+      val gcStats     = SystemStats.garbageCollectorStats
+
+      path("health") {
+        complete(
+          Map(
+            "availableProcessors" -> SystemStats.availableProcessors.toJson,
+            "memoryUsage" -> Map(
+              "free"  -> memoryUsage.free.toJson,
+              "total" -> memoryUsage.total.toJson,
+              "max"   -> memoryUsage.max.toJson
+            ).toJson,
+            "gcStats" -> Map(
+              "garbageCollectionTime"   -> gcStats.garbageCollectionTime.toJson,
+              "totalGarbageCollections" -> gcStats.totalGarbageCollections.toJson
+            ).toJson,
+            "fileSystemSpace" -> SystemStats.fileSystemSpace.map { f =>
+              Map("path"        -> f.path.toJson,
+                  "freeSpace"   -> f.freeSpace.toJson,
+                  "totalSpace"  -> f.totalSpace.toJson,
+                  "usableSpace" -> f.usableSpace.toJson)
+            }.toJson,
+            "operatingSystem" -> SystemStats.operatingSystemStats.toJson
+          ))
       }
     }
 
@@ -173,7 +202,7 @@ object app {
   }
 
   class EmptyModule extends Module {
-    val name = "Nothing"
+    val name         = "Nothing"
     def route: Route = complete(StatusCodes.OK)
     def routeTypes   = Seq.empty[Type]
   }

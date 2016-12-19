@@ -1,20 +1,22 @@
-package com.drivergrp.core
+package xyz.driver.core
 
-import com.drivergrp.core.json.{EnumJsonFormat, ValueClassFormat}
-import com.drivergrp.core.revision.Revision
-import com.drivergrp.core.time.provider.SystemTimeProvider
 import org.scalatest.{FlatSpec, Matchers}
+import xyz.driver.core.json.{EnumJsonFormat, GadtJsonFormat, ValueClassFormat}
+import xyz.driver.core.revision.Revision
+import xyz.driver.core.time.provider.SystemTimeProvider
+import spray.json._
+import xyz.driver.core.TestTypes.CustomGADT
 
 class JsonTest extends FlatSpec with Matchers {
 
   "Json format for Id" should "read and write correct JSON" in {
 
-    val referenceId = Id[String](1312L)
+    val referenceId = Id[String]("1312-34A")
 
-    val writtenJson = com.drivergrp.core.json.idFormat.write(referenceId)
-    writtenJson.prettyPrint should be("1312")
+    val writtenJson = json.idFormat.write(referenceId)
+    writtenJson.prettyPrint should be("\"1312-34A\"")
 
-    val parsedId = com.drivergrp.core.json.idFormat.read(writtenJson)
+    val parsedId = json.idFormat.read(writtenJson)
     parsedId should be(referenceId)
   }
 
@@ -22,10 +24,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceName = Name[String]("Homer")
 
-    val writtenJson = com.drivergrp.core.json.nameFormat.write(referenceName)
+    val writtenJson = json.nameFormat.write(referenceName)
     writtenJson.prettyPrint should be("\"Homer\"")
 
-    val parsedName = com.drivergrp.core.json.nameFormat.read(writtenJson)
+    val parsedName = json.nameFormat.read(writtenJson)
     parsedName should be(referenceName)
   }
 
@@ -33,10 +35,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceTime = new SystemTimeProvider().currentTime()
 
-    val writtenJson = com.drivergrp.core.json.timeFormat.write(referenceTime)
+    val writtenJson = json.timeFormat.write(referenceTime)
     writtenJson.prettyPrint should be("{\n  \"timestamp\": " + referenceTime.millis + "\n}")
 
-    val parsedTime = com.drivergrp.core.json.timeFormat.read(writtenJson)
+    val parsedTime = json.timeFormat.read(writtenJson)
     parsedTime should be(referenceTime)
   }
 
@@ -44,10 +46,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceRevision = Revision[String]("037e2ec0-8901-44ac-8e53-6d39f6479db4")
 
-    val writtenJson = com.drivergrp.core.json.revisionFormat.write(referenceRevision)
+    val writtenJson = json.revisionFormat.write(referenceRevision)
     writtenJson.prettyPrint should be("\"" + referenceRevision.id + "\"")
 
-    val parsedRevision = com.drivergrp.core.json.revisionFormat.read(writtenJson)
+    val parsedRevision = json.revisionFormat.read(writtenJson)
     parsedRevision should be(referenceRevision)
   }
 
@@ -91,6 +93,40 @@ class JsonTest extends FlatSpec with Matchers {
 
     val writtenJson2 = format.write(referenceValue2)
     writtenJson2.prettyPrint should be("10")
+
+    val parsedValue1 = format.read(writtenJson1)
+    val parsedValue2 = format.read(writtenJson2)
+
+    parsedValue1 should be(referenceValue1)
+    parsedValue2 should be(referenceValue2)
+  }
+
+  "Json format for classes GADT" should "read and write correct JSON" in {
+
+    import CustomGADT._
+    import DefaultJsonProtocol._
+    implicit val case1Format = jsonFormat1(GadtCase1)
+    implicit val case2Format = jsonFormat1(GadtCase2)
+    implicit val case3Format = jsonFormat1(GadtCase3)
+
+    val format = GadtJsonFormat.create[CustomGADT]("gadtTypeField") {
+      case t1: CustomGADT.GadtCase1 => "case1"
+      case t2: CustomGADT.GadtCase2 => "case2"
+      case t3: CustomGADT.GadtCase3 => "case3"
+    } {
+      case "case1" => case1Format
+      case "case2" => case2Format
+      case "case3" => case3Format
+    }
+
+    val referenceValue1 = CustomGADT.GadtCase1("4")
+    val referenceValue2 = CustomGADT.GadtCase2("Hi!")
+
+    val writtenJson1 = format.write(referenceValue1)
+    writtenJson1 should be("{\n \"field\": \"4\",\n\"gadtTypeField\": \"case1\"\n}".parseJson)
+
+    val writtenJson2 = format.write(referenceValue2)
+    writtenJson2 should be("{\"field\":\"Hi!\",\"gadtTypeField\":\"case2\"}".parseJson)
 
     val parsedValue1 = format.read(writtenJson1)
     val parsedValue2 = format.read(writtenJson2)

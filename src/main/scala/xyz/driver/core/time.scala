@@ -27,7 +27,7 @@ object time {
 
     def advanceBy(duration: Duration): Time = Time(millis + duration.toMillis)
 
-    def toDate: date.Date = date.Date.fromJavaDate(new java.util.Date(millis))
+    def toDate: date.Date = date.javaDateToDate(new java.util.Date(millis))
   }
 
   final case class TimeRange(start: Time, end: Time) {

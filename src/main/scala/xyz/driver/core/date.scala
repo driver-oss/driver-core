@@ -21,22 +21,16 @@ object date {
     val DECEMBER  = tagMonth(Calendar.DECEMBER)
   }
 
-  final case class Date(year: Int, month: Month, day: Int) {
-    def toJavaSqlDate   = new java.sql.Date(toJavaDate.getTime)
-    def toJavaDate: java.util.Date = {
-      val cal = Calendar.getInstance()
-      cal.set(Calendar.YEAR, year - 1900)
-      cal.set(Calendar.MONTH, month)
-      cal.set(Calendar.DAY_OF_MONTH, day)
-      cal.getTime
-    }
+  final case class Date(year: Int, month: Month, day: Int)
+
+  private[core] def javaDateToDate(javaDate: java.util.Date): Date = {
+    val cal = Calendar.getInstance()
+    cal.setTime(javaDate)
+    Date(
+      cal.get(Calendar.YEAR),
+      date.tagMonth(cal.get(Calendar.MONTH)),
+      cal.get(Calendar.DAY_OF_MONTH))
   }
 
-  object Date {
-    def fromJavaDate(date: java.util.Date) = {
-      val cal = Calendar.getInstance()
-      cal.setTime(date)
-      Date(cal.get(Calendar.YEAR), tagMonth(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
-    }
-  }
+
 }

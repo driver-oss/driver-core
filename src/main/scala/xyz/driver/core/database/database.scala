@@ -39,7 +39,7 @@ package database {
       MappedColumnType.base[Time, Long](_.millis, Time(_))
 
     implicit def `xyz.driver.core.time.Date.columnType`: BaseColumnType[Date] =
-      MappedColumnType.base[Date, java.sql.Date](_.toJavaSqlDate, Date.fromJavaDate(_))
+      MappedColumnType.base[Date, java.sql.Date](dateToSqlDate(_), sqlDateToDate(_))
   }
 
   object ColumnTypes {

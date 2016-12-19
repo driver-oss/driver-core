@@ -46,17 +46,9 @@ package core {
       def convert(id: Id[A]): Id[B] = Id[B](id.value)
     }
 
-    object SameId extends LowPrioritySameIdImplicits {
+    object SameId {
       def apply[A, B] = new SameId[A, B] {}
-
-      implicit def reflexive[A]: A ~ A                        = SameId[A, A]
-      implicit def symmetric[A, B](implicit ab: A ~ B): B ~ A = SameId[B, A]
-    }
-
-    trait LowPrioritySameIdImplicits {
-      protected type ~[A, B] = SameId[A, B]
-
-      implicit def transitive[A, B, C](implicit ab: A ~ B, bc: B ~ C): A ~ C = SameId[A, C]
+      implicit def symmetric[A, B](implicit ab: SameId[A, B]): SameId[B, A] = SameId[B, A]
     }
 
     implicit class InvariantIdOps[Tag](id: Id[Tag]) {

@@ -44,14 +44,17 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     final case class Y(id: Id[Y])
     final case class Z(id: Id[Z])
 
-    implicit val xy = Id.SameId[X,Y]
-    implicit val yz = Id.SameId[Y,Z]
+    implicit val xy = Id.Mapper[X,Y]
+    implicit val yx = Id.Mapper[Y,X]
+    implicit val yz = Id.Mapper[Y,Z]
+    implicit val zy = Id.Mapper[Z,Y]
 
     val x = X(Id("0"))
-    val y = Y(x.id.asId[Y])
-    val z = Z(y.id.asId[Z])
-    val y2 = Y(z.id.asId[Y])
-    val x2 = X(z.id.asId[Y].asId[X])
+    val y = Y(x.id)
+    val z = Z(y.id)
+    val y2 = Y(z.id)
+    val x2 = X(y2.id)
+
     x2 === x
     y2 === y
   }

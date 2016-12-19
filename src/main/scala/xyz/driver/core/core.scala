@@ -1,7 +1,6 @@
 package xyz.driver
 
 import scalaz.Equal
-import scala.annotation.implicitNotFound
 
 package object core {
 
@@ -34,25 +33,8 @@ package core {
     implicit def idEqual[T]: Equal[Id[T]]       = Equal.equal[Id[T]](_ == _)
     implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by[Id[T], String](_.value)
 
-    /**
-      * Evidence that Id[A] can be safely converted to Id[B].
-      * e.g. `implicit val CaseId = Id.SameId[Case, CasesRow]`
-      * if `CaseId` is in scope, we can use either of:
-      * `casesRowId.asId[Case]` or `caseId.asId[CasesRow]`
-      *  Override convert for custom Id conversions.
-      */
-    @implicitNotFound("No evidence that ${A} has the same Id as ${B}")
-    sealed trait SameId[A, B] {
-      def convert(id: Id[A]): Id[B] = Id[B](id.value)
-    }
-
-    object SameId {
-      def apply[A, B] = new SameId[A, B] {}
-      implicit def symmetric[A, B](implicit ab: SameId[A, B]): SameId[B, A] = SameId[B, A]
-    }
-
-    implicit class InvariantIdOps[Tag](id: Id[Tag]) {
-      def asId[T](implicit eq: SameId[Tag, T]): Id[T] = eq.convert(id)
+    object Mapper {
+      def apply[A, B]: (Id[A] => Id[B]) = (id: Id[A]) => Id[B](id.value)
     }
   }
 

@@ -67,7 +67,7 @@ object json {
     }
   }
 
-  implicit val dateFormat = new RootJsonFormat[Month] {
+  implicit val monthFormat = new RootJsonFormat[Month] {
     def write(month: Month) = JsNumber(month)
     def read(value: JsValue): Month = value match {
       case JsNumber(month) if 0 <= month && month <= 11 => date.tagMonth(month.toInt)

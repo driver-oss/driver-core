@@ -60,6 +60,24 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     (y2 === y) should be(true)
   }
 
+  "Time" should "use TimeZone correctly when converting to Date" in {
+
+    import time._
+
+    val EST = java.util.TimeZone.getTimeZone("EST")
+    val PST = java.util.TimeZone.getTimeZone("PST")
+
+    val timestamp = {
+      import java.util.Calendar
+      val cal = Calendar.getInstance(EST)
+      cal.set(Calendar.HOUR_OF_DAY, 1)
+      Time(cal.getTime().getTime())
+    }
+
+    textualDate(EST)(timestamp) should not be textualDate(PST)(timestamp)
+    timestamp.toDate(EST) should not be timestamp.toDate(PST)
+  }
+
   "Name" should "have equality and ordering working correctly" in {
 
     (Name[String]("foo") === Name[String]("foo")) should be(true)

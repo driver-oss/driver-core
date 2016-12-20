@@ -32,6 +32,10 @@ package core {
   object Id {
     implicit def idEqual[T]: Equal[Id[T]]       = Equal.equal[Id[T]](_ == _)
     implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by[Id[T], String](_.value)
+
+    object Mapper {
+      def apply[A, B]: (Id[A] => Id[B]) = (id: Id[A]) => Id[B](id.value)
+    }
   }
 
   final case class Name[+Tag](value: String) extends AnyVal {

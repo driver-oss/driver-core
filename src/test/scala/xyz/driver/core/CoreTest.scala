@@ -39,6 +39,27 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     theSameElementsInOrderAs(Seq(Id[String]("1"), Id[String]("2"), Id[String]("3"), Id[String]("4")))
   }
 
+  it should "have type-safe conversions" in {
+    final case class X(id: Id[X])
+    final case class Y(id: Id[Y])
+    final case class Z(id: Id[Z])
+
+    implicit val xy = Id.Mapper[X, Y]
+    implicit val yx = Id.Mapper[Y, X]
+    implicit val yz = Id.Mapper[Y, Z]
+    implicit val zy = Id.Mapper[Z, Y]
+
+    // The real test is that the following statements compile:
+    val x  = X(Id("0"))
+    val y  = Y(x.id)
+    val z  = Z(y.id)
+    val y2 = Y(z.id)
+    val x2 = X(y2.id)
+
+    (x2 === x) should be(true)
+    (y2 === y) should be(true)
+  }
+
   "Name" should "have equality and ordering working correctly" in {
 
     (Name[String]("foo") === Name[String]("foo")) should be(true)

@@ -21,9 +21,9 @@ object time {
 
   final case class Time(millis: Long) extends AnyVal {
 
-    def isBefore(anotherTime: Time): Boolean = millis < anotherTime.millis
+    def isBefore(anotherTime: Time): Boolean = implicitly[Ordering[Time]].lt(this, anotherTime)
 
-    def isAfter(anotherTime: Time): Boolean = millis > anotherTime.millis
+    def isAfter(anotherTime: Time): Boolean = implicitly[Ordering[Time]].gt(this, anotherTime)
 
     def advanceBy(duration: Duration): Time = Time(millis + duration.toMillis)
 
@@ -34,11 +34,14 @@ object time {
     }
   }
 
+  object Time {
+
+    implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
+  }
+
   final case class TimeRange(start: Time, end: Time) {
     def duration: Duration = FiniteDuration(end.millis - start.millis, MILLISECONDS)
   }
-
-  implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
 
   def startOfMonth(time: Time) = {
     Time(make(new GregorianCalendar()) { cal =>

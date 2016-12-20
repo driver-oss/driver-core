@@ -2,7 +2,7 @@ package xyz.driver.core.database
 
 import scala.concurrent.{ExecutionContext, Future}
 
-import scalaz.{ListT, Monad}
+import scalaz.{ListT, Monad, OptionT}
 import scalaz.std.scalaFuture._
 
 trait Dal {
@@ -10,6 +10,8 @@ trait Dal {
   protected implicit val monadT: Monad[T]
 
   protected def execute[D](operations: T[D]): Future[D]
+  protected def execute[D](readOperations: OptionT[T, D]): OptionT[Future, D]
+  protected def execute[D](readOperations: ListT[T, D]): ListT[Future, D]
   protected def noAction[V](v: V): T[V]
   protected def customAction[R](action: => Future[R]): T[R]
 }
@@ -19,9 +21,11 @@ class FutureDal(executionContext: ExecutionContext) extends Dal {
   override type T[D] = Future[D]
   implicit val monadT = implicitly[Monad[Future]]
 
-  def execute[D](operations: T[D]): Future[D]     = operations
-  def noAction[V](v: V): T[V]                     = Future.successful(v)
-  def customAction[R](action: => Future[R]): T[R] = action
+  def execute[D](operations: T[D]): Future[D]                   = operations
+  def execute[D](operations: OptionT[T, D]): OptionT[Future, D] = OptionT(operations.run)
+  def execute[D](operations: ListT[T, D]): ListT[Future, D]     = ListT(operations.run)
+  def noAction[V](v: V): T[V]                                   = Future.successful(v)
+  def customAction[R](action: => Future[R]): T[R]               = action
 }
 
 class SlickDal(database: Database, executionContext: ExecutionContext) extends Dal {
@@ -40,6 +44,14 @@ class SlickDal(database: Database, executionContext: ExecutionContext) extends D
 
   override def execute[D](readOperations: T[D]): Future[D] = {
     database.database.run(readOperations.transactionally)
+  }
+
+  override def execute[D](readOperations: OptionT[T, D]): OptionT[Future, D] = {
+    OptionT(database.database.run(readOperations.run.transactionally))
+  }
+
+  override def execute[D](readOperations: ListT[T, D]): ListT[Future, D] = {
+    ListT(database.database.run(readOperations.run.transactionally))
   }
 
   override def noAction[V](v: V): T[V]                     = DBIO.successful(v)

@@ -27,7 +27,11 @@ object time {
 
     def advanceBy(duration: Duration): Time = Time(millis + duration.toMillis)
 
-    def toDate: date.Date = date.javaDateToDate(new java.util.Date(millis))
+    def toDate(timezone: TimeZone): date.Date = {
+      val cal = java.util.Calendar.getInstance(timezone)
+      cal.setTimeInMillis(millis)
+      date.javaDateToDate(cal.getTime())
+    }
   }
 
   final case class TimeRange(start: Time, end: Time) {

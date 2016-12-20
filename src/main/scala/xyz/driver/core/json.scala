@@ -7,11 +7,13 @@ import akka.http.scaladsl.unmarshalling.Unmarshaller
 import spray.json.{DeserializationException, JsNumber, _}
 import xyz.driver.core.revision.Revision
 import xyz.driver.core.time.Time
-import xyz.driver.core.date.Month
+import xyz.driver.core.date.{Date, Month}
 
 import scala.reflect.runtime.universe._
 
 object json {
+
+  import DefaultJsonProtocol._
 
   def IdInPath[T]: PathMatcher1[Id[T]] = new PathMatcher1[Id[T]] {
     def apply(path: Path) = path match {
@@ -74,6 +76,8 @@ object json {
       case _                                            => throw DeserializationException("Month is a 0-based number")
     }
   }
+
+  implicit val dateFormat = jsonFormat3(Date)
 
   def RevisionInPath[T]: PathMatcher1[Revision[T]] =
     PathMatcher("""[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}""".r) flatMap { string =>

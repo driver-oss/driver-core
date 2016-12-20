@@ -28,9 +28,9 @@ object time {
     def advanceBy(duration: Duration): Time = Time(millis + duration.toMillis)
 
     def toDate(timezone: TimeZone): date.Date = {
-      val cal = java.util.Calendar.getInstance(timezone)
+      val cal = Calendar.getInstance(timezone)
       cal.setTimeInMillis(millis)
-      date.javaDateToDate(cal.getTime())
+      date.Date(cal.get(Calendar.YEAR), date.tagMonth(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
     }
   }
 

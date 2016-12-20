@@ -20,6 +20,11 @@ package object core {
       resource.close()
     }
   }
+
+  object tagging {
+    private[core] trait Tagged[+V, +Tag]
+  }
+  type @@[+V, +Tag] = V with tagging.Tagged[V, Tag]
 }
 
 package core {

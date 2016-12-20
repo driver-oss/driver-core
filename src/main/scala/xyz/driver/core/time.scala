@@ -26,6 +26,12 @@ object time {
     def isAfter(anotherTime: Time): Boolean = implicitly[Ordering[Time]].gt(this, anotherTime)
 
     def advanceBy(duration: Duration): Time = Time(millis + duration.toMillis)
+
+    def toDate(timezone: TimeZone): date.Date = {
+      val cal = Calendar.getInstance(timezone)
+      cal.setTimeInMillis(millis)
+      date.Date(cal.get(Calendar.YEAR), date.tagMonth(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
+    }
   }
 
   object Time {

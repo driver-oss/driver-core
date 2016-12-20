@@ -42,6 +42,22 @@ class JsonTest extends FlatSpec with Matchers {
     parsedTime should be(referenceTime)
   }
 
+  "Json format for Date" should "read and write correct JSON" in {
+    import date._
+
+    val referenceDate = Date(1941, Month.DECEMBER, 7)
+
+    val writtenJson = json.dateFormat.write(referenceDate)
+    writtenJson.prettyPrint should be("""|{
+                                         |  "year": 1941,
+                                         |  "month": 11,
+                                         |  "day": 7
+                                         |}""".stripMargin)
+
+    val parsedDate = json.dateFormat.read(writtenJson)
+    parsedDate should be(referenceDate)
+  }
+
   "Json format for Revision" should "read and write correct JSON" in {
 
     val referenceRevision = Revision[String]("037e2ec0-8901-44ac-8e53-6d39f6479db4")

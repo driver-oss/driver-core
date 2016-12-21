@@ -38,9 +38,16 @@ package core {
     implicit def idEqual[T]: Equal[Id[T]]       = Equal.equal[Id[T]](_ == _)
     implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by[Id[T], String](_.value)
 
+    sealed trait Mapper[Entity, Row]
     object Mapper {
-      def apply[A, B]: (Id[A] => Id[B]) = (id: Id[A]) => Id[B](id.value)
+      def apply[Entity, Row] = new Mapper[Entity, Row] {}
     }
+
+    implicit def to[Row, Entity](rowId: Id[Row])(implicit ev: Mapper[Entity, Row]): Id[Entity] =
+      Id[Entity](rowId.value)
+
+    implicit def from[Entity, Row](entityId: Id[Entity])(implicit ev: Mapper[Entity, Row]): Id[Row] =
+      Id[Row](entityId.value)
   }
 
   final case class Name[+Tag](value: String) extends AnyVal {

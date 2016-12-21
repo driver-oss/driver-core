@@ -45,9 +45,7 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     final case class Z(id: Id[Z])
 
     implicit val xy = Id.Mapper[X, Y]
-    implicit val yx = Id.Mapper[Y, X]
     implicit val yz = Id.Mapper[Y, Z]
-    implicit val zy = Id.Mapper[Z, Y]
 
     // The real test is that the following statements compile:
     val x  = X(Id("0"))

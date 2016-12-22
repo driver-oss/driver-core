@@ -40,8 +40,8 @@ package core {
     implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by[Id[T], String](_.value)
 
     sealed class Mapper[E, R] {
-      def apply(id: Id[E]): Id[R]                                = Id[R](id.value)
-      def apply(id: Id[R])(implicit dummy: DummyImplicit): Id[E] = Id[E](id.value)
+      def apply[T >: R](id: Id[E]): Id[T]                                = Id[R](id.value)
+      def apply[T >: E](id: Id[R])(implicit dummy: DummyImplicit): Id[T] = Id[E](id.value)
     }
     object Mapper {
       def apply[E, R] = new Mapper[E, R] {}

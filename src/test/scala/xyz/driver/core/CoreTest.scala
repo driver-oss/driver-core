@@ -47,15 +47,20 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     implicit val xy = Id.Mapper[X, Y]
     implicit val yz = Id.Mapper[Y, Z]
 
-    // The real test is that the following statements compile:
+    // Test that implicit conversions work correctly
     val x  = X(Id("0"))
     val y  = Y(x.id)
     val z  = Z(y.id)
     val y2 = Y(z.id)
     val x2 = X(y2.id)
-
     (x2 === x) should be(true)
     (y2 === y) should be(true)
+
+    // Test that type inferrence for explicit conversions work correctly
+    val yid = y.id
+    val xid = xy(yid)
+    val zid = yz(yid)
+    (xid: Id[X]) should be(zid: Id[Z])
   }
 
   "Time" should "use TimeZone correctly when converting to Date" in {

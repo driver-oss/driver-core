@@ -39,7 +39,10 @@ package core {
     implicit def idEqual[T]: Equal[Id[T]]       = Equal.equal[Id[T]](_ == _)
     implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by[Id[T], String](_.value)
 
-    sealed trait Mapper[E, R]
+    sealed class Mapper[E, R] {
+      def apply(id: Id[E]): Id[R]                                = Id[R](id.value)
+      def apply(id: Id[R])(implicit dummy: DummyImplicit): Id[E] = Id[E](id.value)
+    }
     object Mapper {
       def apply[E, R] = new Mapper[E, R] {}
     }

@@ -21,5 +21,16 @@ object date {
     val DECEMBER  = tagMonth(Calendar.DECEMBER)
   }
 
-  final case class Date(year: Int, month: Month, day: Int)
+  final case class Date(year: Int, month: Month, day: Int) {
+    override def toString = f"$year%04d-${month + 1}%02d-$day%02d"
+  }
+
+  object Date {
+    def fromString(dateString: String): Option[Date] = {
+      util.Try(dateString.split("-").map(_.toInt)).toOption collect {
+        case Array(year, month, day) if (1 to 12 contains month) && (1 to 31 contains day) =>
+          Date(year, tagMonth(month - 1), day)
+      }
+    }
+  }
 }

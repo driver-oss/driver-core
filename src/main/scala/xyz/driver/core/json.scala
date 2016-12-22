@@ -77,7 +77,7 @@ object json {
     }
   }
 
-  implicit val dateFormat = jsonFormat3(Date)
+  implicit val dateFormat = jsonFormat3(Date.apply)
 
   def RevisionInPath[T]: PathMatcher1[Revision[T]] =
     PathMatcher("""[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}""".r) flatMap { string =>

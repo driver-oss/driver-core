@@ -40,14 +40,14 @@ package core {
     implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by[Id[T], String](_.value)
 
     sealed class Mapper[E, R] {
-      def apply[T >: R](id: Id[E]): Id[T]                                = Id[R](id.value)
-      def apply[T >: E](id: Id[R])(implicit dummy: DummyImplicit): Id[T] = Id[E](id.value)
+      def apply[T >: E](id: Id[R]): Id[T]                                = Id[E](id.value)
+      def apply[T >: R](id: Id[E])(implicit dummy: DummyImplicit): Id[T] = Id[R](id.value)
     }
     object Mapper {
-      def apply[E, R] = new Mapper[E, R] {}
+      def apply[E, R] = new Mapper[E, R]
     }
-    implicit def convertRE[R, E](id: Id[R])(implicit ev: Mapper[E, R]): Id[E] = Id[E](id.value)
-    implicit def convertER[E, R](id: Id[E])(implicit ev: Mapper[E, R]): Id[R] = Id[R](id.value)
+    implicit def convertRE[R, E](id: Id[R])(implicit mapper: Mapper[E, R]): Id[E] = mapper[E](id)
+    implicit def convertER[E, R](id: Id[E])(implicit mapper: Mapper[E, R]): Id[R] = mapper[R](id)
   }
 
   final case class Name[+Tag](value: String) extends AnyVal {

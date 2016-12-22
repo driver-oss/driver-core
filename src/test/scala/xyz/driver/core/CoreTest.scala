@@ -76,6 +76,16 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     timestamp.toDate(EST) should not be timestamp.toDate(PST)
   }
 
+  "Date" should "correctly convert to and from String" in {
+
+    import xyz.driver.core.generators.nextDate
+    import date._
+
+    for (date <- 1 to 100 map (_ => nextDate())) {
+      Some(date) should be(Date.fromString(date.toString))
+    }
+  }
+
   "Name" should "have equality and ordering working correctly" in {
 
     (Name[String]("foo") === Name[String]("foo")) should be(true)

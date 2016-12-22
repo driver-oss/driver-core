@@ -34,13 +34,17 @@ package core {
     override def toString: String = value
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.ImplicitConversion"))
   object Id {
     implicit def idEqual[T]: Equal[Id[T]]       = Equal.equal[Id[T]](_ == _)
     implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by[Id[T], String](_.value)
 
+    sealed trait Mapper[E, R]
     object Mapper {
-      def apply[A, B]: (Id[A] => Id[B]) = (id: Id[A]) => Id[B](id.value)
+      def apply[E, R] = new Mapper[E, R] {}
     }
+    implicit def convertRE[R, E](id: Id[R])(implicit ev: Mapper[E, R]): Id[E] = Id[E](id.value)
+    implicit def convertER[E, R](id: Id[E])(implicit ev: Mapper[E, R]): Id[R] = Id[R](id.value)
   }
 
   final case class Name[+Tag](value: String) extends AnyVal {

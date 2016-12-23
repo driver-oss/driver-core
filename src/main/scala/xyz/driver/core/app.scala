@@ -11,6 +11,7 @@ import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
+import io.swagger.models.Scheme
 import org.slf4j.LoggerFactory
 import spray.json.DefaultJsonProtocol
 import xyz.driver.core
@@ -35,6 +36,7 @@ object app {
                   config: Config = core.config.loadDefaultConfig,
                   interface: String = "::0",
                   baseUrl: String = "localhost:8080",
+                  scheme: String = "http",
                   port: Int = 8080) {
 
     implicit private lazy val actorSystem      = ActorSystem("spray-routing", config)
@@ -60,7 +62,7 @@ object app {
 
     protected def bindHttp(modules: Seq[Module]): Unit = {
       val serviceTypes   = modules.flatMap(_.routeTypes)
-      val swaggerService = new Swagger(baseUrl, version, actorSystem, serviceTypes, config)
+      val swaggerService = new Swagger(baseUrl, Scheme.forValue(scheme), version, actorSystem, serviceTypes, config)
       val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
       val versionRt      = versionRoute(version, gitHash, time.currentTime())
 

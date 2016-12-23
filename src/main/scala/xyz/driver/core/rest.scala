@@ -9,6 +9,7 @@ import akka.stream.ActorMaterializer
 import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
+import io.swagger.models.Scheme
 import xyz.driver.core.logging.Logger
 import xyz.driver.core.stats.Stats
 import xyz.driver.core.time.TimeRange
@@ -116,6 +117,7 @@ object rest {
   import scala.reflect.runtime.universe._
 
   class Swagger(override val host: String,
+                override val scheme: Scheme,
                 version: String,
                 override val actorSystem: ActorSystem,
                 override val apiTypes: Seq[Type],

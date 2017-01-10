@@ -6,12 +6,12 @@ import scalaz.{ListT, Monad}
 import scalaz.std.scalaFuture._
 
 trait Dal {
-  protected type T[D]
-  protected implicit val monadT: Monad[T]
+  type T[D]
+  implicit val monadT: Monad[T]
 
-  protected def execute[D](operations: T[D]): Future[D]
-  protected def noAction[V](v: V): T[V]
-  protected def customAction[R](action: => Future[R]): T[R]
+  def execute[D](operations: T[D]): Future[D]
+  def noAction[V](v: V): T[V]
+  def customAction[R](action: => Future[R]): T[R]
 }
 
 class FutureDal(executionContext: ExecutionContext) extends Dal {

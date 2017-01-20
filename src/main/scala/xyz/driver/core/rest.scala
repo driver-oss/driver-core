@@ -10,6 +10,7 @@ import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
 import io.swagger.models.Scheme
+import xyz.driver.core.auth._
 import xyz.driver.core.logging.Logger
 import xyz.driver.core.stats.Stats
 import xyz.driver.core.time.TimeRange
@@ -33,7 +34,10 @@ object rest {
 
   final case class ServiceRequestContext(
     trackingId: String = generators.nextUuid().toString,
-    contextHeaders: Map[String, String] = Map.empty[String, String])
+    contextHeaders: Map[String, String] = Map.empty[String, String]) {
+
+    def authToken: Option[AuthToken] = contextHeaders.get(AuthService.AuthenticationTokenHeader).map(AuthToken.apply)
+  }
 
   import akka.http.scaladsl.server._
   import Directives._

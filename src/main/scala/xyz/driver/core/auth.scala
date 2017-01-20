@@ -31,6 +31,19 @@ object auth {
     def hasPermission(permission: Permission): Boolean = permissions.contains(permission)
   }
 
+  object Role {
+    def fromString(roleString: String): Option[Role] = roleString match {
+      case "Observer"      => Some(ObserverRole)
+      case "Patient"       => Some(PatientRole)
+      case "Curator"       => Some(CuratorRole)
+      case "Pathologist"   => Some(PathologistRole)
+      case "Administrator" => Some(AdministratorRole)
+      case "Physician"     => Some(PhysicianRole)
+      case "Relative"      => Some(RelativeRole)
+      case _               => None
+    }
+  }
+
   case object ObserverRole extends Role {
     val id          = Id("1")
     val name        = Name("observer")

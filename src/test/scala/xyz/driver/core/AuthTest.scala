@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
-import xyz.driver.core.auth._
+import xyz.driver.core.rest.Auth._
 import xyz.driver.core.rest.ServiceRequestContext
 
 import scala.concurrent.Future
@@ -15,13 +15,19 @@ import scalaz.OptionT
 
 class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRouteTest {
 
-  val authStatusService: AuthService[User] = new AuthService[User] {
-    override def authStatus(context: ServiceRequestContext): OptionT[Future, User] = OptionT.optionT[Future] {
-      if (context.contextHeaders.keySet.contains(AuthService.AuthenticationTokenHeader)) {
-        Future.successful(Some(new User {
-          override def id: Id[User]     = Id[User]("1")
-          override def roles: Set[Role] = Set(PathologistRole)
-        }: User))
+  case object TestRoleAllowedPermission    extends Permission
+  case object TestRoleNotAllowedPermission extends Permission
+
+  case object TestRole extends Role {
+    val id          = Id("1")
+    val name        = Name("testRole")
+    val permissions = Set[Permission](TestRoleAllowedPermission)
+  }
+
+  val authStatusService: AuthProvider[User] = new AuthProvider[User] {
+    override def authenticatedUser(context: ServiceRequestContext): OptionT[Future, User] = OptionT.optionT[Future] {
+      if (context.contextHeaders.keySet.contains(AuthProvider.AuthenticationTokenHeader)) {
+        Future.successful(Some(BasicUser(Id[User]("1"), Set(TestRole))))
       } else {
         Future.successful(Option.empty[User])
       }
@@ -33,7 +39,7 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
   "'authorize' directive" should "throw error is auth token is not in the request" in {
 
     Get("/naive/attempt") ~>
-      authorize(CanSignOutReport) { user =>
+      authorize(TestRoleAllowedPermission) { user =>
         complete("Never going to be here")
       } ~>
       check {
@@ -44,12 +50,12 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
 
   it should "throw error is authorized user is not having the requested permission" in {
 
-    val referenceAuthToken = AuthToken("I am a pathologist's token")
+    val referenceAuthToken = AuthToken("I am a test role's token")
 
     Post("/administration/attempt").addHeader(
-      RawHeader(AuthService.AuthenticationTokenHeader, referenceAuthToken.value)
+      RawHeader(AuthProvider.AuthenticationTokenHeader, referenceAuthToken.value)
     ) ~>
-      authorize(CanAssignRoles) { user =>
+      authorize(TestRoleNotAllowedPermission) { user =>
         complete("Never going to get here")
       } ~>
       check {
@@ -57,7 +63,7 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
         rejections should contain(
           AuthenticationFailedRejection(
             CredentialsRejected,
-            HttpChallenges.basic("User does not have the required permissions: CanAssignRoles")))
+            HttpChallenges.basic("User does not have the required permissions: TestRoleNotAllowedPermission")))
       }
   }
 
@@ -66,9 +72,9 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
     val referenceAuthToken = AuthToken("I am token")
 
     Get("/valid/attempt/?a=2&b=5").addHeader(
-      RawHeader(AuthService.AuthenticationTokenHeader, referenceAuthToken.value)
+      RawHeader(AuthProvider.AuthenticationTokenHeader, referenceAuthToken.value)
     ) ~>
-      authorize(CanSignOutReport) { user =>
+      authorize(TestRoleAllowedPermission) { user =>
         complete("Alright, user \"" + user.id + "\" is authorized")
       } ~>
       check {

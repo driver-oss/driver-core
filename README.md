@@ -9,9 +9,8 @@ Core library is used to provide ways to implement practices established in [Driv
  * `config` Contains method `loadDefaultConfig` with default way of providing config to the application,
  * `messages` Localization messages supporting different locales and methods to read from config,
  * `database` Method for database initialization from config, `Id` and `Name` mapping and schema lifecycle,
- * `rest` Wrapper over call to external REST API, does logging and stats call,
+ * `rest` Wrapper over call to external REST API, authorization, context headers, does logging and stats call,
  * `json` Json formats for `Id`, `Name`, `Time`, `Revision` and converters for enums and value classes,
- * `auth` Permissions and roles, auth token definitions, `authorize` directive to verify auth token,
  * `file` Stub for file storage web-service and implementations for S3 and FS `FileStorage`,
  * `app` Base class for Driver service, which initializes swagger, app modules and its routes.
  * `generators` Set of functions to prototype APIs. Combine with `faker` package,
@@ -100,16 +99,8 @@ For more examples check [project tests](https://github.com/drivergroup/driver-co
 
  * Logging:
 
-    * Custom akka-http directive to log and record stats for all incoming requests, use akka-http built-in `logRequestResult("log")` as example and probably extend that,
+    * Custom akka-http directive to extract tracking/correlation id from the requests and put to MDC (diagnostic context). Also custom MDC needs to be implemented (or found on github/stackoverflow) to pass context among different threads in asynchronous environment when next computations may occur in other thread,
 
-    * Custom akka-http directive to extract tracking/correlation id [linkerd](https://linkerd.io) adds to the requests (perhaps, to header, [perhaps with zipkin](https://linkerd.io/doc/0.7.1/linkerd/tracer/)) and puts to MDC (diagnostic context). Also custom MDC needs to be implemented (or found on github/stackoverflow) to pass context among different threads in asynchronous environment when next compuatations may occur in other thread,
+    * Custom log appender with its own format, using diagnostic context with request tracking/correlation id from request,
 
-    * Custom log appender with its own format, using diagnostic context with request tracking/correlation id from linkerd,
-
- * Custom akka-http `ExceptionHandler` for standard reactions to errors. Return tracking/correlation id, either from request, or if it wasn't there, generated from scratch, to corresond log records with erroneous response,
-
- * Custom akka-http directive to extract authentication credentials from request, and in case no valid token (macaroon) is presented, or it has no permissions (caveats) for this API method, to redirect user to [authentication service](https://docs.google.com/a/drivergrp.com/document/d/19a0BkZIlvYTpc9BKsf3oiAyHDmBQuKwCoTEzk9O9bUo/edit?usp=sharing_eid&ts=578824c7) (or respond with http-error code saying to present user authentication form). Macaroons documentation: [paper](http://static.googleusercontent.com/media/research.google.com/en//pubs/archive/41892.pdf), [hmac](https://en.wikipedia.org/wiki/Hash-based_message_authentication_code), [jmacaroons](https://github.com/nitram509/jmacaroons) (JVM implementation),
-
- * Wrap routes that modules provide to the `com.drivergrp.core.app.DriverApp` class with authentication, reading linkerd correlation id, logging, stats, and custom error handling,
-
- * Store possible common typesafe config parts in core library.
+ * Try to store possible common typesafe config parts in core library.

@@ -48,11 +48,7 @@ class JsonTest extends FlatSpec with Matchers {
     val referenceDate = Date(1941, Month.DECEMBER, 7)
 
     val writtenJson = json.dateFormat.write(referenceDate)
-    writtenJson.prettyPrint should be("""|{
-                                         |  "year": 1941,
-                                         |  "month": 11,
-                                         |  "day": 7
-                                         |}""".stripMargin)
+    writtenJson.prettyPrint should be("\"1941-12-07\"")
 
     val parsedDate = json.dateFormat.read(writtenJson)
     parsedDate should be(referenceDate)

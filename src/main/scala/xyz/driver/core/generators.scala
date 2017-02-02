@@ -56,7 +56,7 @@ object generators {
               Time(scala.math.max(oneTime.millis, anotherTime.millis)))
   }
 
-  def nextDate(): Date = nextTime.toDate(java.util.TimeZone.getTimeZone("UTC"))
+  def nextDate(): Date = nextTime().toDate(java.util.TimeZone.getTimeZone("UTC"))
 
   def nextBigDecimal(multiplier: Double = 1000000.00, precision: Int = 2): BigDecimal =
     BigDecimal(multiplier * nextDouble, new MathContext(precision))

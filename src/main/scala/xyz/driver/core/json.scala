@@ -96,6 +96,15 @@ object json {
     }
   }
 
+  implicit val base64Format = new RootJsonFormat[Base64] {
+    def write(base64Value: Base64) = JsString(base64Value.value)
+
+    def read(value: JsValue): Base64 = value match {
+      case JsString(base64Value) => Base64(base64Value)
+      case _                     => throw DeserializationException("Base64 format expects string")
+    }
+  }
+
   class EnumJsonFormat[T](mapping: (String, T)*) extends RootJsonFormat[T] {
     private val map = mapping.toMap
 

@@ -11,6 +11,7 @@ import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
 import io.swagger.models.Scheme
+import xyz.driver.core.auth._
 import xyz.driver.core.logging.Logger
 import xyz.driver.core.stats.Stats
 import xyz.driver.core.time.TimeRange
@@ -27,8 +28,8 @@ object rest {
     trackingId: String = generators.nextUuid().toString,
     contextHeaders: Map[String, String] = Map.empty[String, String]) {
 
-    def authToken: Option[Auth.AuthToken] =
-      contextHeaders.get(Auth.AuthProvider.AuthenticationTokenHeader).map(Auth.AuthToken.apply)
+    def authToken: Option[AuthToken] =
+      contextHeaders.get(AuthProvider.AuthenticationTokenHeader).map(AuthToken.apply)
   }
 
   object ServiceRequestContext {
@@ -67,66 +68,53 @@ object rest {
     }
   }
 
-  object Auth {
-
-    trait Permission
-
-    trait Role {
-      val id: Id[Role]
-      val name: Name[Role]
-      val permissions: Set[Permission]
-
-      def hasPermission(permission: Permission): Boolean = permissions.contains(permission)
-    }
-
-    trait User {
-      def id: Id[User]
-      def roles: Set[Role]
-      def permissions: Set[Permission] = roles.flatMap(_.permissions)
-    }
-
-    final case class BasicUser(id: Id[User], roles: Set[Role]) extends User
-
-    final case class AuthToken(value: String)
-
-    final case class PasswordHash(value: String)
-
     object AuthProvider {
       val AuthenticationTokenHeader    = ServiceRequestContext.ContextHeaders.AuthenticationTokenHeader
       val SetAuthenticationTokenHeader = "set-authorization"
     }
 
-    trait AuthProvider[U <: User] {
+  trait AuthProvider[U <: User] {
 
-      import akka.http.scaladsl.server._
-      import Directives._
+    import akka.http.scaladsl.server._
+    import Directives._
 
-      /**
-        * Specific implementation on how to extract user from request context,
-        * can either need to do a network call to auth server or extract everything from self-contained token
-        *
-        * @param context set of request values which can be relevant to authenticate user
-        * @return authenticated user
-        */
-      protected def authenticatedUser(context: ServiceRequestContext): OptionT[Future, U]
+    implicit val execution: ExecutionContext
 
-      def authorize(permissions: Permission*): Directive1[U] = {
-        ServiceRequestContext.serviceContext flatMap { ctx =>
-          onComplete(authenticatedUser(ctx).run).flatMap {
-            case Success(Some(user)) =>
-              if (permissions.forall(user.permissions.contains)) provide(user)
-              else {
-                val challenge =
-                  HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
-                reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
-              }
+    /**
+      * Specific implementation on how to extract user from request context,
+      * can either need to do a network call to auth server or extract everything from self-contained token
+      *
+      * @param context set of request values which can be relevant to authenticate user
+      * @return authenticated user
+      */
+    protected def authenticatedUser(context: ServiceRequestContext): OptionT[Future, U]
 
-            case Success(None) =>
-              reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
+    protected def userHasPermission(user: U, permission: Permission): Future[Boolean]
 
-            case Failure(t) =>
-              reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))
+    def authorize(permissions: Permission*): Directive1[U] = {
+      ServiceRequestContext.serviceContext flatMap { ctx =>
+
+        onComplete(authenticatedUser(ctx).run flatMap { userOption =>
+          userOption.traverse[Future, (U, Boolean)] { user =>
+            permissions
+              .toList
+              .traverse[Future, Boolean](userHasPermission(user, _))
+              .map(results => user -> results.forall(identity))
           }
+        }).flatMap {
+          case Success(Some((user, authorizationResult))) =>
+            if (authorizationResult) provide(user)
+            else {
+              val challenge =
+                HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
+              reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
+            }
+
+          case Success(None) =>
+            reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
+
+          case Failure(t) =>
+            reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))
         }
       }
     }

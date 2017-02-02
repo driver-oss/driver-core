@@ -65,4 +65,6 @@ package core {
 
     implicit def revisionEqual[T]: Equal[Revision[T]] = Equal.equal[Revision[T]](_.id == _.id)
   }
+
+  final case class Base64(value: String)
 }

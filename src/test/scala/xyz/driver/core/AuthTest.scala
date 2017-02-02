@@ -1,13 +1,14 @@
 package xyz.driver.core
 
-import akka.http.scaladsl.testkit.ScalatestRouteTest
-import akka.http.scaladsl.server._
-import Directives._
 import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
-import xyz.driver.core.rest.Auth._
+import xyz.driver.core.auth._
+import xyz.driver.core.rest.AuthProvider
 import xyz.driver.core.rest.ServiceRequestContext
 
 import scala.concurrent.Future
@@ -18,13 +19,16 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
   case object TestRoleAllowedPermission    extends Permission
   case object TestRoleNotAllowedPermission extends Permission
 
-  case object TestRole extends Role {
-    val id          = Id("1")
-    val name        = Name("testRole")
-    val permissions = Set[Permission](TestRoleAllowedPermission)
-  }
+  val TestRole = Role(Id("1"), Name("testRole"))
 
   val authStatusService: AuthProvider[User] = new AuthProvider[User] {
+
+    override implicit val execution = scala.concurrent.ExecutionContext.global
+
+    override protected def userHasPermission(user: User, permission: Permission): Future[Boolean] = {
+      Future.successful(permission === TestRoleAllowedPermission)
+    }
+
     override def authenticatedUser(context: ServiceRequestContext): OptionT[Future, User] = OptionT.optionT[Future] {
       if (context.contextHeaders.keySet.contains(AuthProvider.AuthenticationTokenHeader)) {
         Future.successful(Some(BasicUser(Id[User]("1"), Set(TestRole))))

@@ -70,7 +70,7 @@ object json {
     }
   }
 
-  implicit val dateFormat = new JsonFormat[Date] {
+  implicit val dateFormat = new RootJsonFormat[Date] {
     def write(date: Date) = JsString(date.toString)
     def read(value: JsValue): Date = value match {
       case JsString(dateString) =>

@@ -78,7 +78,7 @@ object rest {
     import akka.http.scaladsl.server._
     import Directives._
 
-    implicit val execution: ExecutionContext
+    protected implicit val execution: ExecutionContext
 
     /**
       * Specific implementation on how to extract user from request context,

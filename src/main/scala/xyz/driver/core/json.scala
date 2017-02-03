@@ -5,13 +5,16 @@ import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
 import akka.http.scaladsl.server.{PathMatcher, _}
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import spray.json.{DeserializationException, JsNumber, _}
+import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.revision.Revision
 import xyz.driver.core.time.Time
 import xyz.driver.core.date.Date
+import xyz.driver.core.domain.{Email, PhoneNumber}
 
 import scala.reflect.runtime.universe._
 
 object json {
+  import DefaultJsonProtocol._
 
   def IdInPath[T]: PathMatcher1[Id[T]] = new PathMatcher1[Id[T]] {
     def apply(path: Path) = path match {
@@ -74,9 +77,8 @@ object json {
         Date
           .fromString(dateString)
           .getOrElse(
-            throw new DeserializationException(
-              s"Misformated ISO 8601 Date. Expected YYYY-MM-DD, but got $dateString."))
-      case _ => throw new DeserializationException(s"Date expects a string, but got $value.")
+            throw DeserializationException(s"Misformated ISO 8601 Date. Expected YYYY-MM-DD, but got $dateString."))
+      case _ => throw DeserializationException(s"Date expects a string, but got $value.")
     }
   }
 
@@ -105,6 +107,24 @@ object json {
       case _                     => throw DeserializationException("Base64 format expects string")
     }
   }
+
+  implicit val emailFormat = new RootJsonFormat[Email] {
+    def write(email: Email) = JsString(email.username + "@" + email.domain)
+    def read(json: JsValue): Email = json match {
+
+      case JsString(value) =>
+        Email.parse(value).getOrElse {
+          deserializationError("Expected '@' symbol in email string as Email, but got " + json)
+        }
+
+      case _ =>
+        deserializationError("Expected string as Email, but got " + json)
+    }
+  }
+
+  implicit val phoneNumberFormat = jsonFormat2(PhoneNumber.apply)
+
+  implicit val authCredentialsFormat = jsonFormat2(AuthCredentials)
 
   class EnumJsonFormat[T](mapping: (String, T)*) extends RootJsonFormat[T] {
     private val map = mapping.toMap

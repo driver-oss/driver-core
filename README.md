@@ -7,10 +7,11 @@ Core library is used to provide ways to implement practices established in [Driv
  * `core package` provides `Id` and `Name` implementations (with equal and ordering) and also `make` and `using` functions,
  * `time` Primitives to deal with time and receive current times in code,
  * `config` Contains method `loadDefaultConfig` with default way of providing config to the application,
+ * `domain` Common generic domain objects,
  * `messages` Localization messages supporting different locales and methods to read from config,
  * `database` Method for database initialization from config, `Id` and `Name` mapping and schema lifecycle,
  * `rest` Wrapper over call to external REST API, authorization, context headers, does logging and stats call,
- * `json` Json formats for `Id`, `Name`, `Time`, `Revision` and converters for enums and value classes,
+ * `json` Json formats for `Id`, `Name`, `Time`, `Revision`, `Email`, `PhoneNumber` and converters for enums and value classes,
  * `file` Stub for file storage web-service and implementations for S3 and FS `FileStorage`,
  * `app` Base class for Driver service, which initializes swagger, app modules and its routes.
  * `generators` Set of functions to prototype APIs. Combine with `faker` package,

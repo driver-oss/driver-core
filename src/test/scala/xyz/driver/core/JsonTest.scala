@@ -6,6 +6,7 @@ import xyz.driver.core.revision.Revision
 import xyz.driver.core.time.provider.SystemTimeProvider
 import spray.json._
 import xyz.driver.core.TestTypes.CustomGADT
+import xyz.driver.core.domain.{Email, PhoneNumber}
 
 class JsonTest extends FlatSpec with Matchers {
 
@@ -63,6 +64,28 @@ class JsonTest extends FlatSpec with Matchers {
 
     val parsedRevision = json.revisionFormat.read(writtenJson)
     parsedRevision should be(referenceRevision)
+  }
+
+  "Json format for Email" should "read and write correct JSON" in {
+
+    val referenceEmail = Email("test", "drivergrp.com")
+
+    val writtenJson = json.emailFormat.write(referenceEmail)
+    writtenJson should be("\"test@drivergrp.com\"".parseJson)
+
+    val parsedEmail = json.emailFormat.read(writtenJson)
+    parsedEmail should be(referenceEmail)
+  }
+
+  "Json format for PhoneNumber" should "read and write correct JSON" in {
+
+    val referencePhoneNumber = PhoneNumber("1", "4243039608")
+
+    val writtenJson = json.phoneNumberFormat.write(referencePhoneNumber)
+    writtenJson should be("""{"countryCode":"1","number":"4243039608"}""".parseJson)
+
+    val parsedPhoneNumber = json.phoneNumberFormat.read(writtenJson)
+    parsedPhoneNumber should be(referencePhoneNumber)
   }
 
   "Json format for Enums" should "read and write correct JSON" in {

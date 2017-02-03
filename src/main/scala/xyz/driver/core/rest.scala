@@ -32,46 +32,43 @@ object rest {
       contextHeaders.get(AuthProvider.AuthenticationTokenHeader).map(AuthToken.apply)
   }
 
-  object ServiceRequestContext {
+  object ContextHeaders {
+    val AuthenticationTokenHeader = "WWW-Authenticate"
+    val TrackingIdHeader          = "X-Trace"
 
-    object ContextHeaders {
-      val AuthenticationTokenHeader = "WWW-Authenticate"
-      val TrackingIdHeader          = "X-Trace"
-
-      object LinkerD {
-        // https://linkerd.io/doc/0.7.4/linkerd/protocol-http/
-        def isLinkerD(headerName: String) = headerName.startsWith("l5d-")
-      }
-    }
-
-    import akka.http.scaladsl.server._
-    import Directives._
-
-    def serviceContext: Directive1[ServiceRequestContext] = extract(ctx => extractServiceContext(ctx))
-
-    def extractServiceContext(ctx: RequestContext): ServiceRequestContext =
-      ServiceRequestContext(extractTrackingId(ctx), extractContextHeaders(ctx))
-
-    def extractTrackingId(ctx: RequestContext): String = {
-      ctx.request.headers
-        .find(_.name == ContextHeaders.TrackingIdHeader)
-        .fold(java.util.UUID.randomUUID.toString)(_.value())
-    }
-
-    def extractContextHeaders(ctx: RequestContext): Map[String, String] = {
-      ctx.request.headers.filter { h =>
-        h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader
-        // || ContextHeaders.LinkerD.isLinkerD(h.lowercaseName)
-      } map { header =>
-        header.name -> header.value
-      } toMap
+    object LinkerD {
+      // https://linkerd.io/doc/0.7.4/linkerd/protocol-http/
+      def isLinkerD(headerName: String) = headerName.startsWith("l5d-")
     }
   }
 
-    object AuthProvider {
-      val AuthenticationTokenHeader    = ServiceRequestContext.ContextHeaders.AuthenticationTokenHeader
-      val SetAuthenticationTokenHeader = "set-authorization"
-    }
+  import akka.http.scaladsl.server._
+  import Directives._
+
+  def serviceContext: Directive1[ServiceRequestContext] = extract(ctx => extractServiceContext(ctx))
+
+  def extractServiceContext(ctx: RequestContext): ServiceRequestContext =
+    ServiceRequestContext(extractTrackingId(ctx), extractContextHeaders(ctx))
+
+  def extractTrackingId(ctx: RequestContext): String = {
+    ctx.request.headers
+      .find(_.name == ContextHeaders.TrackingIdHeader)
+      .fold(java.util.UUID.randomUUID.toString)(_.value())
+  }
+
+  def extractContextHeaders(ctx: RequestContext): Map[String, String] = {
+    ctx.request.headers.filter { h =>
+      h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader
+      // || ContextHeaders.LinkerD.isLinkerD(h.lowercaseName)
+    } map { header =>
+      header.name -> header.value
+    } toMap
+  }
+
+  object AuthProvider {
+    val AuthenticationTokenHeader    = ContextHeaders.AuthenticationTokenHeader
+    val SetAuthenticationTokenHeader = "set-authorization"
+  }
 
   trait AuthProvider[U <: User] {
 
@@ -92,7 +89,7 @@ object rest {
     protected def userHasPermission(user: U, permission: Permission): Future[Boolean]
 
     def authorize(permissions: Permission*): Directive1[U] = {
-      ServiceRequestContext.serviceContext flatMap { ctx =>
+      serviceContext flatMap { ctx =>
 
         onComplete(authenticatedUser(ctx).run flatMap { userOption =>
           userOption.traverse[Future, (U, Boolean)] { user =>
@@ -143,7 +140,7 @@ object rest {
       val requestTime = time.currentTime()
 
       val request = requestStub
-        .withHeaders(RawHeader(ServiceRequestContext.ContextHeaders.TrackingIdHeader, context.trackingId))
+        .withHeaders(RawHeader(ContextHeaders.TrackingIdHeader, context.trackingId))
         .withHeaders(context.contextHeaders.toSeq.map { h => RawHeader(h._1, h._2): HttpHeader }: _*)
 
       log.audit(s"Sending to ${request.uri} request $request with tracking id ${context.trackingId}")

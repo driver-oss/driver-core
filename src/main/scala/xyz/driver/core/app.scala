@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 import spray.json.DefaultJsonProtocol
 import xyz.driver.core
 import xyz.driver.core.logging.{Logger, TypesafeScalaLogger}
-import xyz.driver.core.rest.ServiceRequestContext.ContextHeaders
+import xyz.driver.core.rest.ContextHeaders
 import xyz.driver.core.rest.Swagger
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
@@ -69,7 +69,7 @@ object app {
 
       val _ = Future {
         http.bindAndHandle(route2HandlerFlow(handleExceptions(ExceptionHandler(exceptionHandler)) { ctx =>
-          val trackingId = rest.ServiceRequestContext.extractTrackingId(ctx)
+          val trackingId = rest.extractTrackingId(ctx)
           log.audit(s"Received request ${ctx.request} with tracking id $trackingId")
 
           val contextWithTrackingId =
@@ -91,20 +91,20 @@ object app {
 
       case is: IllegalStateException =>
         ctx =>
-          val trackingId = rest.ServiceRequestContext.extractTrackingId(ctx)
+          val trackingId = rest.extractTrackingId(ctx)
           log.debug(s"Request is not allowed to ${ctx.request.uri} ($trackingId)", is)
           complete(HttpResponse(BadRequest, entity = is.getMessage))(ctx)
 
       case cm: ConcurrentModificationException =>
         ctx =>
-          val trackingId = rest.ServiceRequestContext.extractTrackingId(ctx)
+          val trackingId = rest.extractTrackingId(ctx)
           log.audit(s"Concurrent modification of the resource ${ctx.request.uri} ($trackingId)", cm)
           complete(
             HttpResponse(Conflict, entity = "Resource was changed concurrently, try requesting a newer version"))(ctx)
 
       case t: Throwable =>
         ctx =>
-          val trackingId = rest.ServiceRequestContext.extractTrackingId(ctx)
+          val trackingId = rest.extractTrackingId(ctx)
           log.error(s"Request to ${ctx.request.uri} could not be handled normally ($trackingId)", t)
           complete(HttpResponse(InternalServerError, entity = t.getMessage))(ctx)
     }

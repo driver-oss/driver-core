@@ -8,8 +8,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 import xyz.driver.core.auth._
-import xyz.driver.core.rest.AuthProvider
-import xyz.driver.core.rest.ServiceRequestContext
+import xyz.driver.core.rest.{AuthProvider, Authorization, ServiceRequestContext}
 
 import scala.concurrent.Future
 import scalaz.OptionT
@@ -25,8 +24,11 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
 
     override implicit val execution = scala.concurrent.ExecutionContext.global
 
-    override protected def userHasPermission(user: User, permission: Permission): Future[Boolean] = {
-      Future.successful(permission === TestRoleAllowedPermission)
+    override protected val authorization: Authorization = new Authorization {
+      override def userHasPermission(user: User, permission: Permission)(
+              implicit ctx: ServiceRequestContext): Future[Boolean] = {
+        Future.successful(permission === TestRoleAllowedPermission)
+      }
     }
 
     override def authenticatedUser(context: ServiceRequestContext): OptionT[Future, User] = OptionT.optionT[Future] {

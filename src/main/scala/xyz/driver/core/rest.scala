@@ -70,12 +70,17 @@ object rest {
     val SetAuthenticationTokenHeader = "set-authorization"
   }
 
+  trait Authorization {
+    def userHasPermission(user: User, permission: Permission)(implicit ctx: ServiceRequestContext): Future[Boolean]
+  }
+
   trait AuthProvider[U <: User] {
 
     import akka.http.scaladsl.server._
     import Directives._
 
     protected implicit val execution: ExecutionContext
+    protected val authorization: Authorization
 
     /**
       * Specific implementation on how to extract user from request context,
@@ -86,8 +91,6 @@ object rest {
       */
     protected def authenticatedUser(context: ServiceRequestContext): OptionT[Future, U]
 
-    protected def userHasPermission(user: U, permission: Permission): Future[Boolean]
-
     def authorize(permissions: Permission*): Directive1[U] = {
       serviceContext flatMap { ctx =>
 
@@ -95,7 +98,7 @@ object rest {
           userOption.traverse[Future, (U, Boolean)] { user =>
             permissions
               .toList
-              .traverse[Future, Boolean](userHasPermission(user, _))
+              .traverse[Future, Boolean](authorization.userHasPermission(user, _)(ctx))
               .map(results => user -> results.forall(identity))
           }
         }).flatMap {

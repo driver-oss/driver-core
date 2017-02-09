@@ -2,11 +2,17 @@ package xyz.driver.core
 
 import xyz.driver.core.domain.Email
 
+import scalaz.Equal
+
 object auth {
 
   trait Permission
 
   final case class Role(id: Id[Role], name: Name[Role])
+
+  object Role {
+    implicit def idEqual: Equal[Role] = Equal.equal[Role](_ == _)
+  }
 
   trait User {
     def id: Id[User]

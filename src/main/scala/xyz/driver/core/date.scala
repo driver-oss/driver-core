@@ -26,6 +26,16 @@ object date {
   }
 
   object Date {
+    implicit def dateOrdering: Ordering[Date] = Ordering.fromLessThan { (date1, date2) =>
+      if (date1.year != date2.year) {
+        date1.year < date2.year
+      } else if (date1.month != date2.month) {
+        date1.month < date2.month
+      } else {
+        date1.day < date2.day
+      }
+    }
+
     def fromString(dateString: String): Option[Date] = {
       util.Try(dateString.split("-").map(_.toInt)).toOption collect {
         case Array(year, month, day) if (1 to 12 contains month) && (1 to 31 contains day) =>

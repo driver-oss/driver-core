@@ -63,34 +63,6 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     (xid: Id[X]) should be(zid: Id[Z])
   }
 
-  "Time" should "use TimeZone correctly when converting to Date" in {
-
-    import time._
-
-    val EST = java.util.TimeZone.getTimeZone("EST")
-    val PST = java.util.TimeZone.getTimeZone("PST")
-
-    val timestamp = {
-      import java.util.Calendar
-      val cal = Calendar.getInstance(EST)
-      cal.set(Calendar.HOUR_OF_DAY, 1)
-      Time(cal.getTime().getTime())
-    }
-
-    textualDate(EST)(timestamp) should not be textualDate(PST)(timestamp)
-    timestamp.toDate(EST) should not be timestamp.toDate(PST)
-  }
-
-  "Date" should "correctly convert to and from String" in {
-
-    import xyz.driver.core.generators.nextDate
-    import date._
-
-    for (date <- 1 to 100 map (_ => nextDate())) {
-      Some(date) should be(Date.fromString(date.toString))
-    }
-  }
-
   "Name" should "have equality and ordering working correctly" in {
 
     (Name[String]("foo") === Name[String]("foo")) should be(true)

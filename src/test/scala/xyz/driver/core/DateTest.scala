@@ -13,6 +13,16 @@ class DateTest extends FlatSpec with Matchers with Checkers {
   } yield Date(year, date.tagMonth(month), day)
   implicit val arbitraryDate = Arbitrary[Date](dateGenerator)
 
+  "Date" should "correctly convert to and from String" in {
+
+    import xyz.driver.core.generators.nextDate
+    import date._
+
+    for (date <- 1 to 100 map (_ => nextDate())) {
+      Some(date) should be(Date.fromString(date.toString))
+    }
+  }
+
   it should "have ordering defined correctly" in {
     Seq(Date.fromString("2013-05-10"),
         Date.fromString("2020-02-15"),

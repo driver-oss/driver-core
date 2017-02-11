@@ -84,4 +84,20 @@ class TimeTest extends FlatSpec with Matchers with Checkers {
     TimeRange(Time(432L), Time(321L)).duration should be((-111).milliseconds)
     TimeRange(Time(333L), Time(333L)).duration should be(0.milliseconds)
   }
+
+  "Time" should "use TimeZone correctly when converting to Date" in {
+
+    val EST = java.util.TimeZone.getTimeZone("EST")
+    val PST = java.util.TimeZone.getTimeZone("PST")
+
+    val timestamp = {
+      import java.util.Calendar
+      val cal = Calendar.getInstance(EST)
+      cal.set(Calendar.HOUR_OF_DAY, 1)
+      Time(cal.getTime().getTime())
+    }
+
+    textualDate(EST)(timestamp) should not be textualDate(PST)(timestamp)
+    timestamp.toDate(EST) should not be timestamp.toDate(PST)
+  }
 }

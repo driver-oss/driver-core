@@ -74,6 +74,12 @@ object rest {
     def userHasPermission(user: User, permission: Permission)(implicit ctx: ServiceRequestContext): Future[Boolean]
   }
 
+  class AlwaysAllowAuthorization extends Authorization {
+    override def userHasPermission(user: User, permission: Permission)(implicit ctx: ServiceRequestContext): Future[Boolean] = {
+      Future.successful(true)
+    }
+  }
+
   trait AuthProvider[U <: User] {
 
     import akka.http.scaladsl.server._

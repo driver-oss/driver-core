@@ -1,7 +1,8 @@
 package xyz.driver.core.database
 
-import scala.concurrent.{ExecutionContext, Future}
+import slick.lifted.AbstractTable
 
+import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, Monad}
 import scalaz.std.scalaFuture._
 
@@ -44,4 +45,13 @@ class SlickDal(database: Database, executionContext: ExecutionContext) extends D
 
   override def noAction[V](v: V): T[V]                     = DBIO.successful(v)
   override def customAction[R](action: => Future[R]): T[R] = DBIO.from(action)
+
+  def affectsRows(updatesCount: Int): Option[Unit] = {
+    if (updatesCount > 0) Some(()) else None
+  }
+
+  def insertReturning[AT <: AbstractTable[_], V](table: TableQuery[AT])(
+          row: AT#TableElementType): slick.dbio.DBIO[AT#TableElementType] = {
+    table.returning(table) += row
+  }
 }

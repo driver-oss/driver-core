@@ -8,7 +8,7 @@ object config {
   def loadDefaultConfig: Config = {
     val configDefaults = ConfigFactory.load(this.getClass.getClassLoader, "application.conf")
 
-    scala.sys.props.get("application.config") match {
+    scala.sys.env.get("APPLICATION_CONFIG").orElse(scala.sys.props.get("application.config")) match {
 
       case Some(filename) =>
         val configFile = new File(filename)

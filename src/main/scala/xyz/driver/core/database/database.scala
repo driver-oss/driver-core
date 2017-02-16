@@ -1,13 +1,15 @@
 package xyz.driver.core
 
-import scala.concurrent.Future
-
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile
-import xyz.driver.core.time.Time
 import xyz.driver.core.date.Date
+import xyz.driver.core.time.Time
+
+import scala.concurrent.Future
 
 package database {
+
+  import com.typesafe.config.Config
 
   trait Database {
     val profile: JdbcProfile
@@ -15,14 +17,17 @@ package database {
   }
 
   object Database {
-
-    def fromConfig(databaseName: String): Database = {
-      val dbConfig: DatabaseConfig[JdbcProfile] = DatabaseConfig.forConfig(databaseName)
+    def fromConfig(config: Config, databaseName: String): Database = {
+      val dbConfig: DatabaseConfig[JdbcProfile] = DatabaseConfig.forConfig(databaseName, config)
 
       new Database {
         val profile: JdbcProfile                   = dbConfig.driver
         val database: JdbcProfile#Backend#Database = dbConfig.db
       }
+    }
+
+    def fromConfig(databaseName: String): Database = {
+      fromConfig(com.typesafe.config.ConfigFactory.load(), databaseName)
     }
   }
 

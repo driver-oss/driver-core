@@ -2,10 +2,8 @@ package xyz.driver.core
 
 import java.util.Locale
 
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigException}
 import xyz.driver.core.logging.Logger
-
-import scala.collection.JavaConverters._
 
 /**
   * Scala internationalization (i18n) support
@@ -14,12 +12,12 @@ object messages {
 
   object Messages {
     def messages(config: Config, log: Logger, locale: Locale = Locale.US): Messages = {
-      val map = config.getConfig(locale.getLanguage).root().unwrapped().asScala.mapValues(_.toString).toMap
+      val map = config.getConfig(locale.getLanguage)
       Messages(map, locale, log)
     }
   }
 
-  final case class Messages(map: Map[String, String], locale: Locale, log: Logger) {
+  final case class Messages(map: Config, locale: Locale, log: Logger) {
 
     /**
       * Returns message for the key
@@ -28,9 +26,10 @@ object messages {
       * @return message
       */
     def apply(key: String): String = {
-      map.get(key) match {
-        case Some(message) => message
-        case None =>
+      try {
+        map.getString(key)
+      } catch {
+        case _: ConfigException =>
           log.error(s"Message with key '$key' not found for locale '${locale.getLanguage}'")
           key
       }

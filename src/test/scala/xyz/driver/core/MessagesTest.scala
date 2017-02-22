@@ -77,4 +77,28 @@ class MessagesTest extends FlatSpec with Matchers with MockitoSugar {
 
     verify(log).error(s"Message with key 'howdy' not found for locale 'en'")
   }
+
+  it should "be able to read nested keys in multiple forms" in {
+    val log = mock[Logger]
+
+    val configString =
+      """
+        | en {
+        |   foo.bar = "Foo Bar"
+        |
+        |   baz {
+        |     boo = "Baz Boo"
+        |     booFormat = "Baz Boo {0}"
+        |   }
+        | }
+      """.stripMargin
+
+    val messagesConfig = ConfigFactory.parseString(configString)
+
+    val messages = Messages.messages(messagesConfig, log, Locale.US)
+
+    messages("foo.bar") should be("Foo Bar")
+    messages("baz.boo") should be("Baz Boo")
+    messages("baz.booFormat", "Test") should be("Baz Boo Test")
+  }
 }

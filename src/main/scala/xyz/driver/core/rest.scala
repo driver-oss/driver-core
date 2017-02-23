@@ -33,8 +33,9 @@ object rest {
   }
 
   object ContextHeaders {
-    val AuthenticationTokenHeader = "Authorization"
-    val TrackingIdHeader          = "X-Trace"
+    val AuthenticationTokenHeader  = "Authorization"
+    val AuthenticationHeaderPrefix = "Bearer"
+    val TrackingIdHeader           = "X-Trace"
 
     object LinkerD {
       // https://linkerd.io/doc/0.7.4/linkerd/protocol-http/
@@ -61,7 +62,11 @@ object rest {
       h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader
       // || ContextHeaders.LinkerD.isLinkerD(h.lowercaseName)
     } map { header =>
-      header.name -> header.value
+      if (header.name === ContextHeaders.AuthenticationTokenHeader) {
+        header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim
+      } else {
+        header.name -> header.value
+      }
     } toMap
   }
 

@@ -87,6 +87,7 @@ object rest {
 
     protected implicit val execution: ExecutionContext
     protected val authorization: Authorization
+    protected val log: Logger
 
     /**
       * Specific implementation on how to extract user from request context,
@@ -113,13 +114,16 @@ object rest {
             else {
               val challenge =
                 HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
+              log.error(s"User $user does not have the required permissions: ${permissions.mkString(", ")}")
               reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
             }
 
           case Success(None) =>
+            log.error(s"Wasn't able to find authenticated user for the token provided to verify ${permissions.mkString(", ")}")
             reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
 
           case Failure(t) =>
+            log.error(s"Wasn't able to verify token for authenticated user to verify ${permissions.mkString(", ")}", t)
             reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))
         }
       }

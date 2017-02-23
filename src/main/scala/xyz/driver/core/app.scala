@@ -1,5 +1,7 @@
 package xyz.driver.core
 
+import java.sql.SQLException
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
@@ -101,6 +103,12 @@ object app {
           log.audit(s"Concurrent modification of the resource ${ctx.request.uri} ($trackingId)", cm)
           complete(
             HttpResponse(Conflict, entity = "Resource was changed concurrently, try requesting a newer version"))(ctx)
+
+      case sex: SQLException =>
+        ctx =>
+          val trackingId = rest.extractTrackingId(ctx)
+          log.audit(s"Database exception for the resource ${ctx.request.uri} ($trackingId)", sex)
+          complete(HttpResponse(InternalServerError, entity = "Data access error"))(ctx)
 
       case t: Throwable =>
         ctx =>

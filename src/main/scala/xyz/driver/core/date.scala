@@ -18,6 +18,7 @@ object date {
     val AUGUST    = tagMonth(Calendar.AUGUST)
     val SEPTEMBER = tagMonth(Calendar.SEPTEMBER)
     val OCTOBER   = tagMonth(Calendar.OCTOBER)
+    val NOVEMBER  = tagMonth(Calendar.NOVEMBER)
     val DECEMBER  = tagMonth(Calendar.DECEMBER)
   }
 

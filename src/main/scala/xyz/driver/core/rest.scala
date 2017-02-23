@@ -33,7 +33,7 @@ object rest {
   }
 
   object ContextHeaders {
-    val AuthenticationTokenHeader = "WWW-Authenticate"
+    val AuthenticationTokenHeader = "Authorization"
     val TrackingIdHeader          = "X-Trace"
 
     object LinkerD {

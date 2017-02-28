@@ -148,7 +148,7 @@ object rest {
     protected implicit val materializer = ActorMaterializer()(actorSystem)
     protected implicit val execution = executionContext
 
-    def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]] = {
+    def sendRequestGetResponse(context: ServiceRequestContext)(requestStub: HttpRequest): Future[HttpResponse] = {
 
       val requestTime = time.currentTime()
 
@@ -158,7 +158,27 @@ object rest {
 
       log.audit(s"Sending to ${request.uri} request $request with tracking id ${context.trackingId}")
 
-      val responseEntity = Http()(actorSystem).singleRequest(request)(materializer) map { response =>
+      val response = Http()(actorSystem).singleRequest(request)(materializer)
+
+      response.onComplete {
+        case Success(r) =>
+          val responseTime = time.currentTime()
+          log.audit(s"Response from ${request.uri} to request $requestStub is successful: $r")
+          stats.recordStats(Seq("request", request.uri.toString, "success"), TimeRange(requestTime, responseTime), 1)
+
+        case Failure(t: Throwable) =>
+          val responseTime = time.currentTime()
+          log.audit(s"Failed to receive response from ${request.uri} to request $requestStub", t)
+          log.error(s"Failed to receive response from ${request.uri} to request $requestStub", t)
+          stats.recordStats(Seq("request", request.uri.toString, "fail"), TimeRange(requestTime, responseTime), 1)
+      } (executionContext)
+
+      response
+    }
+
+    def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]] = {
+
+      sendRequestGetResponse(context)(requestStub) map { response =>
         if(response.status == StatusCodes.NotFound) {
           Unmarshal(HttpEntity.Empty: ResponseEntity)
         } else if(response.status.isFailure()) {
@@ -167,21 +187,6 @@ object rest {
           Unmarshal(response.entity)
         }
       }
-
-      responseEntity.onComplete {
-        case Success(r) =>
-          val responseTime = time.currentTime()
-          log.audit(s"Response from ${request.uri} to request $requestStub is successful")
-          stats.recordStats(Seq("request", request.uri.toString, "success"), TimeRange(requestTime, responseTime), 1)
-
-        case Failure(t: Throwable) =>
-          val responseTime = time.currentTime()
-          log.audit(s"Failed to receive response from ${request.uri} to request $requestStub")
-          log.error(s"Failed to receive response from ${request.uri} to request $requestStub", t)
-          stats.recordStats(Seq("request", request.uri.toString, "fail"), TimeRange(requestTime, responseTime), 1)
-      } (executionContext)
-
-      responseEntity
     }
   }
 

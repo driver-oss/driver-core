@@ -131,7 +131,7 @@ object logging {
       val date  = new SimpleDateFormat(DateFormatString).format(new Date(loggingEvent.getTimeStamp))
       val level = StringUtils.rightPad(loggingEvent.getLevel.toString, 5)
 
-      val message = new StringBuilder(s"$date [$level] - loggingEvent.getMessage$newline")
+      val message = new StringBuilder(s"$date [$level] - ${loggingEvent.getMessage}$newline")
 
       logContext(message, loggingEvent)
 

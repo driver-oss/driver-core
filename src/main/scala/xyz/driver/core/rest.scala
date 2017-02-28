@@ -46,19 +46,19 @@ object rest {
   import akka.http.scaladsl.server._
   import Directives._
 
-  def serviceContext: Directive1[ServiceRequestContext] = extract(ctx => extractServiceContext(ctx))
+  def serviceContext: Directive1[ServiceRequestContext] = extract(ctx => extractServiceContext(ctx.request))
 
-  def extractServiceContext(ctx: RequestContext): ServiceRequestContext =
-    ServiceRequestContext(extractTrackingId(ctx), extractContextHeaders(ctx))
+  def extractServiceContext(request: HttpRequest): ServiceRequestContext =
+    ServiceRequestContext(extractTrackingId(request), extractContextHeaders(request))
 
-  def extractTrackingId(ctx: RequestContext): String = {
-    ctx.request.headers
+  def extractTrackingId(request: HttpRequest): String = {
+    request.headers
       .find(_.name == ContextHeaders.TrackingIdHeader)
       .fold(java.util.UUID.randomUUID.toString)(_.value())
   }
 
-  def extractContextHeaders(ctx: RequestContext): Map[String, String] = {
-    ctx.request.headers.filter { h =>
+  def extractContextHeaders(request: HttpRequest): Map[String, String] = {
+    request.headers.filter { h =>
       h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader
       // || ContextHeaders.LinkerD.isLinkerD(h.lowercaseName)
     } map { header =>

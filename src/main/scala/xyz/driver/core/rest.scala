@@ -140,6 +140,8 @@ object rest {
   trait ServiceTransport {
 
     def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]]
+
+    def sendRequestGetResponse(context: ServiceRequestContext)(requestStub: HttpRequest): Future[HttpResponse]
   }
 
   trait ServiceDiscovery {

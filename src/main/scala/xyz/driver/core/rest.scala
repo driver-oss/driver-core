@@ -19,8 +19,8 @@ import xyz.driver.core.time.provider.TimeProvider
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-import scalaz.OptionT
 import scalaz.Scalaz.{Id => _, _}
+import scalaz.{ListT, OptionT}
 
 object rest {
 
@@ -36,11 +36,6 @@ object rest {
     val AuthenticationTokenHeader  = "Authorization"
     val AuthenticationHeaderPrefix = "Bearer"
     val TrackingIdHeader           = "X-Trace"
-
-    object LinkerD {
-      // https://linkerd.io/doc/0.7.4/linkerd/protocol-http/
-      def isLinkerD(headerName: String) = headerName.startsWith("l5d-")
-    }
   }
 
   import akka.http.scaladsl.server._
@@ -137,11 +132,51 @@ object rest {
 
   trait Service
 
+  trait RestService extends Service {
+
+    import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+    import spray.json._
+
+    protected implicit val exec: ExecutionContext
+    protected implicit val materializer: ActorMaterializer
+
+    implicit class ResponseEntityFoldable(entity: Unmarshal[ResponseEntity]) {
+      def fold[T](default: => T)(implicit reader: RootJsonReader[T]) = {
+        if (entity.value.isKnownEmpty()) {
+          Future.successful[T](default)
+        } else {
+          sprayJsonUnmarshaller[T](reader).apply(entity.value)
+        }
+      }
+    }
+
+    protected def unitResponse(request: Unmarshal[ResponseEntity])(
+      implicit reader: RootJsonReader[Option[Unit]]): OptionT[Future, Unit] =
+      OptionT[Future, Unit](request.fold(Option.empty[Unit]))
+
+    protected def optionalResponse[T](request: Unmarshal[ResponseEntity])(
+      implicit reader: RootJsonReader[Option[T]]): OptionT[Future, T] =
+      OptionT[Future, T](request.fold(Option.empty[T]))
+
+    protected def listResponse[T](request: Unmarshal[ResponseEntity])(
+      implicit reader: RootJsonReader[List[T]]): ListT[Future, T] =
+      ListT[Future, T](request.fold(List.empty[T]))
+
+    protected def jsonEntity(json: JsValue): RequestEntity =
+      HttpEntity(ContentTypes.`application/json`, json.compactPrint)
+
+    protected def endpointUri(baseUri: Uri, path: String) =
+      baseUri.withPath(Uri.Path(path))
+
+    protected def endpointUri(baseUri: Uri, path: String, query: Map[String, String]) =
+      baseUri.withPath(Uri.Path(path)).withQuery(Uri.Query(query))
+  }
+
   trait ServiceTransport {
 
-    def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]]
-
     def sendRequestGetResponse(context: ServiceRequestContext)(requestStub: HttpRequest): Future[HttpResponse]
+
+    def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]]
   }
 
   trait ServiceDiscovery {

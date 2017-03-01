@@ -111,6 +111,16 @@ package database {
     }
   }
 
+  trait KeyMappers extends ColumnTypes {
+    import profile.api._
+
+    def uuidKeyMapper[T] =
+      MappedColumnType
+        .base[Id[T], java.util.UUID](id => java.util.UUID.fromString(id.value), uuid => Id[T](uuid.toString))
+    def serialKeyMapper[T]  = MappedColumnType.base[Id[T], Long](_.value.toLong, serialId => Id[T](serialId.toString))
+    def naturalKeyMapper[T] = MappedColumnType.base[Id[T], String](_.value, Id[T](_))
+  }
+
   trait DatabaseObject extends ColumnTypes {
     def createTables(): Future[Unit]
     def disconnect(): Unit

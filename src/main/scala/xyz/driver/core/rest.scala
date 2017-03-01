@@ -143,18 +143,19 @@ object rest {
     protected implicit val materializer: ActorMaterializer
 
     implicit class ResponseEntityFoldable(entity: Unmarshal[ResponseEntity]) {
-      def fold[T](default: => T)(implicit um: Unmarshaller[ResponseEntity, T]): Future[T] = {
-        if (entity.value.isKnownEmpty()) Future.successful[T](default) else entity.to[T](um, exec, materializer)
-      }
+      def fold[T](default: => T)(implicit um: Unmarshaller[ResponseEntity, T]): Future[T] =
+        if (entity.value.isKnownEmpty()) Future.successful[T](default) else entity.to[T]
     }
 
     protected def unitResponse(request: Future[Unmarshal[ResponseEntity]]): OptionT[Future, Unit] =
       OptionT[Future, Unit](request.flatMap(_.to[JsValue]).map(_ => Option(())))
 
-    protected def optionalResponse[T: RootJsonFormat](request: Future[Unmarshal[ResponseEntity]]): OptionT[Future, T] =
+    protected def optionalResponse[T](request: Future[Unmarshal[ResponseEntity]])(
+      implicit um: Unmarshaller[ResponseEntity, Option[T]]): OptionT[Future, T] =
       OptionT[Future, T](request.flatMap(_.fold(Option.empty[T])))
 
-    protected def listResponse[T: RootJsonFormat](request: Future[Unmarshal[ResponseEntity]]): ListT[Future, T] =
+    protected def listResponse[T](request: Future[Unmarshal[ResponseEntity]])(
+      implicit um: Unmarshaller[ResponseEntity, List[T]]): ListT[Future, T] =
       ListT[Future, T](request.flatMap(_.fold(List.empty[T])))
 
     protected def jsonEntity(json: JsValue): RequestEntity =

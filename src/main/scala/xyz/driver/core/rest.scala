@@ -141,7 +141,7 @@ object rest {
     protected implicit val materializer: ActorMaterializer
 
     implicit class ResponseEntityFoldable(entity: Unmarshal[ResponseEntity]) {
-      def fold[T](default: => T)(implicit reader: RootJsonReader[T]) = {
+      def fold[T](default: => T)(implicit reader: RootJsonFormat[T]) = {
         if (entity.value.isKnownEmpty()) {
           Future.successful[T](default)
         } else {
@@ -151,15 +151,15 @@ object rest {
     }
 
     protected def unitResponse(request: Future[Unmarshal[ResponseEntity]])(
-      implicit reader: RootJsonReader[Option[Unit]]): OptionT[Future, Unit] =
+      implicit reader: RootJsonFormat[Option[Unit]]): OptionT[Future, Unit] =
       OptionT[Future, Unit](request.flatMap(_.fold(Option.empty[Unit])))
 
     protected def optionalResponse[T](request: Future[Unmarshal[ResponseEntity]])(
-      implicit reader: RootJsonReader[Option[T]]): OptionT[Future, T] =
+      implicit reader: RootJsonFormat[Option[T]]): OptionT[Future, T] =
       OptionT[Future, T](request.flatMap(_.fold(Option.empty[T])))
 
     protected def listResponse[T](request: Future[Unmarshal[ResponseEntity]])(
-      implicit reader: RootJsonReader[List[T]]): ListT[Future, T] =
+      implicit reader: RootJsonFormat[List[T]]): ListT[Future, T] =
       ListT[Future, T](request.flatMap(_.fold(List.empty[T])))
 
     protected def jsonEntity(json: JsValue): RequestEntity =

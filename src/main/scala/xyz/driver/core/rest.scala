@@ -150,20 +150,35 @@ object rest {
       }
     }
 
-    protected def unitResponse(request: Unmarshal[ResponseEntity])(
+    protected def unitResponse(request: Future[Unmarshal[ResponseEntity]])(
       implicit reader: RootJsonReader[Option[Unit]]): OptionT[Future, Unit] =
-      OptionT[Future, Unit](request.fold(Option.empty[Unit]))
+      OptionT[Future, Unit](request.flatMap(_.fold(Option.empty[Unit])))
 
-    protected def optionalResponse[T](request: Unmarshal[ResponseEntity])(
+    protected def optionalResponse[T](request: Future[Unmarshal[ResponseEntity]])(
       implicit reader: RootJsonReader[Option[T]]): OptionT[Future, T] =
-      OptionT[Future, T](request.fold(Option.empty[T]))
+      OptionT[Future, T](request.flatMap(_.fold(Option.empty[T])))
 
-    protected def listResponse[T](request: Unmarshal[ResponseEntity])(
+    protected def listResponse[T](request: Future[Unmarshal[ResponseEntity]])(
       implicit reader: RootJsonReader[List[T]]): ListT[Future, T] =
-      ListT[Future, T](request.fold(List.empty[T]))
+      ListT[Future, T](request.flatMap(_.fold(List.empty[T])))
 
     protected def jsonEntity(json: JsValue): RequestEntity =
       HttpEntity(ContentTypes.`application/json`, json.compactPrint)
+
+    protected def get(baseUri: Uri, path: String) =
+      HttpRequest(HttpMethods.GET, endpointUri(baseUri, path))
+
+    protected def get(baseUri: Uri, path: String, query: Map[String, String]) =
+      HttpRequest(HttpMethods.GET, endpointUri(baseUri, path, query))
+
+    protected def post(baseUri: Uri, path: String, httpEntity: RequestEntity) =
+      HttpRequest(HttpMethods.GET, endpointUri(baseUri, path), entity = httpEntity)
+
+    protected def postJson(baseUri: Uri, path: String, json: JsValue) =
+      HttpRequest(HttpMethods.GET, endpointUri(baseUri, path), entity = jsonEntity(json))
+
+    protected def delete(baseUri: Uri, path: String) =
+      HttpRequest(HttpMethods.DELETE, endpointUri(baseUri, path))
 
     protected def endpointUri(baseUri: Uri, path: String) =
       baseUri.withPath(Uri.Path(path))

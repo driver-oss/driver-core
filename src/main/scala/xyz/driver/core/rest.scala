@@ -6,6 +6,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.ActorMaterializer
 import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
@@ -136,30 +137,24 @@ object rest {
 
     import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
     import spray.json._
+    import DefaultJsonProtocol._
 
     protected implicit val exec: ExecutionContext
     protected implicit val materializer: ActorMaterializer
 
     implicit class ResponseEntityFoldable(entity: Unmarshal[ResponseEntity]) {
-      def fold[T](default: => T)(implicit reader: RootJsonFormat[T]) = {
-        if (entity.value.isKnownEmpty()) {
-          Future.successful[T](default)
-        } else {
-          sprayJsonUnmarshaller[T](reader).apply(entity.value)
-        }
+      def fold[T](default: => T)(implicit um: Unmarshaller[ResponseEntity, T]): Future[T] = {
+        if (entity.value.isKnownEmpty()) Future.successful[T](default) else entity.to[T](um, exec, materializer)
       }
     }
 
-    protected def unitResponse(request: Future[Unmarshal[ResponseEntity]])(
-      implicit reader: RootJsonFormat[Option[Unit]]): OptionT[Future, Unit] =
-      OptionT[Future, Unit](request.flatMap(_.fold(Option.empty[Unit])))
+    protected def unitResponse(request: Future[Unmarshal[ResponseEntity]]): OptionT[Future, Unit] =
+      OptionT[Future, Unit](request.flatMap(_.to[JsValue]).map(_ => Option(())))
 
-    protected def optionalResponse[T](request: Future[Unmarshal[ResponseEntity]])(
-      implicit reader: RootJsonFormat[Option[T]]): OptionT[Future, T] =
+    protected def optionalResponse[T: RootJsonFormat](request: Future[Unmarshal[ResponseEntity]]): OptionT[Future, T] =
       OptionT[Future, T](request.flatMap(_.fold(Option.empty[T])))
 
-    protected def listResponse[T](request: Future[Unmarshal[ResponseEntity]])(
-      implicit reader: RootJsonFormat[List[T]]): ListT[Future, T] =
+    protected def listResponse[T: RootJsonFormat](request: Future[Unmarshal[ResponseEntity]]): ListT[Future, T] =
       ListT[Future, T](request.flatMap(_.fold(List.empty[T])))
 
     protected def jsonEntity(json: JsValue): RequestEntity =

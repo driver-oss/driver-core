@@ -168,10 +168,10 @@ object rest {
       HttpRequest(HttpMethods.GET, endpointUri(baseUri, path, query))
 
     protected def post(baseUri: Uri, path: String, httpEntity: RequestEntity) =
-      HttpRequest(HttpMethods.GET, endpointUri(baseUri, path), entity = httpEntity)
+      HttpRequest(HttpMethods.POST, endpointUri(baseUri, path), entity = httpEntity)
 
     protected def postJson(baseUri: Uri, path: String, json: JsValue) =
-      HttpRequest(HttpMethods.GET, endpointUri(baseUri, path), entity = jsonEntity(json))
+      HttpRequest(HttpMethods.POST, endpointUri(baseUri, path), entity = jsonEntity(json))
 
     protected def delete(baseUri: Uri, path: String) =
       HttpRequest(HttpMethods.DELETE, endpointUri(baseUri, path))

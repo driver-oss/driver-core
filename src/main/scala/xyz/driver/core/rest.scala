@@ -148,7 +148,7 @@ object rest {
     }
 
     protected def unitResponse(request: Future[Unmarshal[ResponseEntity]]): OptionT[Future, Unit] =
-      OptionT[Future, Unit](request.flatMap(_.to[JsValue]).map(_ => Option(())))
+      OptionT[Future, Unit](request.flatMap(_.to[String]).map(_ => Option(())))
 
     protected def optionalResponse[T](request: Future[Unmarshal[ResponseEntity]])(
       implicit um: Unmarshaller[ResponseEntity, Option[T]]): OptionT[Future, T] =

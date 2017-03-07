@@ -23,9 +23,7 @@ package object database {
 
   private[database] def dateToSqlDate(date: Date): SqlDate = {
     val cal = Calendar.getInstance()
-    cal.set(Calendar.YEAR, date.year - 1900)
-    cal.set(Calendar.MONTH, date.month)
-    cal.set(Calendar.DAY_OF_MONTH, date.day)
+    cal.set(date.year, date.month, date.day, 0, 0, 0)
     new SqlDate(cal.getTime.getTime)
   }
 }

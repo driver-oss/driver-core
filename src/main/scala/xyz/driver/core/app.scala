@@ -71,7 +71,7 @@ object app {
         http.bindAndHandle(route2HandlerFlow(handleExceptions(ExceptionHandler(exceptionHandler)) { ctx =>
           val trackingId = rest.extractTrackingId(ctx.request)
           MDC.put("trackingId", trackingId)
-          log.audit(s"Received request ${ctx.request} with tracking id $trackingId")
+          log.audit(s"Received request ${ctx.request}")
 
           val contextWithTrackingId =
             ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
@@ -92,26 +92,26 @@ object app {
 
       case is: IllegalStateException =>
         ctx =>
-          val trackingId = rest.extractTrackingId(ctx.request)
+          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
           log.debug(s"Request is not allowed to ${ctx.request.uri} ($trackingId)", is)
           complete(HttpResponse(BadRequest, entity = is.getMessage))(ctx)
 
       case cm: ConcurrentModificationException =>
         ctx =>
-          val trackingId = rest.extractTrackingId(ctx.request)
+          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
           log.audit(s"Concurrent modification of the resource ${ctx.request.uri} ($trackingId)", cm)
           complete(
             HttpResponse(Conflict, entity = "Resource was changed concurrently, try requesting a newer version"))(ctx)
 
       case sex: SQLException =>
         ctx =>
-          val trackingId = rest.extractTrackingId(ctx.request)
+          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
           log.audit(s"Database exception for the resource ${ctx.request.uri} ($trackingId)", sex)
           complete(HttpResponse(InternalServerError, entity = "Data access error"))(ctx)
 
       case t: Throwable =>
         ctx =>
-          val trackingId = rest.extractTrackingId(ctx.request)
+          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
           log.error(s"Request to ${ctx.request.uri} could not be handled normally ($trackingId)", t)
           complete(HttpResponse(InternalServerError, entity = t.getMessage))(ctx)
     }

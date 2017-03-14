@@ -69,7 +69,6 @@ object app {
 
       val _ = Future {
         http.bindAndHandle(route2HandlerFlow({ ctx =>
-
           val trackingId = rest.extractTrackingId(ctx.request)
           MDC.put("trackingId", trackingId)
           log.audit(s"Received request ${ctx.request}")

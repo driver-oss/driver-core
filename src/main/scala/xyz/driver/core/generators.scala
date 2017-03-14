@@ -14,8 +14,11 @@ object generators {
   private val random = new Random
   import random._
 
-  private val DefaultMaxLength = 10
-  private val StringLetters    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ".toSet
+  private val DefaultMaxLength       = 10
+  private val StringLetters          = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ".toSet
+  private val NonAmbigiousCharacters = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789".toSet
+
+  def nextToken(length: Int): String = listOf(oneOf(NonAmbigiousCharacters)).mkString
 
   def nextInt(maxValue: Int): Int = random.nextInt(maxValue)
 

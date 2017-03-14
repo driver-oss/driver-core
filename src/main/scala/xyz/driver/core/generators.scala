@@ -18,7 +18,7 @@ object generators {
   private val StringLetters          = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ".toSet
   private val NonAmbigiousCharacters = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789".toSet
 
-  def nextToken(length: Int): String = listOf(oneOf(NonAmbigiousCharacters)).mkString
+  def nextToken(length: Int): String = List.fill(length)(oneOf(NonAmbigiousCharacters)).mkString
 
   def nextInt(maxValue: Int): Int = random.nextInt(maxValue)
 

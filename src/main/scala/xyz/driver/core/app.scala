@@ -95,23 +95,27 @@ object app {
 
       case is: IllegalStateException =>
         ctx =>
-          log.error(s"Request is not allowed to ${ctx.request.uri}", is)
+          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
+          log.error(s"Request is not allowed to ${ctx.request.uri} ($trackingId)", is)
           complete(HttpResponse(BadRequest, entity = is.getMessage))(ctx)
 
       case cm: ConcurrentModificationException =>
         ctx =>
-          log.error(s"Concurrent modification of the resource ${ctx.request.uri}", cm)
+          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
+          log.error(s"Concurrent modification of the resource ${ctx.request.uri} ($trackingId)", cm)
           complete(
             HttpResponse(Conflict, entity = "Resource was changed concurrently, try requesting a newer version"))(ctx)
 
       case sex: SQLException =>
         ctx =>
-          log.error(s"Database exception for the resource ${ctx.request.uri}", sex)
+          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
+          log.error(s"Database exception for the resource ${ctx.request.uri} ($trackingId)", sex)
           complete(HttpResponse(InternalServerError, entity = "Data access error"))(ctx)
 
       case t: Throwable =>
         ctx =>
-          log.error(s"Request to ${ctx.request.uri} could not be handled normally", t)
+          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
+          log.error(s"Request to ${ctx.request.uri} could not be handled normally ($trackingId)", t)
           complete(HttpResponse(InternalServerError, entity = t.getMessage))(ctx)
     }
 

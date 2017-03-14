@@ -6,8 +6,8 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
@@ -15,12 +15,11 @@ import akka.stream.scaladsl.Sink
 import akka.stream.{ActorMaterializer, Materializer}
 import com.typesafe.config.Config
 import io.swagger.models.Scheme
-import org.slf4j.{LoggerFactory, MDC, MarkerFactory}
+import org.slf4j.{LoggerFactory, MDC}
 import spray.json.DefaultJsonProtocol
 import xyz.driver.core
 import xyz.driver.core.logging.{Logger, TypesafeScalaLogger}
-import xyz.driver.core.rest.ContextHeaders
-import xyz.driver.core.rest.Swagger
+import xyz.driver.core.rest.{ContextHeaders, Swagger}
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
@@ -80,9 +79,10 @@ object app {
 
           def requestLogging: Future[Unit] = {
             entityAsString(ctx.request.entity).map { data =>
-              s"""{"method":"${ctx.request.method}","url": "${ctx.request.uri}","entity":"$data"""".stripMargin
+              s"""{"method":"${ctx.request.method.value}","url": "${ctx.request.uri}","entity":"$data"""".stripMargin
             } map { requestJson =>
-              log.audit(MarkerFactory.getMarker("Received request"), requestJson)
+              MDC.put("message", "Received request")
+              log.audit(requestJson)
             }
           }
 

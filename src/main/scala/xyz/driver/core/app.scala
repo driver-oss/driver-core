@@ -70,8 +70,8 @@ object app {
       val _ = Future {
         http.bindAndHandle(route2HandlerFlow(handleExceptions(ExceptionHandler(exceptionHandler)) { ctx =>
           val trackingId = rest.extractTrackingId(ctx.request)
-          log.audit(s"Received request ${ctx.request} with tracking id $trackingId")
           MDC.put("trackingId", trackingId)
+          log.audit(s"Received request ${ctx.request} with tracking id $trackingId")
 
           val contextWithTrackingId =
             ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))

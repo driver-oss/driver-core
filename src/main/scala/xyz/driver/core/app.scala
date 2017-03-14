@@ -207,7 +207,7 @@ object app {
       Runtime.getRuntime.addShutdownHook(new Thread() {
         override def run(): Unit = {
           services.foreach { service =>
-            Console.print(s"Service ${service.name} shutting down ...")
+            Console.print(s"Service ${service.name} shutting down ...\n")
             try {
               service.deactivate()
             } catch {
@@ -215,7 +215,7 @@ object app {
                 log.fatal(s"Service ${service.name} failed to deactivate", t)
                 Console.print(" Failed! (check log)")
             }
-            Console.print(" Done\n")
+            Console.print(s"Service ${service.name} is shut down\n")
           }
         }
       })

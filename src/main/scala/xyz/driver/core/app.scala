@@ -95,27 +95,27 @@ object app {
 
       case is: IllegalStateException =>
         ctx =>
-          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
-          log.error(s"Request is not allowed to ${ctx.request.uri} ($trackingId)", is)
+          MDC.put("trackingId", rest.extractTrackingId(ctx.request))
+          log.error(s"Request is not allowed to ${ctx.request.uri}", is)
           complete(HttpResponse(BadRequest, entity = is.getMessage))(ctx)
 
       case cm: ConcurrentModificationException =>
         ctx =>
-          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
-          log.error(s"Concurrent modification of the resource ${ctx.request.uri} ($trackingId)", cm)
+          MDC.put("trackingId", rest.extractTrackingId(ctx.request))
+          log.error(s"Concurrent modification of the resource ${ctx.request.uri}", cm)
           complete(
             HttpResponse(Conflict, entity = "Resource was changed concurrently, try requesting a newer version"))(ctx)
 
       case sex: SQLException =>
         ctx =>
-          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
-          log.error(s"Database exception for the resource ${ctx.request.uri} ($trackingId)", sex)
+          MDC.put("trackingId", rest.extractTrackingId(ctx.request))
+          log.error(s"Database exception for the resource ${ctx.request.uri}", sex)
           complete(HttpResponse(InternalServerError, entity = "Data access error"))(ctx)
 
       case t: Throwable =>
         ctx =>
-          val trackingId = Option(MDC.get("trackingId")).getOrElse(rest.extractTrackingId(ctx.request))
-          log.error(s"Request to ${ctx.request.uri} could not be handled normally ($trackingId)", t)
+          MDC.put("trackingId", rest.extractTrackingId(ctx.request))
+          log.error(s"Request to ${ctx.request.uri} could not be handled normally", t)
           complete(HttpResponse(InternalServerError, entity = t.getMessage))(ctx)
     }
 

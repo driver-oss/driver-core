@@ -2,7 +2,6 @@ package xyz.driver.core
 
 import org.scalatest.{FlatSpec, Matchers}
 import xyz.driver.core.json.{EnumJsonFormat, GadtJsonFormat, ValueClassFormat}
-import xyz.driver.core.revision.Revision
 import xyz.driver.core.time.provider.SystemTimeProvider
 import spray.json._
 import xyz.driver.core.TestTypes.CustomGADT

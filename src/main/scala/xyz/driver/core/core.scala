@@ -60,9 +60,9 @@ package core {
     implicit def nameOrdering[T]: Ordering[Name[T]] = Ordering.by(_.value)
   }
 
-  object revision {
-    final case class Revision[T](id: String)
+  final case class Revision[T](id: String)
 
+  object Revision {
     implicit def revisionEqual[T]: Equal[Revision[T]] = Equal.equal[Revision[T]](_.id == _.id)
   }
 

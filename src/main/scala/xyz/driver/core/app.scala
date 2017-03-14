@@ -14,7 +14,7 @@ import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
 import io.swagger.models.Scheme
-import org.slf4j.LoggerFactory
+import org.slf4j.{LoggerFactory, MDC}
 import spray.json.DefaultJsonProtocol
 import xyz.driver.core
 import xyz.driver.core.logging.{Logger, TypesafeScalaLogger}
@@ -26,7 +26,7 @@ import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
 
 import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 
 object app {
 
@@ -40,12 +40,10 @@ object app {
                   interface: String = "::0",
                   baseUrl: String = "localhost:8080",
                   scheme: String = "http",
-                  port: Int = 8080) {
+                  port: Int = 8080)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
 
-    implicit private lazy val actorSystem      = ActorSystem("spray-routing", config)
-    implicit private lazy val executionContext = actorSystem.dispatcher
-    implicit private lazy val materializer     = ActorMaterializer()(actorSystem)
-    private lazy val http                      = Http()(actorSystem)
+    implicit private lazy val materializer = ActorMaterializer()(actorSystem)
+    private lazy val http                  = Http()(actorSystem)
 
     def run(): Unit = {
       activateServices(modules)
@@ -73,6 +71,7 @@ object app {
         http.bindAndHandle(route2HandlerFlow(handleExceptions(ExceptionHandler(exceptionHandler)) { ctx =>
           val trackingId = rest.extractTrackingId(ctx.request)
           log.audit(s"Received request ${ctx.request} with tracking id $trackingId")
+          MDC.put("trackingId", trackingId)
 
           val contextWithTrackingId =
             ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))

@@ -3,15 +3,19 @@ package xyz.driver.core
 import java.sql.SQLException
 
 import akka.actor.ActorSystem
+import akka.event.Logging.LogLevel
+import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model.headers.RawHeader
-import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
+import akka.http.scaladsl.model.{HttpEntity, HttpRequest, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
+import akka.http.scaladsl.server.directives.{LogEntry, LoggingMagnet}
 import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
-import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Sink
+import akka.stream.{ActorMaterializer, Materializer}
 import com.typesafe.config.Config
 import io.swagger.models.Scheme
 import org.slf4j.{LoggerFactory, MDC}
@@ -76,13 +80,30 @@ object app {
           val contextWithTrackingId =
             ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
 
-          handleExceptions(ExceptionHandler(exceptionHandler))({ _ =>
-            respondWithHeaders(List(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))) {
-              modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
-            }(contextWithTrackingId)
+          handleExceptions(ExceptionHandler(exceptionHandler))({ c =>
+            logRequestResult(LoggingMagnet(log => myLoggingFunction(Logging.InfoLevel, log))) {
+              respondWithHeaders(List(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))) {
+                modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
+              }
+            }(c)
           })(contextWithTrackingId)
         }), interface, port)(materializer)
       }
+
+      def myLoggingFunction(level: LogLevel, logger: LoggingAdapter)(req: HttpRequest)(res: Any): Unit = {
+        val entry = res match {
+          case Complete(resp) =>
+            entityAsString(resp.entity).map { data =>
+              LogEntry(s"${req.method} ${req.uri}: ${resp.status} \n entity: $data", level)
+            }
+          case other =>
+            Future.successful(LogEntry(s"$other", level))
+        }
+        entry.map(_.logTo(logger))
+      }
+
+      def entityAsString(entity: HttpEntity)(implicit m: Materializer, ex: ExecutionContext): Future[String] =
+        entity.dataBytes.map(_.decodeString(entity.contentType.charsetOption.map(_.value).get)).runWith(Sink.head)
     }
 
     /**

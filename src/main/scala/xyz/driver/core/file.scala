@@ -6,7 +6,6 @@ import java.util.UUID._
 
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.{Bucket, GetObjectRequest, ListObjectsV2Request}
-import xyz.driver.core.revision.Revision
 import xyz.driver.core.time.Time
 
 import scala.concurrent.{ExecutionContext, Future}

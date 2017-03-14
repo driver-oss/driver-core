@@ -5,7 +5,6 @@ import java.io.ByteArrayOutputStream
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
-import xyz.driver.core.revision.Revision
 
 class CoreTest extends FlatSpec with Matchers with MockitoSugar {
 

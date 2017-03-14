@@ -56,7 +56,6 @@ object rest {
   def extractContextHeaders(request: HttpRequest): Map[String, String] = {
     request.headers.filter { h =>
       h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader
-      // || ContextHeaders.LinkerD.isLinkerD(h.lowercaseName)
     } map { header =>
       if (header.name === ContextHeaders.AuthenticationTokenHeader) {
         header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim

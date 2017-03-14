@@ -6,7 +6,6 @@ import akka.http.scaladsl.server.{PathMatcher, _}
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import spray.json.{DeserializationException, JsNumber, _}
 import xyz.driver.core.auth.AuthCredentials
-import xyz.driver.core.revision.Revision
 import xyz.driver.core.time.Time
 import xyz.driver.core.date.Date
 import xyz.driver.core.domain.{Email, PhoneNumber}

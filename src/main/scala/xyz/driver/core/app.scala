@@ -79,7 +79,7 @@ object app {
 
           def requestLogging: Future[Unit] = {
             entityAsString(ctx.request.entity).map { data =>
-              s"""{"method":"${ctx.request.method.value}","url": "${ctx.request.uri}","entity":"$data"""".stripMargin
+              s"""{"method":"${ctx.request.method.value}","url": "${ctx.request.uri}","entity":"$data"}""".stripMargin
             } map { requestJson =>
               MDC.put("message", "Received request")
               log.audit(requestJson)

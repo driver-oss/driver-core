@@ -68,7 +68,8 @@ object app {
       val versionRt      = versionRoute(version, gitHash, time.currentTime())
 
       val _ = Future {
-        http.bindAndHandle(route2HandlerFlow(handleExceptions(ExceptionHandler(exceptionHandler)) { ctx =>
+        http.bindAndHandle(route2HandlerFlow({ ctx =>
+
           val trackingId = rest.extractTrackingId(ctx.request)
           MDC.put("trackingId", trackingId)
           log.audit(s"Received request ${ctx.request}")
@@ -76,9 +77,11 @@ object app {
           val contextWithTrackingId =
             ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
 
-          respondWithHeaders(List(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))) {
-            modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
-          }(contextWithTrackingId)
+          handleExceptions(ExceptionHandler(exceptionHandler))({ _ =>
+            respondWithHeaders(List(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))) {
+              modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
+            }(contextWithTrackingId)
+          })(contextWithTrackingId)
         }), interface, port)(materializer)
       }
     }

@@ -7,7 +7,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshaller
 import spray.json.{DeserializationException, JsNumber, _}
 import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.time.Time
-import xyz.driver.core.date.Date
+import xyz.driver.core.date.{Date, Month}
 import xyz.driver.core.domain.{Email, PhoneNumber}
 
 import scala.reflect.runtime.universe._
@@ -78,6 +78,14 @@ object json {
           .getOrElse(
             throw DeserializationException(s"Misformated ISO 8601 Date. Expected YYYY-MM-DD, but got $dateString."))
       case _ => throw DeserializationException(s"Date expects a string, but got $value.")
+    }
+  }
+
+  implicit val monthFormat = new RootJsonFormat[Month] {
+    def write(month: Month) = JsNumber(month)
+    def read(value: JsValue): Month = value match {
+      case JsNumber(month) if 0 <= month && month <= 11 => date.tagMonth(month.toInt)
+      case _                                            => throw DeserializationException("Expected a number from 0 to 11")
     }
   }
 

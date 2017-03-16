@@ -5,7 +5,7 @@ import java.util.Calendar
 object date {
 
   type Month = Int @@ Month.type
-  private[core] def tagMonth(value: Int): Month = value.asInstanceOf[Month]
+  def tagMonth(value: Int): Month = value.asInstanceOf[Month]
 
   object Month {
     val JANUARY   = tagMonth(Calendar.JANUARY)

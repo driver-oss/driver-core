@@ -3,7 +3,7 @@ package xyz.driver.core
 import java.sql.{Date => SqlDate}
 import java.util.Calendar
 
-import date.Date
+import date.{Date, Month}
 import slick.dbio.{DBIOAction, NoStream}
 
 package object database {
@@ -18,7 +18,7 @@ package object database {
     // should only be interpreted in the running JVMs timezone.
     val cal = Calendar.getInstance()
     cal.setTime(sqlDate)
-    Date(cal.get(Calendar.YEAR), date.tagMonth(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
+    Date(cal.get(Calendar.YEAR), Month(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
   }
 
   private[database] def dateToSqlDate(date: Date): SqlDate = {

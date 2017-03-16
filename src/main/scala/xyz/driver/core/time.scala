@@ -30,7 +30,7 @@ object time {
     def toDate(timezone: TimeZone): date.Date = {
       val cal = Calendar.getInstance(timezone)
       cal.setTimeInMillis(millis)
-      date.Date(cal.get(Calendar.YEAR), date.tagMonth(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
+      date.Date(cal.get(Calendar.YEAR), date.Month(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
     }
   }
 

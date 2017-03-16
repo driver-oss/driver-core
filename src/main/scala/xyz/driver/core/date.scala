@@ -5,21 +5,24 @@ import java.util.Calendar
 object date {
 
   type Month = Int @@ Month.type
-  private[core] def tagMonth(value: Int): Month = value.asInstanceOf[Month]
 
   object Month {
-    val JANUARY   = tagMonth(Calendar.JANUARY)
-    val FEBRUARY  = tagMonth(Calendar.FEBRUARY)
-    val MARCH     = tagMonth(Calendar.MARCH)
-    val APRIL     = tagMonth(Calendar.APRIL)
-    val MAY       = tagMonth(Calendar.MAY)
-    val JUNE      = tagMonth(Calendar.JUNE)
-    val JULY      = tagMonth(Calendar.JULY)
-    val AUGUST    = tagMonth(Calendar.AUGUST)
-    val SEPTEMBER = tagMonth(Calendar.SEPTEMBER)
-    val OCTOBER   = tagMonth(Calendar.OCTOBER)
-    val NOVEMBER  = tagMonth(Calendar.NOVEMBER)
-    val DECEMBER  = tagMonth(Calendar.DECEMBER)
+    def apply(value: Int): Month = {
+      require(0 to 11 contains value, "Month is zero-indexed: 0 <= value <= 11")
+      value.asInstanceOf[Month]
+    }
+    val JANUARY   = Month(Calendar.JANUARY)
+    val FEBRUARY  = Month(Calendar.FEBRUARY)
+    val MARCH     = Month(Calendar.MARCH)
+    val APRIL     = Month(Calendar.APRIL)
+    val MAY       = Month(Calendar.MAY)
+    val JUNE      = Month(Calendar.JUNE)
+    val JULY      = Month(Calendar.JULY)
+    val AUGUST    = Month(Calendar.AUGUST)
+    val SEPTEMBER = Month(Calendar.SEPTEMBER)
+    val OCTOBER   = Month(Calendar.OCTOBER)
+    val NOVEMBER  = Month(Calendar.NOVEMBER)
+    val DECEMBER  = Month(Calendar.DECEMBER)
   }
 
   final case class Date(year: Int, month: Month, day: Int) {
@@ -40,7 +43,7 @@ object date {
     def fromString(dateString: String): Option[Date] = {
       util.Try(dateString.split("-").map(_.toInt)).toOption collect {
         case Array(year, month, day) if (1 to 12 contains month) && (1 to 31 contains day) =>
-          Date(year, tagMonth(month - 1), day)
+          Date(year, Month(month - 1), day)
       }
     }
   }

@@ -10,7 +10,7 @@ class DateTest extends FlatSpec with Matchers with Checkers {
     year  <- Gen.choose(0, 3000)
     month <- Gen.choose(0, 11)
     day   <- Gen.choose(1, 31)
-  } yield Date(year, date.tagMonth(month), day)
+  } yield Date(year, date.Month(month), day)
   implicit val arbitraryDate = Arbitrary[Date](dateGenerator)
 
   "Date" should "correctly convert to and from String" in {

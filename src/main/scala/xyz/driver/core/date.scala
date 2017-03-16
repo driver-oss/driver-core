@@ -9,10 +9,17 @@ import scalaz.syntax.equal._
 
 object date {
 
+  type Day = Int @@ Day.type
+
   object Day {
+    def apply(value: Int): Day = {
+      require(0 to 31 contains value, "Day must be in range 0 <= value <= 11")
+      value.asInstanceOf[Day]
+    }
+
     def unapply(dayString: String): Option[Int] = {
       require(dayString.length === 2, s"ISO 8601 day string, DD, must have length 2: $dayString")
-      Try(dayString.toInt).toOption
+      Try(dayString.toInt).toOption.map(apply)
     }
   }
 
@@ -42,10 +49,14 @@ object date {
     }
   }
 
+  type Year = Int @@ Year.type
+
   object Year {
+    def apply(value: Int): Year = value.asInstanceOf[Year]
+
     def unapply(yearString: String): Option[Int] = {
       require(yearString.length === 4, s"ISO 8601 year string, YYYY, must have length 4: $yearString")
-      Try(yearString.toInt).toOption
+      Try(yearString.toInt).toOption.map(apply)
     }
   }
 

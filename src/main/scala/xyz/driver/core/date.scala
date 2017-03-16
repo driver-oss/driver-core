@@ -2,7 +2,19 @@ package xyz.driver.core
 
 import java.util.Calendar
 
+import scala.util.Try
+
+import scalaz.std.anyVal._
+import scalaz.syntax.equal._
+
 object date {
+
+  object Day {
+    def unapply(dayString: String): Option[Int] = {
+      require(dayString.length === 2, s"ISO 8601 day string, DD, must have length 2: $dayString")
+      Try(dayString.toInt).toOption
+    }
+  }
 
   type Month = Int @@ Month.type
 
@@ -23,6 +35,18 @@ object date {
     val OCTOBER   = Month(Calendar.OCTOBER)
     val NOVEMBER  = Month(Calendar.NOVEMBER)
     val DECEMBER  = Month(Calendar.DECEMBER)
+
+    def unapply(monthString: String): Option[Month] = {
+      require(monthString.length === 2, s"ISO 8601 month string, MM, must have length 2: $monthString")
+      Try(monthString.toInt).toOption.map(isoM => apply(isoM - 1))
+    }
+  }
+
+  object Year {
+    def unapply(yearString: String): Option[Int] = {
+      require(yearString.length === 4, s"ISO 8601 year string, YYYY, must have length 4: $yearString")
+      Try(yearString.toInt).toOption
+    }
   }
 
   final case class Date(year: Int, month: Month, day: Int) {
@@ -41,9 +65,9 @@ object date {
     }
 
     def fromString(dateString: String): Option[Date] = {
-      util.Try(dateString.split("-").map(_.toInt)).toOption collect {
-        case Array(year, month, day) if (1 to 12 contains month) && (1 to 31 contains day) =>
-          Date(year, Month(month - 1), day)
+      dateString.split('-') match {
+        case Array(Year(year), Month(month), Day(day)) => Some(Date(year, month, day))
+        case _                                         => None
       }
     }
   }

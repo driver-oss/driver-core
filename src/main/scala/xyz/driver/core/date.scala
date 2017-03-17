@@ -7,6 +7,11 @@ import scala.util.Try
 import scalaz.std.anyVal._
 import scalaz.syntax.equal._
 
+/**
+  * Driver Date type and related validators/extractors.
+  * Day, Month, and Year extractors are from ISO 8601 strings => driver...Date integers.
+  * TODO: Decouple extractors from ISO 8601, as we might want to parse other formats.
+  */
 object date {
 
   type Day = Int @@ Day.type

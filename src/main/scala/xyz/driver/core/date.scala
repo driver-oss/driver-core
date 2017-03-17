@@ -13,7 +13,7 @@ object date {
 
   object Day {
     def apply(value: Int): Day = {
-      require(0 to 31 contains value, "Day must be in range 0 <= value <= 11")
+      require(1 to 31 contains value, "Day must be in range 1 <= value <= 31")
       value.asInstanceOf[Day]
     }
 

@@ -5,9 +5,12 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
+import akka.http.scaladsl.server.Directive0
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Flow
+import akka.util.ByteString
 import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
@@ -62,6 +65,40 @@ object rest {
         header.name -> header.value
       }
     } toMap
+  }
+
+  private def escapeScriptTags(byteString: ByteString): ByteString = {
+    def dirtyIndices(from: Int, descIndices: List[Int]): List[Int] = {
+      val index = byteString.indexOf('/', from)
+      if (index === -1) descIndices.reverse
+      else {
+        val (init, tail) = byteString.splitAt(index)
+        if ((init endsWith "<") && (tail startsWith "/sc")) {
+          dirtyIndices(index + 1, index :: descIndices)
+        } else {
+          dirtyIndices(index + 1, descIndices)
+        }
+      }
+    }
+
+    val firstSlash = byteString.indexOf('/')
+    if (firstSlash === -1) byteString
+    else {
+      val indices = dirtyIndices(firstSlash, Nil) :+ byteString.length
+      val builder = ByteString.newBuilder
+      builder ++= byteString.take(firstSlash)
+      indices.sliding(2).foreach {
+        case Seq(start, end) =>
+          builder += ' '
+          builder ++= byteString.slice(start, end)
+      }
+      builder.result
+    }
+  }
+
+  val sanitizeRequestEntity: Directive0 = {
+    mapRequest(
+      request => request.mapEntity(entity => entity.transformDataBytes(Flow.fromFunction(escapeScriptTags))))
   }
 
   object AuthProvider {

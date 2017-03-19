@@ -25,9 +25,8 @@ import scalaz.{ListT, OptionT}
 
 object rest {
 
-  final case class ServiceRequestContext(
-    trackingId: String = generators.nextUuid().toString,
-    contextHeaders: Map[String, String] = Map.empty[String, String]) {
+  final case class ServiceRequestContext(trackingId: String = generators.nextUuid().toString,
+                                         contextHeaders: Map[String, String] = Map.empty[String, String]) {
 
     def authToken: Option[AuthToken] =
       contextHeaders.get(AuthProvider.AuthenticationTokenHeader).map(AuthToken.apply)
@@ -75,7 +74,8 @@ object rest {
   }
 
   class AlwaysAllowAuthorization extends Authorization {
-    override def userHasPermission(user: User, permission: Permission)(implicit ctx: ServiceRequestContext): Future[Boolean] = {
+    override def userHasPermission(user: User, permission: Permission)(
+            implicit ctx: ServiceRequestContext): Future[Boolean] = {
       Future.successful(true)
     }
   }
@@ -100,11 +100,9 @@ object rest {
 
     def authorize(permissions: Permission*): Directive1[U] = {
       serviceContext flatMap { ctx =>
-
         onComplete(authenticatedUser(ctx).run flatMap { userOption =>
           userOption.traverse[Future, (U, Boolean)] { user =>
-            permissions
-              .toList
+            permissions.toList
               .traverse[Future, Boolean](authorization.userHasPermission(user, _)(ctx))
               .map(results => user -> results.forall(identity))
           }
@@ -150,11 +148,11 @@ object rest {
       OptionT[Future, Unit](request.flatMap(_.to[String]).map(_ => Option(())))
 
     protected def optionalResponse[T](request: Future[Unmarshal[ResponseEntity]])(
-      implicit um: Unmarshaller[ResponseEntity, Option[T]]): OptionT[Future, T] =
+            implicit um: Unmarshaller[ResponseEntity, Option[T]]): OptionT[Future, T] =
       OptionT[Future, T](request.flatMap(_.fold(Option.empty[T])))
 
     protected def listResponse[T](request: Future[Unmarshal[ResponseEntity]])(
-      implicit um: Unmarshaller[ResponseEntity, List[T]]): ListT[Future, T] =
+            implicit um: Unmarshaller[ResponseEntity, List[T]]): ListT[Future, T] =
       ListT[Future, T](request.flatMap(_.fold(List.empty[T])))
 
     protected def jsonEntity(json: JsValue): RequestEntity =
@@ -194,11 +192,15 @@ object rest {
     def discover[T <: Service](serviceName: Name[Service]): T
   }
 
-  class HttpRestServiceTransport(actorSystem: ActorSystem, executionContext: ExecutionContext,
-                                 log: Logger, stats: Stats, time: TimeProvider) extends ServiceTransport {
+  class HttpRestServiceTransport(actorSystem: ActorSystem,
+                                 executionContext: ExecutionContext,
+                                 log: Logger,
+                                 stats: Stats,
+                                 time: TimeProvider)
+      extends ServiceTransport {
 
     protected implicit val materializer = ActorMaterializer()(actorSystem)
-    protected implicit val execution = executionContext
+    protected implicit val execution    = executionContext
 
     def sendRequestGetResponse(context: ServiceRequestContext)(requestStub: HttpRequest): Future[HttpResponse] = {
 
@@ -206,7 +208,9 @@ object rest {
 
       val request = requestStub
         .withHeaders(RawHeader(ContextHeaders.TrackingIdHeader, context.trackingId))
-        .withHeaders(context.contextHeaders.toSeq.map { h => RawHeader(h._1, h._2): HttpHeader }: _*)
+        .withHeaders(context.contextHeaders.toSeq.map { h =>
+          RawHeader(h._1, h._2): HttpHeader
+        }: _*)
 
       log.audit(s"Sending to ${request.uri} request $request with tracking id ${context.trackingId}")
 
@@ -223,7 +227,7 @@ object rest {
           log.audit(s"Failed to receive response from ${request.uri} to request $requestStub", t)
           log.error(s"Failed to receive response from ${request.uri} to request $requestStub", t)
           stats.recordStats(Seq("request", request.uri.toString, "fail"), TimeRange(requestTime, responseTime), 1)
-      } (executionContext)
+      }(executionContext)
 
       response
     }
@@ -231,9 +235,9 @@ object rest {
     def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]] = {
 
       sendRequestGetResponse(context)(requestStub) map { response =>
-        if(response.status == StatusCodes.NotFound) {
+        if (response.status == StatusCodes.NotFound) {
           Unmarshal(HttpEntity.Empty: ResponseEntity)
-        } else if(response.status.isFailure()) {
+        } else if (response.status.isFailure()) {
           throw new Exception(s"Http status is failure ${response.status}")
         } else {
           Unmarshal(response.entity)

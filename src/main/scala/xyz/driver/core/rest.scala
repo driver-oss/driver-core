@@ -26,7 +26,69 @@ import scala.util.{Failure, Success}
 import scalaz.Scalaz.{Id => _, _}
 import scalaz.{ListT, OptionT}
 
-object rest {
+package rest {
+
+  object `package` {
+    import akka.http.scaladsl.server._
+    import Directives._
+
+    def serviceContext: Directive1[ServiceRequestContext] = extract(ctx => extractServiceContext(ctx.request))
+
+    def extractServiceContext(request: HttpRequest): ServiceRequestContext =
+      ServiceRequestContext(extractTrackingId(request), extractContextHeaders(request))
+
+    def extractTrackingId(request: HttpRequest): String = {
+      request.headers
+        .find(_.name == ContextHeaders.TrackingIdHeader)
+        .fold(java.util.UUID.randomUUID.toString)(_.value())
+    }
+
+    def extractContextHeaders(request: HttpRequest): Map[String, String] = {
+      request.headers.filter { h =>
+        h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader
+      } map { header =>
+        if (header.name === ContextHeaders.AuthenticationTokenHeader) {
+          header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim
+        } else {
+          header.name -> header.value
+        }
+      } toMap
+    }
+
+    private[rest] def escapeScriptTags(byteString: ByteString): ByteString = {
+      def dirtyIndices(from: Int, descIndices: List[Int]): List[Int] = {
+        val index = byteString.indexOf('/', from)
+        if (index === -1) descIndices.reverse
+        else {
+          val (init, tail) = byteString.splitAt(index)
+          if ((init endsWith "<") && (tail startsWith "/sc")) {
+            dirtyIndices(index + 1, index :: descIndices)
+          } else {
+            dirtyIndices(index + 1, descIndices)
+          }
+        }
+      }
+
+      val firstSlash = byteString.indexOf('/')
+      if (firstSlash === -1) byteString
+      else {
+        val indices = dirtyIndices(firstSlash, Nil) :+ byteString.length
+        val builder = ByteString.newBuilder
+        builder ++= byteString.take(firstSlash)
+        indices.sliding(2).foreach {
+          case Seq(start, end) =>
+            builder += ' '
+            builder ++= byteString.slice(start, end)
+        }
+        builder.result
+      }
+    }
+
+    val sanitizeRequestEntity: Directive0 = {
+      mapRequest(
+        request => request.mapEntity(entity => entity.transformDataBytes(Flow.fromFunction(escapeScriptTags))))
+    }
+  }
 
   final case class ServiceRequestContext(trackingId: String = generators.nextUuid().toString,
                                          contextHeaders: Map[String, String] = Map.empty[String, String]) {
@@ -39,66 +101,6 @@ object rest {
     val AuthenticationTokenHeader  = "Authorization"
     val AuthenticationHeaderPrefix = "Bearer"
     val TrackingIdHeader           = "X-Trace"
-  }
-
-  import akka.http.scaladsl.server._
-  import Directives._
-
-  def serviceContext: Directive1[ServiceRequestContext] = extract(ctx => extractServiceContext(ctx.request))
-
-  def extractServiceContext(request: HttpRequest): ServiceRequestContext =
-    ServiceRequestContext(extractTrackingId(request), extractContextHeaders(request))
-
-  def extractTrackingId(request: HttpRequest): String = {
-    request.headers
-      .find(_.name == ContextHeaders.TrackingIdHeader)
-      .fold(java.util.UUID.randomUUID.toString)(_.value())
-  }
-
-  def extractContextHeaders(request: HttpRequest): Map[String, String] = {
-    request.headers.filter { h =>
-      h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader
-    } map { header =>
-      if (header.name === ContextHeaders.AuthenticationTokenHeader) {
-        header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim
-      } else {
-        header.name -> header.value
-      }
-    } toMap
-  }
-
-  private def escapeScriptTags(byteString: ByteString): ByteString = {
-    def dirtyIndices(from: Int, descIndices: List[Int]): List[Int] = {
-      val index = byteString.indexOf('/', from)
-      if (index === -1) descIndices.reverse
-      else {
-        val (init, tail) = byteString.splitAt(index)
-        if ((init endsWith "<") && (tail startsWith "/sc")) {
-          dirtyIndices(index + 1, index :: descIndices)
-        } else {
-          dirtyIndices(index + 1, descIndices)
-        }
-      }
-    }
-
-    val firstSlash = byteString.indexOf('/')
-    if (firstSlash === -1) byteString
-    else {
-      val indices = dirtyIndices(firstSlash, Nil) :+ byteString.length
-      val builder = ByteString.newBuilder
-      builder ++= byteString.take(firstSlash)
-      indices.sliding(2).foreach {
-        case Seq(start, end) =>
-          builder += ' '
-          builder ++= byteString.slice(start, end)
-      }
-      builder.result
-    }
-  }
-
-  val sanitizeRequestEntity: Directive0 = {
-    mapRequest(
-      request => request.mapEntity(entity => entity.transformDataBytes(Flow.fromFunction(escapeScriptTags))))
   }
 
   object AuthProvider {

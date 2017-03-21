@@ -11,8 +11,7 @@ import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
-import akka.stream.scaladsl.Sink
-import akka.stream.{ActorMaterializer, Materializer}
+import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
 import io.swagger.models.Scheme
 import org.slf4j.{LoggerFactory, MDC}
@@ -67,23 +66,13 @@ object app {
       val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
       val versionRt      = versionRoute(version, gitHash, time.currentTime())
 
-      def entityAsString(entity: HttpEntity)(implicit m: Materializer, ex: ExecutionContext): Future[String] =
-        entity.dataBytes
-          .map(_.decodeString(entity.contentType.charsetOption.fold("UTF-8")(_.value)))
-          .runWith(Sink.head)
-
       val _ = Future {
         http.bindAndHandle(route2HandlerFlow({ ctx =>
           val trackingId = rest.extractTrackingId(ctx.request)
           MDC.put("trackingId", trackingId)
 
-          def requestLogging: Future[Unit] = {
-            entityAsString(ctx.request.entity).map { data =>
-              s"""{"method":"${ctx.request.method.value}","url": "${ctx.request.uri}","entity":"$data"}""".stripMargin
-            } map { requestJson =>
-              MDC.put("message", "Received request")
-              log.audit(requestJson)
-            }
+          def requestLogging: Future[Unit] = Future {
+            log.audit(s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
           }
 
           val contextWithTrackingId =

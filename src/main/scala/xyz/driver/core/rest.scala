@@ -56,6 +56,7 @@ package rest {
     }
 
     private[rest] def escapeScriptTags(byteString: ByteString): ByteString = {
+      @annotation.tailrec
       def dirtyIndices(from: Int, descIndices: List[Int]): List[Int] = {
         val index = byteString.indexOf('/', from)
         if (index === -1) descIndices.reverse

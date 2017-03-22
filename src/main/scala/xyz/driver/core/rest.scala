@@ -70,19 +70,21 @@ package rest {
         }
       }
 
-      val firstSlash = byteString.indexOf('/')
-      if (firstSlash === -1) byteString
-      else {
-        val indices = dirtyIndices(firstSlash, Nil) :+ byteString.length
-        val builder = ByteString.newBuilder
-        builder ++= byteString.take(firstSlash)
-        indices.sliding(2).foreach {
-          case Seq(start, end) =>
-            builder += ' '
-            builder ++= byteString.slice(start, end)
-        }
-        builder.result
-      }
+       val indices = dirtyIndices(0, Nil)
+
+       indices.headOption.fold(byteString){head =>
+         val builder = ByteString.newBuilder
+         builder ++= byteString.take(head)
+
+         (indices :+ byteString.length).sliding(2).foreach {
+           case Seq(start, end) =>
+             builder += ' '
+             builder ++= byteString.slice(start, end)
+           case Seq(byteStringLength) => // Should not match; sliding on at least 2 elements
+             assert(indices.nonEmpty, s"Indices should have been nonEmpty: $indices")
+         }
+         builder.result
+       }
     }
 
     val sanitizeRequestEntity: Directive0 = {

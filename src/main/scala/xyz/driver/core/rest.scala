@@ -137,13 +137,28 @@ package rest {
       */
     def authenticatedUser(context: ServiceRequestContext): OptionT[Future, U]
 
+    /**
+      * Specific implementation can verify session expiration and single sign out
+      * to verify if session is still valid
+      */
+    def isSessionValid(user: U)(context: ServiceRequestContext): Future[Boolean] = Future.successful(true)
+
+    /**
+      * Verifies if request is authenticated and authorized to have `permissions`
+      */
     def authorize(permissions: Permission*): Directive1[U] = {
       serviceContext flatMap { ctx =>
         onComplete(authenticatedUser(ctx).run flatMap { userOption =>
-          userOption.traverse[Future, (U, Boolean)] { user =>
-            permissions.toList
-              .traverse[Future, Boolean](authorization.userHasPermission(user, _)(ctx))
-              .map(results => user -> results.forall(identity))
+          userOption.traverseM[Future, (U, Boolean)] { user =>
+            isSessionValid(user)(ctx).flatMap { sessionValid =>
+              if(sessionValid) {
+                permissions.toList
+                  .traverse[Future, Boolean](authorization.userHasPermission(user, _)(ctx))
+                  .map(results => Option(user -> results.forall(identity)))
+              } else {
+                Future.successful(Option.empty[(U, Boolean)])
+              }
+            }
           }
         }).flatMap {
           case Success(Some((user, authorizationResult))) =>

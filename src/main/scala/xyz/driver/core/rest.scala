@@ -132,16 +132,16 @@ package rest {
       * Specific implementation on how to extract user from request context,
       * can either need to do a network call to auth server or extract everything from self-contained token
       *
-      * @param context set of request values which can be relevant to authenticate user
+      * @param ctx set of request values which can be relevant to authenticate user
       * @return authenticated user
       */
-    def authenticatedUser(context: ServiceRequestContext): OptionT[Future, U]
+    def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, U]
 
     /**
       * Specific implementation can verify session expiration and single sign out
       * to verify if session is still valid
       */
-    def isSessionValid(user: U)(context: ServiceRequestContext): Future[Boolean] = Future.successful(true)
+    def isSessionValid(user: U)(implicit ctx: ServiceRequestContext): Future[Boolean] = Future.successful(true)
 
     /**
       * Verifies if request is authenticated and authorized to have `permissions`

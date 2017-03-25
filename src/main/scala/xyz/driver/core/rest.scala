@@ -132,18 +132,33 @@ package rest {
       * Specific implementation on how to extract user from request context,
       * can either need to do a network call to auth server or extract everything from self-contained token
       *
-      * @param context set of request values which can be relevant to authenticate user
+      * @param ctx set of request values which can be relevant to authenticate user
       * @return authenticated user
       */
-    def authenticatedUser(context: ServiceRequestContext): OptionT[Future, U]
+    def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, U]
 
+    /**
+      * Specific implementation can verify session expiration and single sign out
+      * to verify if session is still valid
+      */
+    def isSessionValid(user: U)(implicit ctx: ServiceRequestContext): Future[Boolean]
+
+    /**
+      * Verifies if request is authenticated and authorized to have `permissions`
+      */
     def authorize(permissions: Permission*): Directive1[U] = {
       serviceContext flatMap { ctx =>
         onComplete(authenticatedUser(ctx).run flatMap { userOption =>
-          userOption.traverse[Future, (U, Boolean)] { user =>
-            permissions.toList
-              .traverse[Future, Boolean](authorization.userHasPermission(user, _)(ctx))
-              .map(results => user -> results.forall(identity))
+          userOption.traverseM[Future, (U, Boolean)] { user =>
+            isSessionValid(user)(ctx).flatMap { sessionValid =>
+              if(sessionValid) {
+                permissions.toList
+                  .traverse[Future, Boolean](authorization.userHasPermission(user, _)(ctx))
+                  .map(results => Option(user -> results.forall(identity)))
+              } else {
+                Future.successful(Option.empty[(U, Boolean)])
+              }
+            }
           }
         }).flatMap {
           case Success(Some((user, authorizationResult))) =>

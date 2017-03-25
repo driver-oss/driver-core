@@ -31,13 +31,18 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
   }
 
   val authStatusService = new AuthProvider[User](authorization, NoLogger) {
-    override def authenticatedUser(context: ServiceRequestContext): OptionT[Future, User] = OptionT.optionT[Future] {
-      if (context.contextHeaders.keySet.contains(AuthProvider.AuthenticationTokenHeader)) {
-        Future.successful(Some(BasicUser(Id[User]("1"), Set(TestRole))))
-      } else {
-        Future.successful(Option.empty[User])
+
+    override def isSessionValid(user: User)(implicit ctx: ServiceRequestContext): Future[Boolean] =
+      Future.successful(true)
+
+    override def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, User] =
+      OptionT.optionT[Future] {
+        if (ctx.contextHeaders.keySet.contains(AuthProvider.AuthenticationTokenHeader)) {
+          Future.successful(Some(BasicUser(Id[User]("1"), Set(TestRole))))
+        } else {
+          Future.successful(Option.empty[User])
+        }
       }
-    }
   }
 
   import authStatusService._

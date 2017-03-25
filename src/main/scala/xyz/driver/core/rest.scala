@@ -141,7 +141,7 @@ package rest {
       * Specific implementation can verify session expiration and single sign out
       * to verify if session is still valid
       */
-    def isSessionValid(user: U)(implicit ctx: ServiceRequestContext): Future[Boolean] = Future.successful(true)
+    def isSessionValid(user: U)(implicit ctx: ServiceRequestContext): Future[Boolean]
 
     /**
       * Verifies if request is authenticated and authorized to have `permissions`

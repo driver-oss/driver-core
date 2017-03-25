@@ -80,14 +80,11 @@ object rest {
     }
   }
 
-  trait AuthProvider[U <: User] {
+  abstract class AuthProvider[U <: User](val authorization: Authorization,
+                                         log: Logger)(implicit execution: ExecutionContext) {
 
     import akka.http.scaladsl.server._
     import Directives._
-
-    protected implicit val execution: ExecutionContext
-    protected val authorization: Authorization
-    protected val log: Logger
 
     /**
       * Specific implementation on how to extract user from request context,
@@ -96,7 +93,7 @@ object rest {
       * @param context set of request values which can be relevant to authenticate user
       * @return authenticated user
       */
-    protected def authenticatedUser(context: ServiceRequestContext): OptionT[Future, U]
+    def authenticatedUser(context: ServiceRequestContext): OptionT[Future, U]
 
     def authorize(permissions: Permission*): Directive1[U] = {
       serviceContext flatMap { ctx =>

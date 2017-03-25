@@ -21,18 +21,16 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
 
   val TestRole = Role(Id("1"), Name("testRole"))
 
-  val authStatusService: AuthProvider[User] = new AuthProvider[User] {
+  implicit val exec = scala.concurrent.ExecutionContext.global
 
-    override implicit val execution = scala.concurrent.ExecutionContext.global
-    override val log                = NoLogger
-
-    override protected val authorization: Authorization = new Authorization {
-      override def userHasPermission(user: User, permission: Permission)(
-              implicit ctx: ServiceRequestContext): Future[Boolean] = {
-        Future.successful(permission === TestRoleAllowedPermission)
-      }
+  val authorization: Authorization = new Authorization {
+    override def userHasPermission(user: User, permission: Permission)(
+            implicit ctx: ServiceRequestContext): Future[Boolean] = {
+      Future.successful(permission === TestRoleAllowedPermission)
     }
+  }
 
+  val authStatusService = new AuthProvider[User](authorization, NoLogger) {
     override def authenticatedUser(context: ServiceRequestContext): OptionT[Future, User] = OptionT.optionT[Future] {
       if (context.contextHeaders.keySet.contains(AuthProvider.AuthenticationTokenHeader)) {
         Future.successful(Some(BasicUser(Id[User]("1"), Set(TestRole))))

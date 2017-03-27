@@ -5,7 +5,6 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
-import akka.http.scaladsl.server.Directive0
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.ActorMaterializer
@@ -294,7 +293,10 @@ package rest {
         } else if (response.status.isFailure()) {
           throw new Exception(s"Http status is failure ${response.status}")
         } else {
-          Unmarshal(response.entity)
+          val entity = response.entity
+          // See https://github.com/akka/akka/issues/19538
+          entity.toStrict(5000L, materializer)
+          Unmarshal(entity)
         }
       }
     }

@@ -97,6 +97,9 @@ package rest {
 
     def authToken: Option[AuthToken] =
       contextHeaders.get(AuthProvider.AuthenticationTokenHeader).map(AuthToken.apply)
+
+    def withAuthToken(authToken: AuthToken): ServiceRequestContext =
+      copy(contextHeaders = contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value))
   }
 
   object ContextHeaders {

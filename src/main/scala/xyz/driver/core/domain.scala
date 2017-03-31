@@ -11,7 +11,7 @@ object domain {
   }
 
   object Email {
-    implicit val emailEqual: Equal[Int] = Equal.equal {
+    implicit val emailEqual: Equal[Email] = Equal.equal {
       case (left, right) => left.toString.toLowerCase === right.toString.toLowerCase
     }
 

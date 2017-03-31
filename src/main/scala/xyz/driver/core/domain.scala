@@ -7,17 +7,13 @@ import scalaz.std.string._
 object domain {
 
   final case class Email(username: String, domain: String) {
-    override def equals(other: Any) = other match {
-      case Email(otherUser, otherDomain) =>
-        username.toLowerCase === otherUser.toLowerCase && domain.toLowerCase === otherDomain.toLowerCase
-      case _ => false
-    }
-
     override def toString = username + "@" + domain
   }
 
   object Email {
-    implicit val emailEqual: Equal[Int] = Equal.equalA[Int]
+    implicit val emailEqual: Equal[Int] = Equal.equal {
+      case (left, right) => left.toString.toLowerCase === right.toString.toLowerCase
+    }
 
     def parse(emailString: String): Option[Email] = {
       Some(emailString.split("@")) collect {

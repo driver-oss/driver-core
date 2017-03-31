@@ -1,5 +1,9 @@
 package xyz.driver.core
 
+import scalaz.Equal
+import scalaz.syntax.equal._
+import scalaz.std.string._
+
 object domain {
 
   final case class Email(username: String, domain: String) {
@@ -7,6 +11,10 @@ object domain {
   }
 
   object Email {
+    implicit val emailEqual: Equal[Int] = Equal.equal {
+      case (left, right) => left.toString.toLowerCase === right.toString.toLowerCase
+    }
+
     def parse(emailString: String): Option[Email] = {
       Some(emailString.split("@")) collect {
         case Array(username, domain) => Email(username, domain)

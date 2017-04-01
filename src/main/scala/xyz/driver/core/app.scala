@@ -99,26 +99,26 @@ object app {
       case is: IllegalStateException =>
         ctx =>
           MDC.put("trackingId", rest.extractTrackingId(ctx.request))
-          log.error(s"Request is not allowed to ${ctx.request.uri}", is)
+          log.error(s"Request is not allowed to ${ctx.request.method} ${ctx.request.uri}", is)
           complete(HttpResponse(BadRequest, entity = is.getMessage))(ctx)
 
       case cm: ConcurrentModificationException =>
         ctx =>
           MDC.put("trackingId", rest.extractTrackingId(ctx.request))
-          log.error(s"Concurrent modification of the resource ${ctx.request.uri}", cm)
+          log.error(s"Concurrent modification of the resource ${ctx.request.method} ${ctx.request.uri}", cm)
           complete(
             HttpResponse(Conflict, entity = "Resource was changed concurrently, try requesting a newer version"))(ctx)
 
       case sex: SQLException =>
         ctx =>
           MDC.put("trackingId", rest.extractTrackingId(ctx.request))
-          log.error(s"Database exception for the resource ${ctx.request.uri}", sex)
+          log.error(s"Database exception for the resource ${ctx.request.method} ${ctx.request.uri}", sex)
           complete(HttpResponse(InternalServerError, entity = "Data access error"))(ctx)
 
       case t: Throwable =>
         ctx =>
           MDC.put("trackingId", rest.extractTrackingId(ctx.request))
-          log.error(s"Request to ${ctx.request.uri} could not be handled normally", t)
+          log.error(s"Request to ${ctx.request.method} ${ctx.request.uri} could not be handled normally", t)
           complete(HttpResponse(InternalServerError, entity = t.getMessage))(ctx)
     }
 

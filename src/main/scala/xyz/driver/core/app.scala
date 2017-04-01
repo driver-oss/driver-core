@@ -67,24 +67,32 @@ object app {
       val versionRt      = versionRoute(version, gitHash, time.currentTime())
 
       val _ = Future {
-        http.bindAndHandle(route2HandlerFlow({ ctx =>
-          val trackingId = rest.extractTrackingId(ctx.request)
-          MDC.put("trackingId", trackingId)
+        http.bindAndHandle(route2HandlerFlow(extractHost { origin =>
+          extractClientIP {
+            ip =>
+              { ctx =>
+                val trackingId = rest.extractTrackingId(ctx.request)
+                MDC.put("trackingId", trackingId)
+                MDC.put("origin", origin)
+                MDC.put("ip", ip.toOption.map(_.getHostAddress).getOrElse("unknown"))
 
-          def requestLogging: Future[Unit] = Future {
-            log.audit(s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
+                def requestLogging: Future[Unit] = Future {
+                  log.audit(
+                    s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
+                }
+
+                val contextWithTrackingId =
+                  ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
+
+                handleExceptions(ExceptionHandler(exceptionHandler))({ c =>
+                  requestLogging.flatMap { _ =>
+                    respondWithHeaders(List(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))) {
+                      modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
+                    }(c)
+                  }
+                })(contextWithTrackingId)
+              }
           }
-
-          val contextWithTrackingId =
-            ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
-
-          handleExceptions(ExceptionHandler(exceptionHandler))({ c =>
-            requestLogging.flatMap { _ =>
-              respondWithHeaders(List(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))) {
-                modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
-              }(c)
-            }
-          })(contextWithTrackingId)
         }), interface, port)(materializer)
       }
     }

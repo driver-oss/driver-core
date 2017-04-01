@@ -26,13 +26,13 @@ object execution {
       andEffect(effect.run)
   }
 
-  def illegalState[T](message: String) =
-    failure(new IllegalStateException(message))
+  def illegalState[T](message: String): OptionT[Future, T] =
+    failure[T](new IllegalStateException(message))
 
-  def illegalArgument[T](message: String) =
-    failure(new IllegalArgumentException(message))
+  def illegalArgument[T](message: String): OptionT[Future, T] =
+    failure[T](new IllegalArgumentException(message))
 
-  def failure[T](throwable: Throwable) =
+  def failure[T](throwable: Throwable): OptionT[Future, T] =
     OptionT.optionT(Future.failed[Option[T]](throwable))
 
   def collectOrNone[T, R](value: T)(f: PartialFunction[T, OptionT[Future, R]]): OptionT[Future, R] =

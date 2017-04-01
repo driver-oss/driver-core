@@ -281,7 +281,8 @@ package rest {
 
         case Failure(t: Throwable) =>
           val responseTime = time.currentTime()
-          log.error(s"Failed to receive response to ${request.method} ${request.uri}", t)
+          log.audit(s"Failed to receive response from ${request.method} ${request.uri}", t)
+          log.error(s"Failed to receive response from ${request.method} ${request.uri}", t)
           stats.recordStats(Seq("request", request.uri.toString, "fail"), TimeRange(requestTime, responseTime), 1)
       }(executionContext)
 

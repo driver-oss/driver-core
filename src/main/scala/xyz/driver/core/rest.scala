@@ -277,7 +277,7 @@ package rest {
           RawHeader(h._1, h._2): HttpHeader
         }: _*)
 
-      log.audit(s"Sending to ${request.uri} request $request with tracking id ${context.trackingId}")
+      log.audit(s"Sending request to ${request.method} ${request.uri}")
 
       val response = Http()(actorSystem).singleRequest(request)(materializer)
 
@@ -289,8 +289,8 @@ package rest {
 
         case Failure(t: Throwable) =>
           val responseTime = time.currentTime()
-          log.audit(s"Failed to receive response from ${request.uri} to request $requestStub", t)
-          log.error(s"Failed to receive response from ${request.uri} to request $requestStub", t)
+          log.audit(s"Failed to receive response from ${request.method} ${request.uri}", t)
+          log.error(s"Failed to receive response from ${request.method} ${request.uri}", t)
           stats.recordStats(Seq("request", request.uri.toString, "fail"), TimeRange(requestTime, responseTime), 1)
       }(executionContext)
 
@@ -303,7 +303,7 @@ package rest {
         if (response.status == StatusCodes.NotFound) {
           Unmarshal(HttpEntity.Empty: ResponseEntity)
         } else if (response.status.isFailure()) {
-          throw new Exception(s"Http status is failure ${response.status}")
+          throw new Exception(s"Http status is failure ${response.status} for ${requestStub.method} ${requestStub.uri}")
         } else {
           Unmarshal(response.entity)
         }

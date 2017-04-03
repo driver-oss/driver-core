@@ -88,16 +88,8 @@ package rest {
     }
 
     val sanitizeRequestEntity: Directive0 = {
-      val transformer = Flow.fromFunction(escapeScriptTags)
-      import HttpEntity._
       mapRequest(
-        request => request.mapEntity(_ match {
-          case e: Chunked => e.transformDataBytes(transformer)
-          case e: Strict => e.transformDataBytes(e.contentLength + ???, transformer)
-          case e: Default => e.transformDataBytes(e.contentLength + ???, transformer)
-        }
-        )
-      )
+        request => request.mapEntity(entity => entity.transformDataBytes(Flow.fromFunction(escapeScriptTags))))
     }
   }
 

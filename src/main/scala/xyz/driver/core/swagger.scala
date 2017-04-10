@@ -63,9 +63,9 @@ object swagger {
       } orElse {
         `type` match {
           case rt: ReferenceType if isOption(javaType.getRawClass) && chain.hasNext =>
-            rt.getContentType
-            val nextType     = rt.getContentType
-            val nextResolved = chain.next().resolveProperty(nextType, context, annotations, chain)
+            val nextType = rt.getContentType
+            val nextResolved = Option(resolveProperty(nextType, context, annotations, chain)).getOrElse(
+              chain.next().resolveProperty(nextType, context, annotations, chain))
             nextResolved.setRequired(false)
             Option(nextResolved)
           case t if chain.hasNext =>

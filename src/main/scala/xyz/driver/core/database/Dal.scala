@@ -3,7 +3,7 @@ package xyz.driver.core.database
 import slick.lifted.AbstractTable
 
 import scala.concurrent.{ExecutionContext, Future}
-import scalaz.{ListT, Monad}
+import scalaz.{ListT, Monad, OptionT}
 import scalaz.std.scalaFuture._
 
 trait Dal {
@@ -13,6 +13,12 @@ trait Dal {
   def execute[D](operations: T[D]): Future[D]
   def noAction[V](v: V): T[V]
   def customAction[R](action: => Future[R]): T[R]
+
+  def execute[D](action: => OptionT[T, D]): OptionT[Future, D] =
+    action.mapT(execute[Option[D]])
+
+  def customAction[R](action: => OptionT[Future, R]): OptionT[T, R] =
+    OptionT[T, R](customAction(action.run))
 }
 
 class FutureDal(executionContext: ExecutionContext) extends Dal {

@@ -20,8 +20,8 @@ object swagger {
     def stringProperty(pattern: Option[String] = None, example: Option[String] = None): Property = {
       make(new StringProperty()) { sp =>
         sp.required(true)
-        example.map(sp.example)
-        pattern.map(sp.pattern)
+        example.foreach(sp.example)
+        pattern.foreach(sp.pattern)
       }
     }
 
@@ -35,7 +35,7 @@ object swagger {
     def numericProperty(example: Option[AnyRef] = None): Property = {
       make(PrimitiveType.DECIMAL.createProperty()) { dp =>
         dp.setRequired(true)
-        example.foreach(e => dp.setExample(e))
+        example.foreach(dp.setExample)
       }
     }
 

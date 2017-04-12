@@ -6,6 +6,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import akka.http.scaladsl.server.Directive0
+import com.typesafe.scalalogging.Logger
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import akka.stream.ActorMaterializer
@@ -16,9 +17,6 @@ import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
 import io.swagger.models.Scheme
 import xyz.driver.core.auth._
-import xyz.driver.core.logging.Logger
-import xyz.driver.core.stats.Stats
-import xyz.driver.core.time.TimeRange
 import xyz.driver.core.time.provider.TimeProvider
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -169,16 +167,16 @@ package rest {
             else {
               val challenge =
                 HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
-              log.error(s"User $user does not have the required permissions: ${permissions.mkString(", ")}")
+              log.warn(s"User $user does not have the required permissions: ${permissions.mkString(", ")}")
               reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
             }
 
           case Success(None) =>
-            log.error(s"Wasn't able to find authenticated user for the token provided to verify ${permissions.mkString(", ")}")
+            log.warn(s"Wasn't able to find authenticated user for the token provided to verify ${permissions.mkString(", ")}")
             reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
 
           case Failure(t) =>
-            log.error(s"Wasn't able to verify token for authenticated user to verify ${permissions.mkString(", ")}", t)
+            log.warn(s"Wasn't able to verify token for authenticated user to verify ${permissions.mkString(", ")}", t)
             reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))
         }
       }
@@ -252,7 +250,6 @@ package rest {
   class HttpRestServiceTransport(actorSystem: ActorSystem,
                                  executionContext: ExecutionContext,
                                  log: Logger,
-                                 stats: Stats,
                                  time: TimeProvider)
       extends ServiceTransport {
 
@@ -269,21 +266,19 @@ package rest {
           RawHeader(h._1, h._2): HttpHeader
         }: _*)
 
-      log.audit(s"Sending request to ${request.method} ${request.uri}")
+      log.info(s"Sending request to ${request.method} ${request.uri}")
 
       val response = Http()(actorSystem).singleRequest(request)(materializer)
 
       response.onComplete {
         case Success(r) =>
-          val responseTime = time.currentTime()
-          log.audit(s"Response from ${request.uri} to request $requestStub is successful: $r")
-          stats.recordStats(Seq("request", request.uri.toString, "success"), TimeRange(requestTime, responseTime), 1)
+          val responseLatency = requestTime.durationTo(time.currentTime())
+          log.info(s"Response from ${request.uri} to request $requestStub is successful in $responseLatency ms: $r")
 
         case Failure(t: Throwable) =>
-          val responseTime = time.currentTime()
-          log.audit(s"Failed to receive response from ${request.method} ${request.uri}", t)
-          log.error(s"Failed to receive response from ${request.method} ${request.uri}", t)
-          stats.recordStats(Seq("request", request.uri.toString, "fail"), TimeRange(requestTime, responseTime), 1)
+          val responseLatency = requestTime.durationTo(time.currentTime())
+          log.info(s"Failed to receive response from ${request.method} ${request.uri} in $responseLatency ms", t)
+          log.warn(s"Failed to receive response from ${request.method} ${request.uri} in $responseLatency ms", t)
       }(executionContext)
 
       response

@@ -8,7 +8,7 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 import xyz.driver.core.auth._
-import xyz.driver.core.logging.NoLogger
+import xyz.driver.core.logging._
 import xyz.driver.core.rest.{AuthProvider, Authorization, ServiceRequestContext}
 
 import scala.concurrent.Future

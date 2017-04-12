@@ -13,11 +13,11 @@ import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
 import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
 import org.slf4j.{LoggerFactory, MDC}
 import spray.json.DefaultJsonProtocol
 import xyz.driver.core
-import xyz.driver.core.logging.{Logger, TypesafeScalaLogger}
 import xyz.driver.core.rest.{ContextHeaders, Swagger}
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
@@ -33,8 +33,7 @@ object app {
                   gitHash: String,
                   modules: Seq[Module],
                   time: TimeProvider = new SystemTimeProvider(),
-                  log: Logger = new TypesafeScalaLogger(
-                    com.typesafe.scalalogging.Logger(LoggerFactory.getLogger(classOf[DriverApp]))),
+                  log: Logger = Logger(LoggerFactory.getLogger(classOf[DriverApp])),
                   config: Config = core.config.loadDefaultConfig,
                   interface: String = "::0",
                   baseUrl: String = "localhost:8080",
@@ -77,7 +76,7 @@ object app {
                 MDC.put("ip", ip.toOption.map(_.getHostAddress).getOrElse("unknown"))
 
                 def requestLogging: Future[Unit] = Future {
-                  log.audit(
+                  log.info(
                     s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
                 }
 
@@ -107,26 +106,26 @@ object app {
       case is: IllegalStateException =>
         ctx =>
           MDC.put("trackingId", rest.extractTrackingId(ctx.request))
-          log.error(s"Request is not allowed to ${ctx.request.method} ${ctx.request.uri}", is)
+          log.warn(s"Request is not allowed to ${ctx.request.method} ${ctx.request.uri}", is)
           complete(HttpResponse(BadRequest, entity = is.getMessage))(ctx)
 
       case cm: ConcurrentModificationException =>
         ctx =>
           MDC.put("trackingId", rest.extractTrackingId(ctx.request))
-          log.error(s"Concurrent modification of the resource ${ctx.request.method} ${ctx.request.uri}", cm)
+          log.warn(s"Concurrent modification of the resource ${ctx.request.method} ${ctx.request.uri}", cm)
           complete(
             HttpResponse(Conflict, entity = "Resource was changed concurrently, try requesting a newer version"))(ctx)
 
       case sex: SQLException =>
         ctx =>
           MDC.put("trackingId", rest.extractTrackingId(ctx.request))
-          log.error(s"Database exception for the resource ${ctx.request.method} ${ctx.request.uri}", sex)
+          log.warn(s"Database exception for the resource ${ctx.request.method} ${ctx.request.uri}", sex)
           complete(HttpResponse(InternalServerError, entity = "Data access error"))(ctx)
 
       case t: Throwable =>
         ctx =>
           MDC.put("trackingId", rest.extractTrackingId(ctx.request))
-          log.error(s"Request to ${ctx.request.method} ${ctx.request.uri} could not be handled normally", t)
+          log.warn(s"Request to ${ctx.request.method} ${ctx.request.uri} could not be handled normally", t)
           complete(HttpResponse(InternalServerError, entity = t.getMessage))(ctx)
     }
 
@@ -190,7 +189,7 @@ object app {
           service.activate()
         } catch {
           case t: Throwable =>
-            log.fatal(s"Service ${service.name} failed to activate", t)
+            log.error(s"Service ${service.name} failed to activate", t)
             Console.print(" Failed! (check log)")
         }
         Console.print(" Done\n")
@@ -209,7 +208,7 @@ object app {
               service.deactivate()
             } catch {
               case t: Throwable =>
-                log.fatal(s"Service ${service.name} failed to deactivate", t)
+                log.error(s"Service ${service.name} failed to deactivate", t)
                 Console.print(" Failed! (check log)")
             }
             Console.print(s"Service ${service.name} is shut down\n")

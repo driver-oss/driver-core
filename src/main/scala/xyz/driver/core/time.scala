@@ -2,6 +2,7 @@ package xyz.driver.core
 
 import java.text.SimpleDateFormat
 import java.util._
+import java.util.concurrent.TimeUnit
 
 import scala.concurrent.duration._
 
@@ -26,6 +27,10 @@ object time {
     def isAfter(anotherTime: Time): Boolean = implicitly[Ordering[Time]].gt(this, anotherTime)
 
     def advanceBy(duration: Duration): Time = Time(millis + duration.toMillis)
+
+    def durationTo(anotherTime: Time): Duration = Duration.apply(anotherTime.millis - millis, TimeUnit.MILLISECONDS)
+
+    def durationFrom(anotherTime: Time): Duration = Duration.apply(millis - anotherTime.millis, TimeUnit.MILLISECONDS)
 
     def toDate(timezone: TimeZone): date.Date = {
       val cal = Calendar.getInstance(timezone)

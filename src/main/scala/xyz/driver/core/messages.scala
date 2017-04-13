@@ -3,7 +3,7 @@ package xyz.driver.core
 import java.util.Locale
 
 import com.typesafe.config.{Config, ConfigException}
-import xyz.driver.core.logging.Logger
+import com.typesafe.scalalogging.Logger
 
 /**
   * Scala internationalization (i18n) support

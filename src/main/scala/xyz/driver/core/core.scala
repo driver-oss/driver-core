@@ -1,6 +1,6 @@
 package xyz.driver
 
-import scalaz.Equal
+import scalaz.{Equal, Monad, OptionT}
 
 package object core {
 
@@ -25,6 +25,26 @@ package object core {
     private[core] trait Tagged[+V, +Tag]
   }
   type @@[+V, +Tag] = V with tagging.Tagged[V, Tag]
+
+  implicit class OptionTExtensions[H[_]: Monad, T](optionTValue: OptionT[H, T]) {
+
+    def returnUnit: H[Unit] = optionTValue.fold[Unit](_ => (), ())
+
+    def continueIgnoringNone: OptionT[H, Unit] =
+      optionTValue.map(_ => ()).orElse(OptionT.some[H, Unit](()))
+  }
+
+  implicit class MonadicExtensions[H[_]: Monad, T](monadicValue: H[T]) {
+    private implicit val monadT = implicitly[Monad[H]]
+
+    def returnUnit: H[Unit] = monadT(monadicValue)(_ => ())
+
+    def toOptionT: OptionT[H, T] =
+      OptionT.optionT[H](monadT(monadicValue)(value => Option(value)))
+
+    def toUnitOptionT: OptionT[H, Unit] =
+      OptionT.optionT[H](monadT(monadicValue)(_ => Option(())))
+  }
 }
 
 package core {

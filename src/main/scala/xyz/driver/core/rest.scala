@@ -103,12 +103,14 @@ package rest {
 
   object ContextHeaders {
     val AuthenticationTokenHeader  = "Authorization"
+    val PermissionsTokenHeader     = "Permissions"
     val AuthenticationHeaderPrefix = "Bearer"
     val TrackingIdHeader           = "X-Trace"
   }
 
   object AuthProvider {
     val AuthenticationTokenHeader    = ContextHeaders.AuthenticationTokenHeader
+    val PermissionsTokenHeader       = ContextHeaders.PermissionsTokenHeader
     val SetAuthenticationTokenHeader = "set-authorization"
   }
 

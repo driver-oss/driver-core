@@ -112,6 +112,7 @@ package rest {
     val AuthenticationTokenHeader    = ContextHeaders.AuthenticationTokenHeader
     val PermissionsTokenHeader       = ContextHeaders.PermissionsTokenHeader
     val SetAuthenticationTokenHeader = "set-authorization"
+    val SetPermissionsTokenHeader    = "set-permissions"
   }
 
   trait Authorization {

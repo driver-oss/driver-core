@@ -1,15 +1,13 @@
 package xyz.driver.core
 
-import java.io.File
+import java.io.{File, FileInputStream}
 import java.nio.file.Paths
 
-import com.amazonaws.services.s3.AmazonS3
-import com.amazonaws.services.s3.model._
 import org.mockito.Matchers._
 import org.mockito.Mockito._
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
-import xyz.driver.core.file.{FileSystemStorage, S3Storage}
+import xyz.driver.core.file.{FileSystemStorage, GcsStorage, S3Storage}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -17,6 +15,8 @@ import scala.concurrent.duration._
 class FileTest extends FlatSpec with Matchers with MockitoSugar {
 
   "S3 Storage" should "create and download local files and do other operations" in {
+    import com.amazonaws.services.s3.AmazonS3
+    import com.amazonaws.services.s3.model._
     import scala.collection.JavaConverters._
 
     val tempDir        = System.getProperty("java.io.tmpdir")
@@ -113,6 +113,69 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
     Await.result(fileStorage.delete(testFilePath), 10 seconds)
 
     val filesAfterRemoval = Await.result(fileStorage.list(testDirPath).run, 10 seconds)
+    filesAfterRemoval shouldBe empty
+  }
+
+  "Google Cloud Storage" should "upload and download files" in {
+    import com.google.cloud.Page
+    import com.google.cloud.storage.{Blob, Bucket, Storage}
+    import Bucket.BlobWriteOption
+    import Storage.BlobListOption
+    import scala.collection.JavaConverters._
+
+    val tempDir        = System.getProperty("java.io.tmpdir")
+    val sourceTestFile = generateTestLocalFile(tempDir)
+    val testFileName   = "uploadTestFile"
+
+    val randomFolderName = java.util.UUID.randomUUID().toString
+    val testDirPath      = Paths.get(randomFolderName)
+    val testFilePath     = Paths.get(randomFolderName, testFileName)
+
+    val testBucket = Name[Bucket]("IamBucket")
+    val gcsMock    = mock[Storage]
+    val pageMock   = mock[Page[Blob]]
+    val bucketMock = mock[Bucket]
+    val blobMock   = mock[Blob]
+
+    when(blobMock.getName).thenReturn(testFileName)
+    when(blobMock.getGeneration).thenReturn(1000L)
+    when(blobMock.getUpdateTime).thenReturn(1493422254L)
+    when(blobMock.getSize).thenReturn(12345L)
+    when(blobMock.getContent()).thenReturn(Array[Byte](1, 2, 3))
+
+    val gcsStorage = new GcsStorage(gcsMock, testBucket, scala.concurrent.ExecutionContext.global)
+
+    when(pageMock.iterateAll()).thenReturn(
+      Iterator[Blob]().asJava,
+      Iterator[Blob](blobMock).asJava,
+      Iterator[Blob]().asJava
+    )
+    when(
+      gcsMock.list(testBucket.value, BlobListOption.currentDirectory(), BlobListOption.prefix(testDirPath.toString)))
+      .thenReturn(pageMock)
+
+    val filesBefore = Await.result(gcsStorage.list(testDirPath).run, 10 seconds)
+    filesBefore shouldBe empty
+
+    when(gcsMock.get(testBucket.value)).thenReturn(bucketMock)
+    when(gcsMock.get(testBucket.value, testFilePath.toString)).thenReturn(blobMock)
+    when(bucketMock.create(org.mockito.Matchers.eq(testFileName), any[FileInputStream], any[BlobWriteOption]))
+      .thenReturn(blobMock)
+
+    Await.result(gcsStorage.upload(sourceTestFile, testFilePath), 10 seconds)
+
+    val filesAfterUpload = Await.result(gcsStorage.list(testDirPath).run, 10 seconds)
+    filesAfterUpload.size should be(1)
+
+    val downloadedFile = Await.result(gcsStorage.download(testFilePath).run, 10 seconds)
+    downloadedFile shouldBe defined
+    downloadedFile.foreach {
+      _.getAbsolutePath should endWith(testFilePath.toString)
+    }
+
+    Await.result(gcsStorage.delete(testFilePath), 10 seconds)
+
+    val filesAfterRemoval = Await.result(gcsStorage.list(testDirPath).run, 10 seconds)
     filesAfterRemoval shouldBe empty
   }
 

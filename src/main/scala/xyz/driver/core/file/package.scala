@@ -9,6 +9,11 @@ import scala.concurrent.Future
 import scalaz.{ListT, OptionT}
 
 package file {
+
+  import java.net.URL
+
+  import scala.concurrent.duration.Duration
+
   final case class FileLink(
           name: Name[File],
           location: Path,
@@ -47,5 +52,9 @@ package file {
         case None => f
       }
     }
+  }
+
+  trait SignedFileStorage extends FileStorage {
+    def signedFileUrl(filePath: Path, duration: Duration): OptionT[Future, URL]
   }
 }

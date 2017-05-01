@@ -217,11 +217,8 @@ package rest {
     protected def jsonEntity(json: JsValue): RequestEntity =
       HttpEntity(ContentTypes.`application/json`, json.compactPrint)
 
-    protected def get(baseUri: Uri, path: String) =
-      HttpRequest(HttpMethods.GET, endpointUri(baseUri, path))
-
-    protected def get(baseUri: Uri, path: String, query: Map[String, String]) =
-      HttpRequest(HttpMethods.GET, endpointUri(baseUri, path, query))
+    protected def get(baseUri: Uri, path: String, query: (String, String)*) =
+      HttpRequest(HttpMethods.GET, endpointUri(baseUri, path, query: _*))
 
     protected def post(baseUri: Uri, path: String, httpEntity: RequestEntity) =
       HttpRequest(HttpMethods.POST, endpointUri(baseUri, path), entity = httpEntity)
@@ -235,8 +232,8 @@ package rest {
     protected def endpointUri(baseUri: Uri, path: String) =
       baseUri.withPath(Uri.Path(path))
 
-    protected def endpointUri(baseUri: Uri, path: String, query: Map[String, String]) =
-      baseUri.withPath(Uri.Path(path)).withQuery(Uri.Query(query))
+    protected def endpointUri(baseUri: Uri, path: String, query: (String, String)*) =
+      baseUri.withPath(Uri.Path(path)).withQuery(Uri.Query(query: _*))
   }
 
   trait ServiceTransport {

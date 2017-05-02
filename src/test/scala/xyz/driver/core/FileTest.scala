@@ -46,7 +46,8 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
     when(s3ResultsMock.getObjectSummaries).thenReturn(
       // before file created it is empty, `getObjectSummaries` is never called
       List[S3ObjectSummary](s3ObjectSummaryMock).asJava, // after file is uploaded it contains this one file
-      List.empty[S3ObjectSummary].asJava) // after file is deleted it is empty again
+      List.empty[S3ObjectSummary].asJava
+    ) // after file is deleted it is empty again
 
     val s3ObjectMetadataMock = mock[ObjectMetadata]
     val amazonS3Mock         = mock[AmazonS3]

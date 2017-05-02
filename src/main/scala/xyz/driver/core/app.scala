@@ -66,33 +66,37 @@ object app {
       val versionRt      = versionRoute(version, gitHash, time.currentTime())
 
       val _ = Future {
-        http.bindAndHandle(route2HandlerFlow(extractHost { origin =>
-          extractClientIP {
-            ip =>
-              { ctx =>
-                val trackingId = rest.extractTrackingId(ctx.request)
-                MDC.put("trackingId", trackingId)
-                MDC.put("origin", origin)
-                MDC.put("ip", ip.toOption.map(_.getHostAddress).getOrElse("unknown"))
+        http.bindAndHandle(
+          route2HandlerFlow(extractHost { origin =>
+            extractClientIP {
+              ip =>
+                { ctx =>
+                  val trackingId = rest.extractTrackingId(ctx.request)
+                  MDC.put("trackingId", trackingId)
+                  MDC.put("origin", origin)
+                  MDC.put("ip", ip.toOption.map(_.getHostAddress).getOrElse("unknown"))
 
-                def requestLogging: Future[Unit] = Future {
-                  log.info(
-                    s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
-                }
-
-                val contextWithTrackingId =
-                  ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
-
-                handleExceptions(ExceptionHandler(exceptionHandler))({ c =>
-                  requestLogging.flatMap { _ =>
-                    respondWithHeaders(List(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))) {
-                      modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
-                    }(c)
+                  def requestLogging: Future[Unit] = Future {
+                    log.info(
+                      s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
                   }
-                })(contextWithTrackingId)
-              }
-          }
-        }), interface, port)(materializer)
+
+                  val contextWithTrackingId =
+                    ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
+
+                  handleExceptions(ExceptionHandler(exceptionHandler))({ c =>
+                    requestLogging.flatMap { _ =>
+                      respondWithHeaders(List(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))) {
+                        modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
+                      }(c)
+                    }
+                  })(contextWithTrackingId)
+                }
+            }
+          }),
+          interface,
+          port
+        )(materializer)
       }
     }
 
@@ -249,7 +253,7 @@ object app {
     */
   class CompositeModule(val name: String, modules: Seq[Module]) extends Module with RouteConcatenation {
 
-    def route: Route = modules.map(_.route).reduce(_ ~ _)
+    def route: Route = RouteConcatenation.concat(modules.map(_.route): _*)
     def routeTypes   = modules.flatMap(_.routeTypes)
 
     override def activate()   = modules.foreach(_.activate())

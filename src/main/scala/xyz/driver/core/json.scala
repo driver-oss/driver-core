@@ -121,11 +121,11 @@ object json {
 
       case JsString(value) =>
         Email.parse(value).getOrElse {
-          deserializationError("Expected '@' symbol in email string as Email, but got " + json)
+          deserializationError("Expected '@' symbol in email string as Email, but got " + json.toString)
         }
 
       case _ =>
-        deserializationError("Expected string as Email, but got " + json)
+        deserializationError("Expected string as Email, but got " + json.toString)
     }
   }
 
@@ -146,7 +146,7 @@ object json {
     override def read(json: JsValue): T = json match {
       case JsString(name) =>
         map.getOrElse(name, throw DeserializationException(s"Value $name is not found in the mapping $map"))
-      case _ => deserializationError("Expected string as enumeration value, but got " + json)
+      case _ => deserializationError("Expected string as enumeration value, but got " + json.toString)
     }
   }
 
@@ -154,7 +154,7 @@ object json {
     def write(valueClass: T) = JsNumber(writeValue(valueClass))
     def read(json: JsValue): T = json match {
       case JsNumber(value) => create(value)
-      case _               => deserializationError(s"Expected number as ${typeOf[T].getClass.getName}, but got " + json)
+      case _               => deserializationError(s"Expected number as ${typeOf[T].getClass.getName}, but got " + json.toString)
     }
   }
 
@@ -166,7 +166,7 @@ object json {
     def write(value: T): JsValue = {
 
       val valueType = typeValue.applyOrElse(value, { v: T =>
-        deserializationError(s"No Value type for this type of ${typeOf[T].getClass.getName}: " + v)
+        deserializationError(s"No Value type for this type of ${typeOf[T].getClass.getName}: " + v.toString)
       })
 
       val valueFormat =
@@ -193,7 +193,7 @@ object json {
             deserializationError(s"Unknown ${typeOf[T].getClass.getName} type ${fields(typeField)}")
         }
       case _ =>
-        deserializationError(s"Expected Json Object as ${typeOf[T].getClass.getName}, but got " + json)
+        deserializationError(s"Expected Json Object as ${typeOf[T].getClass.getName}, but got " + json.toString)
     }
   }
 

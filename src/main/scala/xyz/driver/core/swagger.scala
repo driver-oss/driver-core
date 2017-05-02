@@ -46,6 +46,7 @@ object swagger {
     }
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.Null"))
   class CustomSwaggerJsonConverter(mapper: ObjectMapper,
                                    customProperties: Map[Class[_], Property],
                                    customObjects: Map[Class[_], JsValue])
@@ -78,6 +79,7 @@ object swagger {
       } orNull
     }
 
+    @SuppressWarnings(Array("org.wartremover.warts.Null"))
     override def resolve(`type`: Type, context: ModelConverterContext, chain: util.Iterator[ModelConverter]): Model = {
 
       val javaType = Json.mapper().constructType(`type`)

@@ -68,21 +68,21 @@ package rest {
         }
       }
 
-       val indices = dirtyIndices(0, Nil)
+      val indices = dirtyIndices(0, Nil)
 
-       indices.headOption.fold(byteString){head =>
-         val builder = ByteString.newBuilder
-         builder ++= byteString.take(head)
+      indices.headOption.fold(byteString) { head =>
+        val builder = ByteString.newBuilder
+        builder ++= byteString.take(head)
 
-         (indices :+ byteString.length).sliding(2).foreach {
-           case Seq(start, end) =>
-             builder += ' '
-             builder ++= byteString.slice(start, end)
-           case Seq(byteStringLength) => // Should not match; sliding on at least 2 elements
-             assert(indices.nonEmpty, s"Indices should have been nonEmpty: $indices")
-         }
-         builder.result
-       }
+        (indices :+ byteString.length).sliding(2).foreach {
+          case Seq(start, end) =>
+            builder += ' '
+            builder ++= byteString.slice(start, end)
+          case Seq(byteStringLength) => // Should not match; sliding on at least 2 elements
+            assert(indices.nonEmpty, s"Indices should have been nonEmpty: $indices")
+        }
+        builder.result
+      }
     }
 
     val sanitizeRequestEntity: Directive0 = {
@@ -126,8 +126,8 @@ package rest {
     }
   }
 
-  abstract class AuthProvider[U <: User](val authorization: Authorization,
-                                         log: Logger)(implicit execution: ExecutionContext) {
+  abstract class AuthProvider[U <: User](val authorization: Authorization, log: Logger)(
+          implicit execution: ExecutionContext) {
 
     import akka.http.scaladsl.server._
     import Directives._
@@ -155,7 +155,7 @@ package rest {
         onComplete(authenticatedUser(ctx).run flatMap { userOption =>
           userOption.traverseM[Future, (U, Boolean)] { user =>
             isSessionValid(user)(ctx).flatMap { sessionValid =>
-              if(sessionValid) {
+              if (sessionValid) {
                 permissions.toList
                   .traverse[Future, Boolean](authorization.userHasPermission(user, _)(ctx))
                   .map(results => Option(user -> results.forall(identity)))
@@ -175,7 +175,8 @@ package rest {
             }
 
           case Success(None) =>
-            log.warn(s"Wasn't able to find authenticated user for the token provided to verify ${permissions.mkString(", ")}")
+            log.warn(
+              s"Wasn't able to find authenticated user for the token provided to verify ${permissions.mkString(", ")}")
             reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
 
           case Failure(t) =>
@@ -293,7 +294,8 @@ package rest {
         if (response.status == StatusCodes.NotFound) {
           Unmarshal(HttpEntity.Empty: ResponseEntity)
         } else if (response.status.isFailure()) {
-          throw new Exception(s"Http status is failure ${response.status} for ${requestStub.method} ${requestStub.uri}")
+          throw new Exception(
+            s"Http status is failure ${response.status} for ${requestStub.method} ${requestStub.uri}")
         } else {
           Unmarshal(response.entity)
         }
@@ -308,11 +310,12 @@ package rest {
                 version: String,
                 override val actorSystem: ActorSystem,
                 override val apiTypes: Seq[Type],
-                val config: Config) extends SwaggerHttpService with HasActorSystem {
+                val config: Config)
+      extends SwaggerHttpService with HasActorSystem {
 
     val materializer = ActorMaterializer()(actorSystem)
 
-    override val basePath = config.getString("swagger.basePath")
+    override val basePath    = config.getString("swagger.basePath")
     override val apiDocsPath = config.getString("swagger.docsPath")
 
     override val info = Info(
@@ -320,16 +323,19 @@ package rest {
       version,
       config.getString("swagger.apiInfo.title"),
       config.getString("swagger.apiInfo.termsOfServiceUrl"),
-      contact = Some(Contact(
-        config.getString("swagger.apiInfo.contact.name"),
-        config.getString("swagger.apiInfo.contact.url"),
-        config.getString("swagger.apiInfo.contact.email")
-      )),
-      license = Some(License(
-        config.getString("swagger.apiInfo.license"),
-        config.getString("swagger.apiInfo.licenseUrl")
-      )),
-      vendorExtensions = Map.empty[String, AnyRef])
+      contact = Some(
+        Contact(
+          config.getString("swagger.apiInfo.contact.name"),
+          config.getString("swagger.apiInfo.contact.url"),
+          config.getString("swagger.apiInfo.contact.email")
+        )),
+      license = Some(
+        License(
+          config.getString("swagger.apiInfo.license"),
+          config.getString("swagger.apiInfo.licenseUrl")
+        )),
+      vendorExtensions = Map.empty[String, AnyRef]
+    )
 
     def swaggerUI = get {
       pathPrefix("") {

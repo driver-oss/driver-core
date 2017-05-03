@@ -15,6 +15,7 @@ lazy val core = (project in file("."))
     "org.mockito"                  % "mockito-core"          % "1.9.5" % "test",
     "com.github.swagger-akka-http" %% "swagger-akka-http"    % "0.9.1",
     "com.amazonaws"                % "aws-java-sdk-s3"       % "1.11.26",
+    "com.google.cloud"             % "google-cloud-storage"  % "0.9.4-beta",
     "com.typesafe.slick"           %% "slick"                % "3.1.1",
     "com.typesafe"                 % "config"                % "1.2.1",
     "com.typesafe.scala-logging"   %% "scala-logging"        % "3.4.0",

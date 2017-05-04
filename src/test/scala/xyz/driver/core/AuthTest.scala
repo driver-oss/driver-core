@@ -10,7 +10,7 @@ import org.scalatest.{FlatSpec, Matchers}
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
 import xyz.driver.core.logging._
-import xyz.driver.core.rest.{AuthProvider, AuthenticatedRequestContext, Authorization, RequestContext}
+import xyz.driver.core.rest.{AuthProvider, AuthorizedRequestContext, Authorization, RequestContext}
 
 import scala.concurrent.Future
 import scalaz.OptionT
@@ -36,7 +36,7 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
   val authorization: Authorization[User] = new Authorization[User] {
 
     override def userHasPermissions(permissions: Seq[Permission])(
-            implicit ctx: AuthenticatedRequestContext[User]): OptionT[Future,
+            implicit ctx: AuthorizedRequestContext[User]): OptionT[Future,
                                                                       (Map[Permission, Boolean], PermissionsToken)] = {
       val permissionsMap = permissions.map(p => p -> (p === TestRoleAllowedPermission)).toMap
       val token          = PermissionsToken("TODO")
@@ -107,11 +107,12 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
   it should "authorize permission found in permissions token" in {
     import spray.json._
 
-    val claim = JsObject(Map(
-      "iss"         -> JsString("users"),
-      "sub"         -> JsString("1"),
-      "permissions" -> JsObject(Map(TestRoleAllowedByTokenPermission.toString -> JsBoolean(true)))
-    )).prettyPrint
+    val claim = JsObject(
+      Map(
+        "iss"         -> JsString("users"),
+        "sub"         -> JsString("1"),
+        "permissions" -> JsObject(Map(TestRoleAllowedByTokenPermission.toString -> JsBoolean(true)))
+      )).prettyPrint
     val permissionsToken   = PermissionsToken(Jwt.encode(claim, privateKey, JwtAlgorithm.RS256))
     val referenceAuthToken = AuthToken("I am token")
 

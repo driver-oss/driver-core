@@ -100,23 +100,42 @@ package rest {
     def permissionsToken: Option[PermissionsToken] =
       contextHeaders.get(AuthProvider.PermissionsTokenHeader).map(PermissionsToken.apply)
 
-    def withAuthenticatedUser[U <: User](authToken: AuthToken, user: U): AuthenticatedRequestContext[U] =
-      new AuthenticatedRequestContext(trackingId,
+    def withAuthenticatedUser[U <: User](authToken: AuthToken, user: U): AuthorizedRequestContext[U] =
+      new AuthorizedRequestContext(trackingId,
                                       contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value),
                                       user)
+
+    override def hashCode(): Int =
+      Seq[Any](trackingId, contextHeaders).foldLeft(31)((result, obj) => 31 * result + obj.hashCode())
+
+    override def equals(obj: Any): Boolean = obj match {
+      case ctx: RequestContext => trackingId == ctx.trackingId && contextHeaders == ctx.contextHeaders
+      case _                   => false
+    }
+
+    override def toString: String = s"RequestContext($trackingId, $contextHeaders)"
   }
 
-  class AuthenticatedRequestContext[U <: User](override val trackingId: String = generators.nextUuid().toString,
-                                               override val contextHeaders: Map[String, String] =
+  class AuthorizedRequestContext[U <: User](override val trackingId: String = generators.nextUuid().toString,
+                                            override val contextHeaders: Map[String, String] =
                                                  Map.empty[String, String],
-                                               val authenticatedUser: U)
+                                            val authenticatedUser: U)
       extends RequestContext {
 
-    def withPermissionsToken(permissionsToken: PermissionsToken): AuthenticatedRequestContext[U] =
-      new AuthenticatedRequestContext[U](
+    def withPermissionsToken(permissionsToken: PermissionsToken): AuthorizedRequestContext[U] =
+      new AuthorizedRequestContext[U](
         trackingId,
         contextHeaders.updated(AuthProvider.PermissionsTokenHeader, permissionsToken.value),
         authenticatedUser)
+
+    override def hashCode(): Int = 31 * super.hashCode() + authenticatedUser.hashCode()
+
+    override def equals(obj: Any): Boolean = obj match {
+      case ctx: AuthorizedRequestContext[U] => super.equals(ctx) && ctx.authenticatedUser == authenticatedUser
+      case _                                   => false
+    }
+
+    override def toString: String = s"AuthenticatedRequestContext($trackingId, $contextHeaders, $authenticatedUser)"
   }
 
   object ContextHeaders {
@@ -135,13 +154,13 @@ package rest {
 
   trait Authorization[U <: User] {
     def userHasPermissions(permissions: Seq[Permission])(
-            implicit ctx: AuthenticatedRequestContext[U]): OptionT[Future,
+            implicit ctx: AuthorizedRequestContext[U]): OptionT[Future,
                                                                    (Map[Permission, Boolean], PermissionsToken)]
   }
 
   class AlwaysAllowAuthorization[U <: User] extends Authorization[U] {
     override def userHasPermissions(permissions: Seq[Permission])(
-            implicit ctx: AuthenticatedRequestContext[U]): OptionT[Future,
+            implicit ctx: AuthorizedRequestContext[U]): OptionT[Future,
                                                                    (Map[Permission, Boolean], PermissionsToken)] =
       OptionT.optionT(Future.successful(Option((permissions.map(_ -> true).toMap, PermissionsToken("")))))
   }
@@ -165,7 +184,7 @@ package rest {
     /**
       * Verifies if request is authenticated and authorized to have `permissions`
       */
-    def authorize(permissions: Permission*): Directive1[AuthenticatedRequestContext[U]] = {
+    def authorize(permissions: Permission*): Directive1[AuthorizedRequestContext[U]] = {
       serviceContext flatMap { ctx =>
         onComplete {
           (for {
@@ -194,7 +213,7 @@ package rest {
     }
 
     protected def userHasPermission(user: U, permissions: Seq[Permission])(
-            ctx: AuthenticatedRequestContext[U]): OptionT[Future, (Boolean, PermissionsToken)] = {
+            ctx: AuthorizedRequestContext[U]): OptionT[Future, (Boolean, PermissionsToken)] = {
       import spray.json._
 
       def authorizedByToken: OptionT[Future, (Boolean, PermissionsToken)] = {

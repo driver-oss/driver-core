@@ -1,29 +1,32 @@
 # Driver Core Library [![Build Status](https://travis-ci.com/drivergroup/driver-core.svg?token=sarWaLdsCrympszs6TRy&branch=master)](https://travis-ci.com/drivergroup/driver-core)
 
-Core library is used to provide ways to implement practices established in [Driver service template](http://github.com/drivergroup/driver-template) (check its [README.md](https://github.com/drivergroup/driver-template/blob/master/README.md)). Also it provides implementations for interaction with [Driver Infrastructure](https://drive.google.com/a/drivergrp.com/folderview?id=0BxKLZIfIpO8SOUdaRWtINzMxcE0&usp=sharing_eid&ts=578fbc14).
+Core library is used to provide ways to implement practices established in [Driver service template](http://github.com/drivergroup/driver-template) (check its [README.md](https://github.com/drivergroup/driver-template/blob/master/README.md)).
 
 ## Components
 
- * `core package` provides `Id` and `Name` implementations (with equal and ordering) and also `make` and `using` functions,
- * `time` Primitives to deal with time and receive current times in code,
+ * `core package` provides `Id` and `Name` implementations (with equal and ordering), utils for ScalaZ `OptionT`, and also `make` and `using` functions,
+ * `time` Primitives to deal with time, receive current times in code and basic formatting it to text,
+ * `date ` Primitives to deal with typesafe date, contains ordering and basic ISO 8601 string formatting,
  * `config` Contains method `loadDefaultConfig` with default way of providing config to the application,
- * `domain` Common generic domain objects,
+ * `domain` Common generic domain objects, e.g., `Email` and `PhoneNumber`,
  * `messages` Localization messages supporting different locales and methods to read from config,
- * `database` Method for database initialization from config, `Id` and `Name` mapping and schema lifecycle,
- * `rest` Wrapper over call to external REST API, authorization, context headers, does logging and stats call,
- * `json` Json formats for `Id`, `Name`, `Time`, `Revision`, `Email`, `PhoneNumber` and converters for enums and value classes,
- * `file` Stub for file storage web-service and implementations for S3 and FS `FileStorage`,
+ * `database` Method for database initialization from config, `Id`, `Name`, `Time`, `Date` etc. mapping, schema lifecycle and base classes to implement and test `Dal` (data access layer objects),
+ * `rest` Wrapper over call to external REST API, authorization, context headers, XSS protection, does logging and allows to add Swagger to a service,
+ * `auth` Basic entities for authentication and authorization: `User`, `Role` `Permission` `AuthToken`, `AuthCredentials` etc.,
+ * `swagger` Contains custom `AbstractModelConverter` to customize Swagger JSON with any Scala  JSON formats created by, for instance, Spray JSON,
+ * `json` Json formats for `Id`, `Name`, `Time`, `Revision`, `Email`, `PhoneNumber`, `AuthCredentials` and converters for GADTs, enums and value classes,
+ * `file` Interface `FileStorage` and file storage implementations with GCS, S3 and local FS,
  * `app` Base class for Driver service, which initializes swagger, app modules and its routes.
- * `generators` Set of functions to prototype APIs. Combine with `faker` package,
- * `stats` Interface to the infrastructure statistics service, currently just logs events,
- * `logging` Facade to the infrastructure logging service. Gives ways to report events supported by the infrastructure namely: fatal (for application-level events), error (for user errors), audit (for auditable events that might be needed for compliance), debug (for finding bugs and easier investigations).
+ * `generators` Set of functions to prototype APIs. Combines with `faker` package,
+ * `stats` Methods to collect system stats: memory, cpu, gc, file system space usage,
+ * `logging` Custom Driver logging layout (not finished yet).
 
 Dependencies of core modules might be found in [Dependencies of the Modules diagram](https://github.com/drivergroup/driver-template/blob/master/Modules%20dependencies.pdf) file in driver-template repository in "Core component dependencies" section.
 
 ## Examples
 
 ### Functions `make` and `using`
-Those functions are especially useful to make procedural legacy Java APIs more functional and make scope of its usage more explicit. Runnable examples of its usage might be found in [`CoreTest`](https://github.com/drivergroup/driver-core/blob/master/src/test/scala/com/drivergrp/core/CoreTest.scala), e.g.,
+Those functions are especially useful to make procedural legacy Java APIs more functional and make scope of its usage more explicit. Runnable examples of its usage might be found in [`CoreTest`](https://github.com/drivergroup/driver-core/blob/master/src/test/scala/xyz/driver/core/CoreTest.scala), e.g.,
 
     useObject(make(new ObjectWithProceduralInitialization) { o =>
       o.setSetting1(...) // returns Unit
@@ -47,10 +50,36 @@ and
 
     // it will be close automatically
 
+### `OptionT` utils
+Before
+
+```
+OptionT.optionT[Future](service.getRecords(id).map(Option.apply))
+OptionT.optionT(service.doSomething(id).map(_ => Option(())))
+
+// Do not want to stop and return `None`, if `produceEffect` returns `None`
+for {
+  x <- service.doSomething(id)
+  _ <- service.produceEffect(id, x).map(_ => ()).orElse(OptionT.some[Future, Unit](())))
+} yield x
+```
+
+after
+
+```
+service.getRecords(id).toOptionT
+service.doSomething(id).toUnitOptionT
+
+// Do not want to stop and return `None` if `produceEffect` returns `None`
+for {
+  x <- service.doSomething(id)
+  _ <- service.produceEffect(id, x).continueIgnoringNone
+} yield x
+```
 
 ### `Time` and `TimeProvider`
 
-Usage examples for `Time` [TimeTest](https://github.com/drivergroup/driver-core/blob/master/src/test/scala/com/drivergrp/core/TimeTest.scala)
+Usage examples for `Time` (also check [TimeTest](https://github.com/drivergroup/driver-core/blob/master/src/test/scala/xyz/driver/core/TimeTest.scala) for more examples).
 
     Time(234L).isAfter(Time(123L))
 
@@ -80,7 +109,65 @@ Example of how to generate a case class instance,
          faker.Lorem.sentence(word_count = 10))
 
 
-For more examples check [project tests](https://github.com/drivergroup/driver-core/blob/master/src/test/scala/com/drivergrp/core/) or [service template](http://github.com/drivergroup/driver-template) repository.
+For more examples check [project tests](https://github.com/drivergroup/driver-core/tree/master/src/test/scala/xyz/driver/core) or [service template](http://github.com/drivergroup/driver-template) repository.
+
+### App
+
+To start a new application using standard Driver application class, follow this pattern:
+
+    object MyApp extends App {
+
+      new DriverApp(BuildInfo.version,
+                    BuildInfo.gitHeadCommit.getOrElse("None"),
+                    modules = Seq(myModule1, myModule2),
+                    time, log, config,
+                    interface = "::0", baseUrl, scheme, port)
+                   (servicesActorSystem, servicesExecutionContext).run()
+    }
+
+### REST
+With REST utils, for instance, you can use the following directives in [akka-http](https://github.com/akka/akka-http) routes, as follows
+
+    sanitizeRequestEntity { // Prevents XSS
+      serviceContext { implicit ctx => // Extracts context headers from request
+        authorize(CanSeeUser(userId)) { user => // Authorizes and extracts user
+          // Your code using `ctx` and `user`
+        }
+      }
+    }
+
+### Swagger
+Swagger JSON formats built using reflection can be overriden by using `CustomSwaggerJsonConverter` at the start of your application initialization in the following way:
+
+    ModelConverters.getInstance()
+      .addConverter(new CustomSwaggerJsonConverter(Json.mapper(),
+         CustomSwaggerFormats.customProperties, CustomSwaggerFormats.customObjectsExamples))
+
+### Locale
+Locale messages can be initialized and used in the following way,
+
+    val localeConfig = config.getConfig("locale")
+    val log = com.typesafe.scalalogging.Logger(LoggerFactory.getLogger(classOf[MyClass]))
+
+    val messages = xyz.driver.core.messages.Messages.messages(localeConfig, log, Locale.US)
+
+    messages("my.locale.message")
+    messages("my.locale.message.with.param", parameter)
+
+
+### System stats
+Stats it gives access to are,
+
+    xyz.driver.core.stats.SystemStats.memoryUsage
+
+    xyz.driver.core.stats.SystemStats.availableProcessors
+
+    xyz.driver.core.stats.SystemStats.garbageCollectorStats
+
+    xyz.driver.core.stats.SystemStats.fileSystemSpace
+
+    xyz.driver.core.stats.SystemStats.operatingSystemStats
+
 
 ## Running
 
@@ -92,16 +179,6 @@ For more examples check [project tests](https://github.com/drivergroup/driver-co
 
         $ sbt publish-local
 
-3. Release new version of core:
+3. Release a new version of core:
 
         $ sbt release
-
-## Things to do
-
- * Logging:
-
-    * Custom akka-http directive to extract tracking/correlation id from the requests and put to MDC (diagnostic context). Also custom MDC needs to be implemented (or found on github/stackoverflow) to pass context among different threads in asynchronous environment when next computations may occur in other thread,
-
-    * Custom log appender with its own format, using diagnostic context with request tracking/correlation id from request,
-
- * Try to store possible common typesafe config parts in core library.

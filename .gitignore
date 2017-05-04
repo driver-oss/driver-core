@@ -17,6 +17,6 @@ project/plugins/project/
 .worksheet
 .idea/
 .idea
-.scalafmt
+scalafmt
 .scalafmt.conf
 scalastyle-config.xml

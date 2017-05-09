@@ -1,5 +1,7 @@
 package xyz.driver.core
 
+import java.util.UUID
+
 import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
 import akka.http.scaladsl.server.{PathMatcher, _}
@@ -18,6 +20,13 @@ object json {
   def IdInPath[T]: PathMatcher1[Id[T]] = new PathMatcher1[Id[T]] {
     def apply(path: Path) = path match {
       case Path.Segment(segment, tail) => Matched(tail, Tuple1(Id[T](segment)))
+      case _                           => Unmatched
+    }
+  }
+
+  def UuidInPath[T]: PathMatcher1[Id[T]] = new PathMatcher1[Id[T]] {
+    def apply(path: Path) = path match {
+      case Path.Segment(segment, tail) => Matched(tail, Tuple1(Id[T](UUID.fromString(segment).toString)))
       case _                           => Unmatched
     }
   }

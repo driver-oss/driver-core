@@ -31,10 +31,15 @@ class FutureDal(executionContext: ExecutionContext) extends Dal {
 class SlickDal(database: Database, executionContext: ExecutionContext) extends Dal {
   import database.profile.api._
   implicit val exec = executionContext
+
   override type T[D] = slick.dbio.DBIO[D]
 
-  implicit protected class QueryOps[+E, U](query: Query[E, U, Seq]) {
+  implicit protected class QueryOps[U](query: Query[_, U, Seq]) {
     def resultT: ListT[T, U] = ListT[T, U](query.result.map(_.toList))
+  }
+
+  implicit protected class CompiledQueryOps[U](compiledQuery: slick.lifted.RunnableCompiled[_, Seq[U]]) {
+    def resultT: ListT[T, U] = ListT.listT[T](compiledQuery.result.map(_.toList))
   }
 
   override implicit val monadT: Monad[T] = new Monad[T] {

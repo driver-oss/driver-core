@@ -18,16 +18,11 @@ import xyz.driver.core.time.Time
 object json {
   import DefaultJsonProtocol._
 
-  def IdInPath[T]: PathMatcher1[Id[T]] = new PathMatcher1[Id[T]] {
+  private def UuidInPath[T]: PathMatcher1[Id[T]] = PathMatchers.JavaUUID.map((id: UUID) => Id[T](id.toString))
+
+  def IdInPath[T]: PathMatcher1[Id[T]] = UuidInPath[T] | new PathMatcher1[Id[T]] {
     def apply(path: Path) = path match {
       case Path.Segment(segment, tail) => Matched(tail, Tuple1(Id[T](segment)))
-      case _                           => Unmatched
-    }
-  }
-
-  def UuidInPath[T]: PathMatcher1[Id[T]] = new PathMatcher1[Id[T]] {
-    def apply(path: Path) = path match {
-      case Path.Segment(segment, tail) => Matched(tail, Tuple1(Id[T](UUID.fromString(segment).toString)))
       case _                           => Unmatched
     }
   }

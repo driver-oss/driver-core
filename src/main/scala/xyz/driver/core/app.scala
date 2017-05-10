@@ -27,7 +27,7 @@ import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-object app {
+package app {
 
   class DriverApp(version: String,
                   gitHash: String,

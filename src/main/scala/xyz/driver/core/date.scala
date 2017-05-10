@@ -7,14 +7,18 @@ import scala.util.Try
 import scalaz.std.anyVal._
 import scalaz.syntax.equal._
 
+package object date {
+  type Day   = Int @@ Day.type
+  type Month = Int @@ Month.type
+  type Year  = Int @@ Year.type
+}
+
 /**
   * Driver Date type and related validators/extractors.
   * Day, Month, and Year extractors are from ISO 8601 strings => driver...Date integers.
   * TODO: Decouple extractors from ISO 8601, as we might want to parse other formats.
   */
-object date {
-
-  type Day = Int @@ Day.type
+package date {
 
   object Day {
     def apply(value: Int): Day = {
@@ -27,8 +31,6 @@ object date {
       Try(dayString.toInt).toOption.map(apply)
     }
   }
-
-  type Month = Int @@ Month.type
 
   object Month {
     def apply(value: Int): Month = {
@@ -53,8 +55,6 @@ object date {
       Try(monthString.toInt).toOption.map(isoM => apply(isoM - 1))
     }
   }
-
-  type Year = Int @@ Year.type
 
   object Year {
     def apply(value: Int): Year = value.asInstanceOf[Year]

@@ -6,8 +6,7 @@ import java.util.concurrent.TimeUnit
 
 import scala.concurrent.duration._
 
-object time {
-
+package object time {
   // The most useful time units
   val Second  = 1000L
   val Seconds = Second
@@ -19,6 +18,22 @@ object time {
   val Days    = Day
   val Week    = 7 * Days
   val Weeks   = Week
+
+  def startOfMonth(time: Time) = {
+    Time(make(new GregorianCalendar()) { cal =>
+      cal.setTime(new Date(time.millis))
+      cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH))
+    }.getTime.getTime)
+  }
+
+  def textualDate(timezone: TimeZone)(time: Time): String =
+    make(new SimpleDateFormat("MMMM d, yyyy"))(_.setTimeZone(timezone)).format(new Date(time.millis))
+
+  def textualTime(timezone: TimeZone)(time: Time): String =
+    make(new SimpleDateFormat("MMM dd, yyyy hh:mm:ss a"))(_.setTimeZone(timezone)).format(new Date(time.millis))
+}
+
+package time {
 
   final case class Time(millis: Long) extends AnyVal {
 
@@ -47,19 +62,6 @@ object time {
   final case class TimeRange(start: Time, end: Time) {
     def duration: Duration = FiniteDuration(end.millis - start.millis, MILLISECONDS)
   }
-
-  def startOfMonth(time: Time) = {
-    Time(make(new GregorianCalendar()) { cal =>
-      cal.setTime(new Date(time.millis))
-      cal.set(Calendar.DAY_OF_MONTH, cal.getActualMinimum(Calendar.DAY_OF_MONTH))
-    }.getTime.getTime)
-  }
-
-  def textualDate(timezone: TimeZone)(time: Time): String =
-    make(new SimpleDateFormat("MMMM d, yyyy"))(_.setTimeZone(timezone)).format(new Date(time.millis))
-
-  def textualTime(timezone: TimeZone)(time: Time): String =
-    make(new SimpleDateFormat("MMM dd, yyyy hh:mm:ss a"))(_.setTimeZone(timezone)).format(new Date(time.millis))
 
   object provider {
 

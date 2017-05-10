@@ -4,7 +4,7 @@ import java.io.File
 import java.lang.management.ManagementFactory
 import java.lang.reflect.Modifier
 
-object stats {
+package stats {
 
   final case class MemoryStats(free: Long, total: Long, max: Long)
 

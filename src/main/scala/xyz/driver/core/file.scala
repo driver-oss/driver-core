@@ -11,7 +11,7 @@ import xyz.driver.core.time.Time
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, OptionT}
 
-object file {
+package file {
 
   final case class FileLink(
           name: Name[File],

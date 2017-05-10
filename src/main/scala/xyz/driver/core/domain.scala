@@ -4,7 +4,7 @@ import scalaz.Equal
 import scalaz.syntax.equal._
 import scalaz.std.string._
 
-object domain {
+package domain {
 
   final case class Email(username: String, domain: String) {
     override def toString = username + "@" + domain

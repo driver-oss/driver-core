@@ -13,7 +13,7 @@ import io.swagger.models.properties._
 import io.swagger.util.{Json, PrimitiveType}
 import spray.json._
 
-object swagger {
+package swagger {
 
   object CustomSwaggerJsonConverter {
 

@@ -4,7 +4,7 @@ import xyz.driver.core.domain.Email
 
 import scalaz.Equal
 
-object auth {
+package auth {
 
   trait Permission
 

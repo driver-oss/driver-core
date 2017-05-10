@@ -2,17 +2,18 @@ package xyz.driver.core
 
 import java.util.UUID
 
+import scala.reflect.runtime.universe._
+import scala.util.Try
+
 import akka.http.scaladsl.model.Uri.Path
+import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
-import akka.http.scaladsl.server.{PathMatcher, _}
 import akka.http.scaladsl.unmarshalling.Unmarshaller
-import spray.json.{DeserializationException, JsNumber, _}
+import spray.json._
 import xyz.driver.core.auth.AuthCredentials
-import xyz.driver.core.time.Time
 import xyz.driver.core.date.{Date, Month}
 import xyz.driver.core.domain.{Email, PhoneNumber}
-
-import scala.reflect.runtime.universe._
+import xyz.driver.core.time.Time
 
 object json {
   import DefaultJsonProtocol._
@@ -31,7 +32,17 @@ object json {
     }
   }
 
-  implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
+  implicit def uuidFormat[T] = new RootJsonFormat[Id[T]] {
+    def write(id: Id[T]) = JsString(id.value)
+
+    def read(value: JsValue) = value match {
+      case JsString(id) if Try(UUID.fromString(id)).isSuccess => Id[T](id.toLowerCase)
+      case JsString(id)                                       => throw DeserializationException("Expected Id as Uuid string")
+      case _                                                  => throw DeserializationException("Id expects string")
+    }
+  }
+
+  def idFormat[T] = new RootJsonFormat[Id[T]] {
     def write(id: Id[T]) = JsString(id.value)
 
     def read(value: JsValue) = value match {

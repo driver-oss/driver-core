@@ -3,14 +3,14 @@ package xyz.driver.core
 import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{RequestContext => _, _}
+import akka.http.scaladsl.server._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
 import xyz.driver.core.logging._
-import xyz.driver.core.rest.{AuthProvider, AuthorizedRequestContext, Authorization, RequestContext}
+import xyz.driver.core.rest._
 
 import scala.concurrent.Future
 import scalaz.OptionT
@@ -33,19 +33,22 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
     (keyPair.getPublic, keyPair.getPrivate)
   }
 
-  val authorization: Authorization[User] = new Authorization[User] {
+  val basicAuthorization: Authorization[User] = new Authorization[User] {
 
     override def userHasPermissions(permissions: Seq[Permission])(
-            implicit ctx: AuthorizedRequestContext[User]): OptionT[Future,
-                                                                      (Map[Permission, Boolean], PermissionsToken)] = {
-      val permissionsMap = permissions.map(p => p -> (p === TestRoleAllowedPermission)).toMap
-      val token          = PermissionsToken("TODO")
-      OptionT.optionT(Future.successful(Option((permissionsMap, token))))
+            implicit ctx: AuthorizedServiceRequestContext[User]): Future[AuthorizationResult] = {
+      val authorized = permissions.forall(_ === TestRoleAllowedPermission)
+      Future.successful(AuthorizationResult(authorized, ctx.permissionsToken))
     }
   }
 
-  val authStatusService = new AuthProvider[User](authorization, publicKey, NoLogger) {
-    override def authenticatedUser(implicit ctx: RequestContext): OptionT[Future, User] =
+  val tokenIssuer        = "users"
+  val tokenAuthorization = new CachedTokenAuthorization[User](publicKey, tokenIssuer)
+
+  val authorization = new ChainedAuthorization[User](tokenAuthorization, basicAuthorization)
+
+  val authStatusService = new AuthProvider[User](authorization, NoLogger) {
+    override def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, User] =
       OptionT.optionT[Future] {
         if (ctx.contextHeaders.keySet.contains(AuthProvider.AuthenticationTokenHeader)) {
           Future.successful(Some(BasicUser(Id[User]("1"), Set(TestRole))))
@@ -109,7 +112,7 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
 
     val claim = JsObject(
       Map(
-        "iss"         -> JsString("users"),
+        "iss"         -> JsString(tokenIssuer),
         "sub"         -> JsString("1"),
         "permissions" -> JsObject(Map(TestRoleAllowedByTokenPermission.toString -> JsBoolean(true)))
       )).prettyPrint

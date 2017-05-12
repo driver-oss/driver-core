@@ -114,7 +114,7 @@ package rest {
       case _                          => false
     }
 
-    override def toString: String = s"RequestContext($trackingId, $contextHeaders)"
+    override def toString: String = s"ServiceRequestContext($trackingId, $contextHeaders)"
   }
 
   class AuthorizedServiceRequestContext[U <: User](override val trackingId: String = generators.nextUuid().toString,
@@ -136,7 +136,8 @@ package rest {
       case _                                       => false
     }
 
-    override def toString: String = s"AuthenticatedRequestContext($trackingId, $contextHeaders, $authenticatedUser)"
+    override def toString: String =
+      s"AuthorizedServiceRequestContext($trackingId, $contextHeaders, $authenticatedUser)"
   }
 
   object ContextHeaders {
@@ -174,6 +175,14 @@ package rest {
             implicit ctx: AuthorizedServiceRequestContext[U]): Future[AuthorizationResult] = {
       import spray.json._
 
+      def extractPermissionsFromTokenJSON(tokenObject: JsObject): Option[Map[String, Boolean]] =
+        tokenObject.fields.get("permissions").collect {
+          case JsObject(fields) =>
+            fields.collect {
+              case (key, JsBoolean(value)) => key -> value
+            }
+        }
+
       val result = for {
         token <- ctx.permissionsToken
         jwt   <- Jwt.decode(token.value, publicKey, Seq(JwtAlgorithm.RS256)).toOption
@@ -183,12 +192,7 @@ package rest {
         _ <- jwtJson.fields.get("sub").contains(JsString(ctx.authenticatedUser.id.value)).option(())
         _ <- jwtJson.fields.get("iss").contains(JsString(issuer)).option(())
 
-        permissionsMap <- jwtJson.fields.get("permissions").collect {
-                           case JsObject(fields) =>
-                             fields.collect {
-                               case (key, JsBoolean(value)) => key -> value
-                             }
-                         }
+        permissionsMap <- extractPermissionsFromTokenJSON(jwtJson)
 
         authorized = permissions.forall(p => permissionsMap.get(p.toString).contains(true))
       } yield AuthorizationResult(authorized, Some(token))
@@ -202,24 +206,12 @@ package rest {
 
     override def userHasPermissions(permissions: Seq[Permission])(
             implicit ctx: AuthorizedServiceRequestContext[U]): Future[AuthorizationResult] = {
-      def callAuthorizations(
-              remainingAuthorizations: List[Authorization[U]] = authorizations.toList): Future[AuthorizationResult] = {
-        remainingAuthorizations match {
-          case auth :: Nil => auth.userHasPermissions(permissions)
-          case auth :: rest =>
-            auth
-              .userHasPermissions(permissions)
-              .flatMap(
-                result =>
-                  if (result.authorized) Future.successful(result)
-                  else callAuthorizations(rest))
-          case Nil => Future.successful(AuthorizationResult.unauthorized)
-        }
+      authorizations.toList.foldLeftM[Future, AuthorizationResult](AuthorizationResult.unauthorized) {
+        (authResult, authorization) =>
+          if (authResult.authorized) Future.successful(authResult)
+          else authorization.userHasPermissions(permissions)
       }
-
-      callAuthorizations()
     }
-
   }
 
   abstract class AuthProvider[U <: User](val authorization: Authorization[U], log: Logger)(

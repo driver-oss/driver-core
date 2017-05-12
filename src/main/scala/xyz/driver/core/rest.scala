@@ -299,7 +299,7 @@ package rest {
     protected def jsonEntity(json: JsValue): RequestEntity =
       HttpEntity(ContentTypes.`application/json`, json.compactPrint)
 
-    protected def get(baseUri: Uri, path: String, query: Seq[(String, String)]) =
+    protected def get(baseUri: Uri, path: String, query: Seq[(String, String)] = Seq.empty) =
       HttpRequest(HttpMethods.GET, endpointUri(baseUri, path, query))
 
     protected def post(baseUri: Uri, path: String, httpEntity: RequestEntity) =

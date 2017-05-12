@@ -100,11 +100,18 @@ package rest {
     def permissionsToken: Option[PermissionsToken] =
       contextHeaders.get(AuthProvider.PermissionsTokenHeader).map(PermissionsToken.apply)
 
+    def withAuthToken(authToken: AuthToken): ServiceRequestContext =
+      new ServiceRequestContext(
+        trackingId,
+        contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value)
+      )
+
     def withAuthenticatedUser[U <: User](authToken: AuthToken, user: U): AuthorizedServiceRequestContext[U] =
       new AuthorizedServiceRequestContext(
         trackingId,
         contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value),
-        user)
+        user
+      )
 
     override def hashCode(): Int =
       Seq[Any](trackingId, contextHeaders).foldLeft(31)((result, obj) => 31 * result + obj.hashCode())

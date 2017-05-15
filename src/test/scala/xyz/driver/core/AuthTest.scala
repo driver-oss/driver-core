@@ -35,8 +35,8 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
 
   val basicAuthorization: Authorization[User] = new Authorization[User] {
 
-    override def userHasPermissions(permissions: Seq[Permission])(
-            implicit ctx: AuthorizedServiceRequestContext[User]): Future[AuthorizationResult] = {
+    override def userHasPermissions(user: User, permissions: Seq[Permission])(
+            implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
       val authorized = permissions.forall(_ === TestRoleAllowedPermission)
       Future.successful(AuthorizationResult(authorized, ctx.permissionsToken))
     }

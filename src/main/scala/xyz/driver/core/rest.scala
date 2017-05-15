@@ -167,19 +167,19 @@ package rest {
   }
 
   trait Authorization[U <: User] {
-    def userHasPermissions(permissions: Seq[Permission])(
-            implicit ctx: AuthorizedServiceRequestContext[U]): Future[AuthorizationResult]
+    def userHasPermissions(user: U, permissions: Seq[Permission])(
+            implicit ctx: ServiceRequestContext): Future[AuthorizationResult]
   }
 
   class AlwaysAllowAuthorization[U <: User](implicit execution: ExecutionContext) extends Authorization[U] {
-    override def userHasPermissions(permissions: Seq[Permission])(
-            implicit ctx: AuthorizedServiceRequestContext[U]): Future[AuthorizationResult] =
+    override def userHasPermissions(user: U, permissions: Seq[Permission])(
+            implicit ctx: ServiceRequestContext): Future[AuthorizationResult] =
       Future.successful(AuthorizationResult(authorized = true, ctx.permissionsToken))
   }
 
   class CachedTokenAuthorization[U <: User](publicKey: PublicKey, issuer: String) extends Authorization[U] {
-    override def userHasPermissions(permissions: Seq[Permission])(
-            implicit ctx: AuthorizedServiceRequestContext[U]): Future[AuthorizationResult] = {
+    override def userHasPermissions(user: U, permissions: Seq[Permission])(
+            implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
       import spray.json._
 
       def extractPermissionsFromTokenJSON(tokenObject: JsObject): Option[Map[String, Boolean]] =
@@ -196,7 +196,7 @@ package rest {
         jwtJson = jwt.parseJson.asJsObject
 
         // Ensure jwt is for the currently authenticated user and the correct issuer, otherwise return None
-        _ <- jwtJson.fields.get("sub").contains(JsString(ctx.authenticatedUser.id.value)).option(())
+        _ <- jwtJson.fields.get("sub").contains(JsString(user.id.value)).option(())
         _ <- jwtJson.fields.get("iss").contains(JsString(issuer)).option(())
 
         permissionsMap <- extractPermissionsFromTokenJSON(jwtJson)
@@ -211,12 +211,12 @@ package rest {
   class ChainedAuthorization[U <: User](authorizations: Authorization[U]*)(implicit execution: ExecutionContext)
       extends Authorization[U] {
 
-    override def userHasPermissions(permissions: Seq[Permission])(
-            implicit ctx: AuthorizedServiceRequestContext[U]): Future[AuthorizationResult] = {
+    override def userHasPermissions(user: U, permissions: Seq[Permission])(
+            implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
       authorizations.toList.foldLeftM[Future, AuthorizationResult](AuthorizationResult.unauthorized) {
         (authResult, authorization) =>
           if (authResult.authorized) Future.successful(authResult)
-          else authorization.userHasPermissions(permissions)
+          else authorization.userHasPermissions(user, permissions)
       }
     }
   }
@@ -246,7 +246,7 @@ package rest {
             authToken <- OptionT.optionT(Future.successful(ctx.authToken))
             user      <- authenticatedUser(ctx)
             authCtx = ctx.withAuthenticatedUser(authToken, user)
-            authorizationResult <- authorization.userHasPermissions(permissions)(authCtx).toOptionT
+            authorizationResult <- authorization.userHasPermissions(user, permissions)(authCtx).toOptionT
             cachedPermissionsAuthCtx = authorizationResult.token.fold(authCtx)(authCtx.withPermissionsToken)
           } yield (cachedPermissionsAuthCtx, authorizationResult.authorized)).run
         } flatMap {

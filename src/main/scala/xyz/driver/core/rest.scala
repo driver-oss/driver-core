@@ -1,5 +1,9 @@
 package xyz.driver.core
 
+import java.nio.file.{Files, Path}
+import java.security.spec.X509EncodedKeySpec
+import java.security.{KeyFactory, PublicKey}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
@@ -14,7 +18,6 @@ import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
-import java.security.PublicKey
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
 import xyz.driver.core.time.provider.TimeProvider
@@ -205,6 +208,17 @@ package rest {
       } yield AuthorizationResult(authorized, Some(token))
 
       Future.successful(result.getOrElse(AuthorizationResult.unauthorized))
+    }
+  }
+
+  object CachedTokenAuthorization {
+    def apply[U <: User](publicKeyFile: Path, issuer: String): CachedTokenAuthorization[U] = {
+      val publicKey: PublicKey = {
+        val publicKeyBytes = Files.readAllBytes(publicKeyFile)
+        val spec           = new X509EncodedKeySpec(publicKeyBytes)
+        KeyFactory.getInstance("RSA").generatePublic(spec)
+      }
+      new CachedTokenAuthorization[U](publicKey, issuer)
     }
   }
 

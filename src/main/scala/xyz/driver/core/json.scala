@@ -18,7 +18,7 @@ import xyz.driver.core.time.Time
 object json {
   import DefaultJsonProtocol._
 
-  private def UuidInPath[T]: PathMatcher1[Id[T]] = PathMatchers.JavaUUID.map((id: UUID) => Id[T](id.toString))
+  private def UuidInPath[T]: PathMatcher1[Id[T]] = PathMatchers.JavaUUID.map((id: UUID) => Id[T](id.toString.toLowerCase))
 
   def IdInPath[T]: PathMatcher1[Id[T]] = UuidInPath[T] | new PathMatcher1[Id[T]] {
     def apply(path: Path) = path match {
@@ -27,22 +27,13 @@ object json {
     }
   }
 
-  implicit def uuidFormat[T] = new RootJsonFormat[Id[T]] {
+  implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
     def write(id: Id[T]) = JsString(id.value)
 
     def read(value: JsValue) = value match {
       case JsString(id) if Try(UUID.fromString(id)).isSuccess => Id[T](id.toLowerCase)
-      case JsString(id)                                       => throw DeserializationException("Expected Id as Uuid string")
+      case JsString(id)                                       => Id[T](id)
       case _                                                  => throw DeserializationException("Id expects string")
-    }
-  }
-
-  def idFormat[T] = new RootJsonFormat[Id[T]] {
-    def write(id: Id[T]) = JsString(id.value)
-
-    def read(value: JsValue) = value match {
-      case JsString(id) => Id[T](id)
-      case _            => throw DeserializationException("Id expects string")
     }
   }
 

@@ -8,9 +8,11 @@ import ch.qos.logback.core.LayoutBase
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.helpers.NOPLogger
 
-object logging {
+package logging {
 
-  val NoLogger = com.typesafe.scalalogging.Logger(NOPLogger.NOP_LOGGER)
+  object `package` {
+    val NoLogger = com.typesafe.scalalogging.Logger(NOPLogger.NOP_LOGGER)
+  }
 
   class DriverLayout extends LayoutBase[ILoggingEvent] {
     import scala.collection.JavaConverters._

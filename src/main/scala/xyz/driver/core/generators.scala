@@ -8,7 +8,7 @@ import xyz.driver.core.date.Date
 import scala.reflect.ClassTag
 import scala.util.Random
 
-object generators {
+package object generators {
 
   private val random = new Random
   import random._

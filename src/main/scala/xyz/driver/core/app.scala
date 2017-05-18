@@ -29,7 +29,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scalaz.Scalaz.stringInstance
 import scalaz.syntax.equal._
 
-object app {
+package app {
 
   class DriverApp(version: String,
                   gitHash: String,

@@ -3,7 +3,7 @@ package xyz.driver.core
 import java.io.File
 import com.typesafe.config.{Config, ConfigFactory}
 
-object config {
+package object config {
 
   def loadDefaultConfig: Config = {
     val configDefaults = ConfigFactory.load(this.getClass.getClassLoader, "application.conf")

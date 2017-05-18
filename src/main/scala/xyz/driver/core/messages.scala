@@ -8,7 +8,7 @@ import com.typesafe.scalalogging.Logger
 /**
   * Scala internationalization (i18n) support
   */
-object messages {
+package messages {
 
   object Messages {
     def messages(config: Config, log: Logger, locale: Locale = Locale.US): Messages = {

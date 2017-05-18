@@ -38,7 +38,7 @@ class DateTest extends FlatSpec with Matchers with Checkers {
         case Seq(a, b) =>
           if (a.year == b.year) {
             if (a.month == b.month) {
-              a.day < b.day
+              a.day <= b.day
             } else {
               a.month < b.month
             }

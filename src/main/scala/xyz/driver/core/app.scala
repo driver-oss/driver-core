@@ -26,6 +26,8 @@ import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
 import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
+import scalaz.Scalaz.stringInstance
+import scalaz.syntax.equal._
 
 object app {
 
@@ -59,6 +61,9 @@ object app {
       }
     }
 
+    private def extractHeader(request: HttpRequest)(headerName: String): Option[String] =
+      request.headers.find(_.name().toLowerCase === headerName).map(_.value())
+
     protected def bindHttp(modules: Seq[Module]): Unit = {
       val serviceTypes   = modules.flatMap(_.routeTypes)
       val swaggerService = new Swagger(baseUrl, Scheme.forValue(scheme), version, actorSystem, serviceTypes, config)
@@ -74,6 +79,12 @@ object app {
                   val trackingId = rest.extractTrackingId(ctx.request)
                   MDC.put("trackingId", trackingId)
                   MDC.put("origin", origin)
+                  MDC.put("xForwardedFor",
+                          extractHeader(ctx.request)("x-forwarded-for")
+                            .orElse(extractHeader(ctx.request)("x_forwarded_for"))
+                            .getOrElse("unknown"))
+                  MDC.put("remoteAddress", extractHeader(ctx.request)("remote-address").getOrElse("unknown"))
+                  MDC.put("userAgent", extractHeader(ctx.request)("user-agent").getOrElse("unknown"))
                   MDC.put("ip", ip.toOption.map(_.getHostAddress).getOrElse("unknown"))
 
                   def requestLogging: Future[Unit] = Future {

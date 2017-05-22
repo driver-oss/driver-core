@@ -117,7 +117,7 @@ object app {
 
     protected def swaggerOverride(apiTypes: Seq[Type]) = {
       new Swagger(baseUrl, Scheme.forValue(scheme), version, actorSystem, apiTypes, config) {
-        override def generateSwaggerJson(): String = {
+        override def generateSwaggerJson: String = {
           import io.swagger.models.Swagger
 
           import scala.collection.JavaConverters._

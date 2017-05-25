@@ -10,8 +10,8 @@ import slick.driver.JdbcProfile
 package object database {
 
   type Schema = {
-    def create: DBIOAction[Unit, NoStream, slick.dbio.Effect.Schema]
-    def drop: DBIOAction[Unit, NoStream, slick.dbio.Effect.Schema]
+    def create: DBIOAction[Unit, NoStream, Effect.Schema]
+    def drop: DBIOAction[Unit, NoStream, Effect.Schema]
   }
 
   type GeneratedTables = {

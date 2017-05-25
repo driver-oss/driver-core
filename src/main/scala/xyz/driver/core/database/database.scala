@@ -129,13 +129,11 @@ package database {
     import scala.concurrent.Await
     import scala.concurrent.duration.Duration
 
-    // Note: Does not call `super.beforeEach()` (for org.scalatest.BeforeAndAfterEach)
-    def beforeEach(): Unit = {
+    def createSchema(): Unit = {
       Await.result(slickDal.execute(tables.createNamespaceSchema >> tables.schema.create), Duration.Inf)
     }
 
-    // Note: Does not call `super.afterEach()` (for org.scalatest.BeforeAndAfterEach)
-    def afterEach(): Unit = {
+    def dropSchema(): Unit = {
       Await.result(slickDal.execute(tables.schema.drop >> tables.dropNamespaceSchema), Duration.Inf)
     }
   }

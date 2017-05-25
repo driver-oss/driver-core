@@ -7,34 +7,47 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.mock.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
+import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
 import xyz.driver.core.logging._
-import xyz.driver.core.rest.{AuthProvider, Authorization, ServiceRequestContext}
+import xyz.driver.core.rest._
 
 import scala.concurrent.Future
 import scalaz.OptionT
 
 class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRouteTest {
 
-  case object TestRoleAllowedPermission    extends Permission
-  case object TestRoleNotAllowedPermission extends Permission
+  case object TestRoleAllowedPermission        extends Permission
+  case object TestRoleAllowedByTokenPermission extends Permission
+  case object TestRoleNotAllowedPermission     extends Permission
 
   val TestRole = Role(Id("1"), Name("testRole"))
 
-  implicit val exec = scala.concurrent.ExecutionContext.global
+  val (publicKey, privateKey) = {
+    import java.security.KeyPairGenerator
 
-  val authorization: Authorization = new Authorization {
-    override def userHasPermission(user: User, permission: Permission)(
-            implicit ctx: ServiceRequestContext): Future[Boolean] = {
-      Future.successful(permission === TestRoleAllowedPermission)
+    val keygen = KeyPairGenerator.getInstance("RSA")
+    keygen.initialize(2048)
+
+    val keyPair = keygen.generateKeyPair()
+    (keyPair.getPublic, keyPair.getPrivate)
+  }
+
+  val basicAuthorization: Authorization[User] = new Authorization[User] {
+
+    override def userHasPermissions(user: User, permissions: Seq[Permission])(
+            implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
+      val authorized = permissions.forall(_ === TestRoleAllowedPermission)
+      Future.successful(AuthorizationResult(authorized, ctx.permissionsToken))
     }
   }
 
+  val tokenIssuer        = "users"
+  val tokenAuthorization = new CachedTokenAuthorization[User](publicKey, tokenIssuer)
+
+  val authorization = new ChainedAuthorization[User](tokenAuthorization, basicAuthorization)
+
   val authStatusService = new AuthProvider[User](authorization, NoLogger) {
-
-    override def isSessionValid(user: User)(implicit ctx: ServiceRequestContext): Future[Boolean] =
-      Future.successful(true)
-
     override def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, User] =
       OptionT.optionT[Future] {
         if (ctx.contextHeaders.keySet.contains(AuthProvider.AuthenticationTokenHeader)) {
@@ -47,7 +60,7 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
 
   import authStatusService._
 
-  "'authorize' directive" should "throw error is auth token is not in the request" in {
+  "'authorize' directive" should "throw error if auth token is not in the request" in {
 
     Get("/naive/attempt") ~>
       authorize(TestRoleAllowedPermission) { user =>
@@ -59,7 +72,7 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
       }
   }
 
-  it should "throw error is authorized user is not having the requested permission" in {
+  it should "throw error if authorized user does not have the requested permission" in {
 
     val referenceAuthToken = AuthToken("I am a test role's token")
 
@@ -85,12 +98,36 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
     Get("/valid/attempt/?a=2&b=5").addHeader(
       RawHeader(AuthProvider.AuthenticationTokenHeader, referenceAuthToken.value)
     ) ~>
-      authorize(TestRoleAllowedPermission) { user =>
-        complete("Alright, user \"" + user.id + "\" is authorized")
+      authorize(TestRoleAllowedPermission) { ctx =>
+        complete(s"Alright, user ${ctx.authenticatedUser.id} is authorized")
       } ~>
       check {
         handled shouldBe true
-        responseAs[String] shouldBe "Alright, user \"1\" is authorized"
+        responseAs[String] shouldBe "Alright, user 1 is authorized"
+      }
+  }
+
+  it should "authorize permission found in permissions token" in {
+    import spray.json._
+
+    val claim = JsObject(
+      Map(
+        "iss"         -> JsString(tokenIssuer),
+        "sub"         -> JsString("1"),
+        "permissions" -> JsObject(Map(TestRoleAllowedByTokenPermission.toString -> JsBoolean(true)))
+      )).prettyPrint
+    val permissionsToken   = PermissionsToken(Jwt.encode(claim, privateKey, JwtAlgorithm.RS256))
+    val referenceAuthToken = AuthToken("I am token")
+
+    Get("/alic/attempt/?a=2&b=5")
+      .addHeader(RawHeader(AuthProvider.AuthenticationTokenHeader, referenceAuthToken.value))
+      .addHeader(RawHeader(AuthProvider.PermissionsTokenHeader, permissionsToken.value)) ~>
+      authorize(TestRoleAllowedByTokenPermission) { ctx =>
+        complete(s"Alright, user ${ctx.authenticatedUser.id} is authorized by permissions token")
+      } ~>
+      check {
+        handled shouldBe true
+        responseAs[String] shouldBe "Alright, user 1 is authorized by permissions token"
       }
   }
 }

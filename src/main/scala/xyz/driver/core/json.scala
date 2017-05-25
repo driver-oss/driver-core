@@ -18,7 +18,8 @@ import xyz.driver.core.time.Time
 object json {
   import DefaultJsonProtocol._
 
-  private def UuidInPath[T]: PathMatcher1[Id[T]] = PathMatchers.JavaUUID.map((id: UUID) => Id[T](id.toString.toLowerCase))
+  private def UuidInPath[T]: PathMatcher1[Id[T]] =
+    PathMatchers.JavaUUID.map((id: UUID) => Id[T](id.toString.toLowerCase))
 
   def IdInPath[T]: PathMatcher1[Id[T]] = UuidInPath[T] | new PathMatcher1[Id[T]] {
     def apply(path: Path) = path match {

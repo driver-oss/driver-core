@@ -180,7 +180,7 @@ package rest {
       Future.successful(AuthorizationResult(authorized = true, ctx.permissionsToken))
   }
 
-  class CachedTokenAuthorization[U <: User](publicKey: PublicKey, issuer: String) extends Authorization[U] {
+  class CachedTokenAuthorization[U <: User](publicKey: => PublicKey, issuer: String) extends Authorization[U] {
     override def userHasPermissions(user: U, permissions: Seq[Permission])(
             implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
       import spray.json._
@@ -213,7 +213,7 @@ package rest {
 
   object CachedTokenAuthorization {
     def apply[U <: User](publicKeyFile: Path, issuer: String): CachedTokenAuthorization[U] = {
-      val publicKey: PublicKey = {
+      lazy val publicKey: PublicKey = {
         val publicKeyBytes = Files.readAllBytes(publicKeyFile)
         val spec           = new X509EncodedKeySpec(publicKeyBytes)
         KeyFactory.getInstance("RSA").generatePublic(spec)

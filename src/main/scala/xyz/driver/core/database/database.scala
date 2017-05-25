@@ -121,6 +121,23 @@ package database {
     def naturalKeyMapper[T] = MappedColumnType.base[Id[T], String](_.value, Id[T](_))
   }
 
+  trait CreateAndDropSchema {
+    val slickDal: xyz.driver.core.database.SlickDal
+    val tables: GeneratedTables
+
+    import tables.profile.api._
+    import scala.concurrent.Await
+    import scala.concurrent.duration.Duration
+
+    def createSchema(): Unit = {
+      Await.result(slickDal.execute(tables.createNamespaceSchema >> tables.schema.create), Duration.Inf)
+    }
+
+    def dropSchema(): Unit = {
+      Await.result(slickDal.execute(tables.schema.drop >> tables.dropNamespaceSchema), Duration.Inf)
+    }
+  }
+
   trait DatabaseObject extends ColumnTypes {
     def createTables(): Future[Unit]
     def disconnect(): Unit

@@ -121,16 +121,6 @@ package database {
     def naturalKeyMapper[T] = MappedColumnType.base[Id[T], String](_.value, Id[T](_))
   }
 
-  trait GeneratedTables extends ColumnTypes {
-    import slick.dbio._
-
-    val profile: JdbcProfile
-    def schema: profile.SchemaDescription
-
-    def createNamespaceSchema: StreamingDBIO[Vector[Unit], Unit]
-    def dropNamespaceSchema: StreamingDBIO[Vector[Unit], Unit]
-  }
-
   trait CreateAndDropSchema {
     val slickDal: xyz.driver.core.database.SlickDal
     val tables: GeneratedTables

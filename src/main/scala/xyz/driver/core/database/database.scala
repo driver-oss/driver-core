@@ -131,6 +131,25 @@ package database {
     def dropNamespaceSchema: StreamingDBIO[Vector[Unit], Unit]
   }
 
+  trait CreateAndDropSchema {
+    val slickDal: xyz.driver.core.database.SlickDal
+    val tables: GeneratedTables
+
+    import tables.profile.api._
+    import scala.concurrent.Await
+    import scala.concurrent.duration.Duration
+
+    // Note: Does not call `super.beforeEach()` (for org.scalatest.BeforeAndAfterEach)
+    def beforeEach(): Unit = {
+      Await.result(slickDal.execute(tables.createNamespaceSchema >> tables.schema.create), Duration.Inf)
+    }
+
+    // Note: Does not call `super.afterEach()` (for org.scalatest.BeforeAndAfterEach)
+    def afterEach(): Unit = {
+      Await.result(slickDal.execute(tables.schema.drop >> tables.dropNamespaceSchema), Duration.Inf)
+    }
+  }
+
   trait DatabaseObject extends ColumnTypes {
     def createTables(): Future[Unit]
     def disconnect(): Unit

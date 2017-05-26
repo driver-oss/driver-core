@@ -21,6 +21,7 @@ import io.swagger.models.Scheme
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
 import xyz.driver.core.time.provider.TimeProvider
+import org.slf4j.MDC
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -44,10 +45,13 @@ package rest {
         .fold(java.util.UUID.randomUUID.toString)(_.value())
     }
 
+    def extractStacktrace(request: HttpRequest): Array[String] =
+      request.headers.find(_.name == ContextHeaders.StacktraceHeader).fold("")(_.value()).split("->")
+
     def extractContextHeaders(request: HttpRequest): Map[String, String] = {
       request.headers.filter { h =>
         h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader ||
-        h.name === ContextHeaders.PermissionsTokenHeader
+        h.name === ContextHeaders.PermissionsTokenHeader || h.name === ContextHeaders.StacktraceHeader
       } map { header =>
         if (header.name === ContextHeaders.AuthenticationTokenHeader) {
           header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim
@@ -155,6 +159,7 @@ package rest {
     val PermissionsTokenHeader     = "Permissions"
     val AuthenticationHeaderPrefix = "Bearer"
     val TrackingIdHeader           = "X-Trace"
+    val StacktraceHeader           = "X-Stacktrace"
   }
 
   object AuthProvider {
@@ -358,9 +363,15 @@ package rest {
       val requestTime = time.currentTime()
 
       val request = requestStub
-        .withHeaders(RawHeader(ContextHeaders.TrackingIdHeader, context.trackingId))
-        .withHeaders(context.contextHeaders.toSeq.map { h =>
-          RawHeader(h._1, h._2): HttpHeader
+        .withHeaders(context.contextHeaders.toSeq.map {
+          case (ContextHeaders.TrackingIdHeader, headerValue) =>
+            RawHeader(ContextHeaders.TrackingIdHeader, context.trackingId)
+          case (ContextHeaders.StacktraceHeader, headerValue) =>
+            RawHeader(ContextHeaders.StacktraceHeader,
+                      Option(MDC.get("stack"))
+                        .orElse(context.contextHeaders.get(ContextHeaders.StacktraceHeader))
+                        .getOrElse(""))
+          case (header, headerValue) => RawHeader(header, headerValue)
         }: _*)
 
       log.info(s"Sending request to ${request.method} ${request.uri}")

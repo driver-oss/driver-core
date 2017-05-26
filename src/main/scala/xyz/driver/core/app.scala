@@ -35,7 +35,8 @@ import scalaz.syntax.equal._
 
 object app {
 
-  class DriverApp(version: String,
+  class DriverApp(appName: String,
+                  version: String,
                   gitHash: String,
                   modules: Seq[Module],
                   time: TimeProvider = new SystemTimeProvider(),
@@ -82,14 +83,11 @@ object app {
                 { ctx =>
                   val trackingId = rest.extractTrackingId(ctx.request)
                   MDC.put("trackingId", trackingId)
-                  MDC.put("origin", origin)
-                  MDC.put("xForwardedFor",
-                          extractHeader(ctx.request)("x-forwarded-for")
-                            .orElse(extractHeader(ctx.request)("x_forwarded_for"))
-                            .getOrElse("unknown"))
-                  MDC.put("remoteAddress", extractHeader(ctx.request)("remote-address").getOrElse("unknown"))
-                  MDC.put("userAgent", extractHeader(ctx.request)("user-agent").getOrElse("unknown"))
-                  MDC.put("ip", ip.toOption.map(_.getHostAddress).getOrElse("unknown"))
+
+                  val updatedStacktrace = (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
+                  MDC.put("stack", updatedStacktrace)
+
+                  storeRequestContextToMdc(ctx.request, origin, ip)
 
                   def requestLogging: Future[Unit] = Future {
                     log.info(
@@ -97,7 +95,10 @@ object app {
                   }
 
                   val contextWithTrackingId =
-                    ctx.withRequest(ctx.request.addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId)))
+                    ctx.withRequest(
+                      ctx.request
+                        .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
+                        .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
 
                   handleExceptions(ExceptionHandler(exceptionHandler))({ c =>
                     requestLogging.flatMap { _ =>
@@ -113,6 +114,20 @@ object app {
           port
         )(materializer)
       }
+    }
+
+    private def storeRequestContextToMdc(request: HttpRequest, origin: String, ip: RemoteAddress) = {
+
+      MDC.put("origin", origin)
+      MDC.put("ip", ip.toOption.map(_.getHostAddress).getOrElse("unknown"))
+      MDC.put("remoteHost", ip.toOption.map(_.getHostName).getOrElse("unknown"))
+
+      MDC.put("xForwardedFor",
+              extractHeader(request)("x-forwarded-for")
+                .orElse(extractHeader(request)("x_forwarded_for"))
+                .getOrElse("unknown"))
+      MDC.put("remoteAddress", extractHeader(request)("remote-address").getOrElse("unknown"))
+      MDC.put("userAgent", extractHeader(request)("user-agent").getOrElse("unknown"))
     }
 
     protected def swaggerOverride(apiTypes: Seq[Type]) = {

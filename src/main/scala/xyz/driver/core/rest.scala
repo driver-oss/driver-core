@@ -21,7 +21,6 @@ import akka.util.ByteString
 import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
-import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._

@@ -126,9 +126,14 @@ object app {
             val swagger: Swagger = reader.read(toJavaTypeSet(apiTypes).asJava)
 
             // Removing trailing spaces
-            swagger.setPaths(swagger.getPaths.asScala.map { case (key, path) =>
-              key.trim -> path
-            }.toMap.asJava)
+            swagger.setPaths(
+              swagger.getPaths.asScala
+                .map {
+                  case (key, path) =>
+                    key.trim -> path
+                }
+                .toMap
+                .asJava)
 
             Json.pretty().writeValueAsString(swagger)
           } catch {

@@ -7,7 +7,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.RawHeader
+import akka.http.scaladsl.model.headers.{HttpOriginRange, RawHeader, `Access-Control-Allow-Origin`}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
@@ -102,7 +102,10 @@ object app {
 
                   handleExceptions(ExceptionHandler(exceptionHandler))({ c =>
                     requestLogging.flatMap { _ =>
-                      respondWithHeaders(List(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))) {
+                      val responseHeaders = List[HttpHeader](RawHeader(ContextHeaders.TrackingIdHeader, trackingId),
+                                                             `Access-Control-Allow-Origin`(HttpOriginRange.*))
+
+                      respondWithHeaders(responseHeaders) {
                         modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
                       }(c)
                     }

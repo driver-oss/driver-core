@@ -23,6 +23,7 @@ object auth {
 
   final case class AuthToken(value: String)
   final case class RefreshToken(value: String)
+  final case class PermissionsToken(value: String)
 
   final case class PasswordHash(value: String)
 

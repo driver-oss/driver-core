@@ -1,21 +1,27 @@
 package xyz.driver.core
 
-import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
-import akka.http.scaladsl.server.{PathMatcher, _}
-import akka.http.scaladsl.unmarshalling.Unmarshaller
-import spray.json.{DeserializationException, JsNumber, _}
-import xyz.driver.core.auth.AuthCredentials
-import xyz.driver.core.time.Time
-import xyz.driver.core.date.{Date, Month}
-import xyz.driver.core.domain.{Email, PhoneNumber}
+import java.util.UUID
 
 import scala.reflect.runtime.universe._
+import scala.util.Try
+
+import akka.http.scaladsl.model.Uri.Path
+import akka.http.scaladsl.server._
+import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
+import akka.http.scaladsl.unmarshalling.Unmarshaller
+import spray.json._
+import xyz.driver.core.auth.AuthCredentials
+import xyz.driver.core.date.{Date, Month}
+import xyz.driver.core.domain.{Email, PhoneNumber}
+import xyz.driver.core.time.Time
 
 object json {
   import DefaultJsonProtocol._
 
-  def IdInPath[T]: PathMatcher1[Id[T]] = new PathMatcher1[Id[T]] {
+  private def UuidInPath[T]: PathMatcher1[Id[T]] =
+    PathMatchers.JavaUUID.map((id: UUID) => Id[T](id.toString.toLowerCase))
+
+  def IdInPath[T]: PathMatcher1[Id[T]] = UuidInPath[T] | new PathMatcher1[Id[T]] {
     def apply(path: Path) = path match {
       case Path.Segment(segment, tail) => Matched(tail, Tuple1(Id[T](segment)))
       case _                           => Unmatched
@@ -26,8 +32,9 @@ object json {
     def write(id: Id[T]) = JsString(id.value)
 
     def read(value: JsValue) = value match {
-      case JsString(id) => Id[T](id)
-      case _            => throw DeserializationException("Id expects string")
+      case JsString(id) if Try(UUID.fromString(id)).isSuccess => Id[T](id.toLowerCase)
+      case JsString(id)                                       => Id[T](id)
+      case _                                                  => throw DeserializationException("Id expects string")
     }
   }
 

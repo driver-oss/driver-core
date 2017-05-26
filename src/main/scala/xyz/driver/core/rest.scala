@@ -1,21 +1,24 @@
 package xyz.driver.core
 
+import java.nio.file.{Files, Path}
+import java.security.spec.X509EncodedKeySpec
+import java.security.{KeyFactory, PublicKey}
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
-import akka.http.scaladsl.server.Directive0
-import com.typesafe.scalalogging.Logger
-import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.http.scaladsl.unmarshalling.Unmarshaller
+import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
+import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
 import xyz.driver.core.time.provider.TimeProvider
 import org.slf4j.MDC
@@ -34,7 +37,7 @@ package rest {
     def serviceContext: Directive1[ServiceRequestContext] = extract(ctx => extractServiceContext(ctx.request))
 
     def extractServiceContext(request: HttpRequest): ServiceRequestContext =
-      ServiceRequestContext(extractTrackingId(request), extractContextHeaders(request))
+      new ServiceRequestContext(extractTrackingId(request), extractContextHeaders(request))
 
     def extractTrackingId(request: HttpRequest): String = {
       request.headers
@@ -47,9 +50,8 @@ package rest {
 
     def extractContextHeaders(request: HttpRequest): Map[String, String] = {
       request.headers.filter { h =>
-        h.name === ContextHeaders.AuthenticationTokenHeader ||
-        h.name === ContextHeaders.TrackingIdHeader ||
-        h.name === ContextHeaders.StacktraceHeader
+        h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader ||
+        h.name === ContextHeaders.PermissionsTokenHeader || h.name === ContextHeaders.StacktraceHeader
       } map { header =>
         if (header.name === ContextHeaders.AuthenticationTokenHeader) {
           header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim
@@ -97,14 +99,59 @@ package rest {
     }
   }
 
-  final case class ServiceRequestContext(trackingId: String = generators.nextUuid().toString,
-                                         contextHeaders: Map[String, String] = Map.empty[String, String]) {
-
+  class ServiceRequestContext(val trackingId: String = generators.nextUuid().toString,
+                              val contextHeaders: Map[String, String] = Map.empty[String, String]) {
     def authToken: Option[AuthToken] =
       contextHeaders.get(AuthProvider.AuthenticationTokenHeader).map(AuthToken.apply)
 
+    def permissionsToken: Option[PermissionsToken] =
+      contextHeaders.get(AuthProvider.PermissionsTokenHeader).map(PermissionsToken.apply)
+
     def withAuthToken(authToken: AuthToken): ServiceRequestContext =
-      copy(contextHeaders = contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value))
+      new ServiceRequestContext(
+        trackingId,
+        contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value)
+      )
+
+    def withAuthenticatedUser[U <: User](authToken: AuthToken, user: U): AuthorizedServiceRequestContext[U] =
+      new AuthorizedServiceRequestContext(
+        trackingId,
+        contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value),
+        user
+      )
+
+    override def hashCode(): Int =
+      Seq[Any](trackingId, contextHeaders).foldLeft(31)((result, obj) => 31 * result + obj.hashCode())
+
+    override def equals(obj: Any): Boolean = obj match {
+      case ctx: ServiceRequestContext => trackingId === ctx.trackingId && contextHeaders === ctx.contextHeaders
+      case _                          => false
+    }
+
+    override def toString: String = s"ServiceRequestContext($trackingId, $contextHeaders)"
+  }
+
+  class AuthorizedServiceRequestContext[U <: User](override val trackingId: String = generators.nextUuid().toString,
+                                                   override val contextHeaders: Map[String, String] =
+                                                     Map.empty[String, String],
+                                                   val authenticatedUser: U)
+      extends ServiceRequestContext {
+
+    def withPermissionsToken(permissionsToken: PermissionsToken): AuthorizedServiceRequestContext[U] =
+      new AuthorizedServiceRequestContext[U](
+        trackingId,
+        contextHeaders.updated(AuthProvider.PermissionsTokenHeader, permissionsToken.value),
+        authenticatedUser)
+
+    override def hashCode(): Int = 31 * super.hashCode() + authenticatedUser.hashCode()
+
+    override def equals(obj: Any): Boolean = obj match {
+      case ctx: AuthorizedServiceRequestContext[U] => super.equals(ctx) && ctx.authenticatedUser == authenticatedUser
+      case _                                       => false
+    }
+
+    override def toString: String =
+      s"AuthorizedServiceRequestContext($trackingId, $contextHeaders, $authenticatedUser)"
   }
 
   object ContextHeaders {
@@ -122,18 +169,79 @@ package rest {
     val SetPermissionsTokenHeader    = "set-permissions"
   }
 
-  trait Authorization {
-    def userHasPermission(user: User, permission: Permission)(implicit ctx: ServiceRequestContext): Future[Boolean]
+  final case class AuthorizationResult(authorized: Boolean, token: Option[PermissionsToken])
+  object AuthorizationResult {
+    val unauthorized: AuthorizationResult = AuthorizationResult(authorized = false, None)
   }
 
-  class AlwaysAllowAuthorization extends Authorization {
-    override def userHasPermission(user: User, permission: Permission)(
-            implicit ctx: ServiceRequestContext): Future[Boolean] = {
-      Future.successful(true)
+  trait Authorization[U <: User] {
+    def userHasPermissions(user: U, permissions: Seq[Permission])(
+            implicit ctx: ServiceRequestContext): Future[AuthorizationResult]
+  }
+
+  class AlwaysAllowAuthorization[U <: User](implicit execution: ExecutionContext) extends Authorization[U] {
+    override def userHasPermissions(user: U, permissions: Seq[Permission])(
+            implicit ctx: ServiceRequestContext): Future[AuthorizationResult] =
+      Future.successful(AuthorizationResult(authorized = true, ctx.permissionsToken))
+  }
+
+  class CachedTokenAuthorization[U <: User](publicKey: => PublicKey, issuer: String) extends Authorization[U] {
+    override def userHasPermissions(user: U, permissions: Seq[Permission])(
+            implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
+      import spray.json._
+
+      def extractPermissionsFromTokenJSON(tokenObject: JsObject): Option[Map[String, Boolean]] =
+        tokenObject.fields.get("permissions").collect {
+          case JsObject(fields) =>
+            fields.collect {
+              case (key, JsBoolean(value)) => key -> value
+            }
+        }
+
+      val result = for {
+        token <- ctx.permissionsToken
+        jwt   <- Jwt.decode(token.value, publicKey, Seq(JwtAlgorithm.RS256)).toOption
+        jwtJson = jwt.parseJson.asJsObject
+
+        // Ensure jwt is for the currently authenticated user and the correct issuer, otherwise return None
+        _ <- jwtJson.fields.get("sub").contains(JsString(user.id.value)).option(())
+        _ <- jwtJson.fields.get("iss").contains(JsString(issuer)).option(())
+
+        permissionsMap <- extractPermissionsFromTokenJSON(jwtJson)
+
+        authorized = permissions.forall(p => permissionsMap.get(p.toString).contains(true))
+      } yield AuthorizationResult(authorized, Some(token))
+
+      Future.successful(result.getOrElse(AuthorizationResult.unauthorized))
     }
   }
 
-  abstract class AuthProvider[U <: User](val authorization: Authorization, log: Logger)(
+  object CachedTokenAuthorization {
+    def apply[U <: User](publicKeyFile: Path, issuer: String): CachedTokenAuthorization[U] = {
+      lazy val publicKey: PublicKey = {
+        val publicKeyBase64Encoded = Files.readAllBytes(publicKeyFile)
+        val publicKeyBase64Decoded = java.util.Base64.getDecoder.decode(publicKeyBase64Encoded)
+        val spec                   = new X509EncodedKeySpec(publicKeyBase64Decoded)
+        KeyFactory.getInstance("RSA").generatePublic(spec)
+      }
+      new CachedTokenAuthorization[U](publicKey, issuer)
+    }
+  }
+
+  class ChainedAuthorization[U <: User](authorizations: Authorization[U]*)(implicit execution: ExecutionContext)
+      extends Authorization[U] {
+
+    override def userHasPermissions(user: U, permissions: Seq[Permission])(
+            implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
+      authorizations.toList.foldLeftM[Future, AuthorizationResult](AuthorizationResult.unauthorized) {
+        (authResult, authorization) =>
+          if (authResult.authorized) Future.successful(authResult)
+          else authorization.userHasPermissions(user, permissions)
+      }
+    }
+  }
+
+  abstract class AuthProvider[U <: User](val authorization: Authorization[U], log: Logger)(
           implicit execution: ExecutionContext) {
 
     import akka.http.scaladsl.server._
@@ -149,43 +257,30 @@ package rest {
     def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, U]
 
     /**
-      * Specific implementation can verify session expiration and single sign out
-      * to verify if session is still valid
-      */
-    def isSessionValid(user: U)(implicit ctx: ServiceRequestContext): Future[Boolean]
-
-    /**
       * Verifies if request is authenticated and authorized to have `permissions`
       */
-    def authorize(permissions: Permission*): Directive1[U] = {
+    def authorize(permissions: Permission*): Directive1[AuthorizedServiceRequestContext[U]] = {
       serviceContext flatMap { ctx =>
-        onComplete(authenticatedUser(ctx).run flatMap { userOption =>
-          userOption.traverseM[Future, (U, Boolean)] { user =>
-            isSessionValid(user)(ctx).flatMap { sessionValid =>
-              if (sessionValid) {
-                permissions.toList
-                  .traverse[Future, Boolean](authorization.userHasPermission(user, _)(ctx))
-                  .map(results => Option(user -> results.forall(identity)))
-              } else {
-                Future.successful(Option.empty[(U, Boolean)])
-              }
-            }
-          }
-        }).flatMap {
-          case Success(Some((user, authorizationResult))) =>
-            if (authorizationResult) provide(user)
-            else {
-              val challenge =
-                HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
-              log.warn(s"User $user does not have the required permissions: ${permissions.mkString(", ")}")
-              reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
-            }
-
+        onComplete {
+          (for {
+            authToken <- OptionT.optionT(Future.successful(ctx.authToken))
+            user      <- authenticatedUser(ctx)
+            authCtx = ctx.withAuthenticatedUser(authToken, user)
+            authorizationResult <- authorization.userHasPermissions(user, permissions)(authCtx).toOptionT
+            cachedPermissionsAuthCtx = authorizationResult.token.fold(authCtx)(authCtx.withPermissionsToken)
+          } yield (cachedPermissionsAuthCtx, authorizationResult.authorized)).run
+        } flatMap {
+          case Success(Some((authCtx, true))) => provide(authCtx)
+          case Success(Some((authCtx, false))) =>
+            val challenge =
+              HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
+            log.warn(
+              s"User ${authCtx.authenticatedUser} does not have the required permissions: ${permissions.mkString(", ")}")
+            reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
           case Success(None) =>
             log.warn(
               s"Wasn't able to find authenticated user for the token provided to verify ${permissions.mkString(", ")}")
             reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
-
           case Failure(t) =>
             log.warn(s"Wasn't able to verify token for authenticated user to verify ${permissions.mkString(", ")}", t)
             reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))
@@ -200,7 +295,6 @@ package rest {
 
     import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
     import spray.json._
-    import DefaultJsonProtocol._
 
     protected implicit val exec: ExecutionContext
     protected implicit val materializer: ActorMaterializer
@@ -224,10 +318,7 @@ package rest {
     protected def jsonEntity(json: JsValue): RequestEntity =
       HttpEntity(ContentTypes.`application/json`, json.compactPrint)
 
-    protected def get(baseUri: Uri, path: String) =
-      HttpRequest(HttpMethods.GET, endpointUri(baseUri, path))
-
-    protected def get(baseUri: Uri, path: String, query: Map[String, String]) =
+    protected def get(baseUri: Uri, path: String, query: Seq[(String, String)] = Seq.empty) =
       HttpRequest(HttpMethods.GET, endpointUri(baseUri, path, query))
 
     protected def post(baseUri: Uri, path: String, httpEntity: RequestEntity) =
@@ -242,8 +333,8 @@ package rest {
     protected def endpointUri(baseUri: Uri, path: String) =
       baseUri.withPath(Uri.Path(path))
 
-    protected def endpointUri(baseUri: Uri, path: String, query: Map[String, String]) =
-      baseUri.withPath(Uri.Path(path)).withQuery(Uri.Query(query))
+    protected def endpointUri(baseUri: Uri, path: String, query: Seq[(String, String)]) =
+      baseUri.withPath(Uri.Path(path)).withQuery(Uri.Query(query: _*))
   }
 
   trait ServiceTransport {

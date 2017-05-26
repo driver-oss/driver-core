@@ -18,9 +18,8 @@ import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
 import io.swagger.util.Json
 import org.slf4j.{LoggerFactory, MDC}
-import spray.json.DefaultJsonProtocol
 import xyz.driver.core
-import xyz.driver.core.rest.{ContextHeaders, Swagger}
+import xyz.driver.core.rest._
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
@@ -30,6 +29,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.reflect.runtime.universe._
 import scala.util.control.NonFatal
+import scala.util.Try
 import scalaz.Scalaz.stringInstance
 import scalaz.syntax.equal._
 
@@ -195,6 +195,7 @@ object app {
     }
 
     protected def versionRoute(version: String, gitHash: String, startupTime: Time): Route = {
+      import spray.json._
       import DefaultJsonProtocol._
       import SprayJsonSupport._
 
@@ -202,17 +203,27 @@ object app {
         val currentTime = time.currentTime().millis
         complete(
           Map(
-            "version"     -> version,
-            "gitHash"     -> gitHash,
-            "modules"     -> modules.map(_.name).mkString(", "),
-            "startupTime" -> startupTime.millis.toString,
-            "serverTime"  -> currentTime.toString,
-            "uptime"      -> (currentTime - startupTime.millis).toString
-          ))
+            "version"      -> version.toJson,
+            "gitHash"      -> gitHash.toJson,
+            "modules"      -> modules.map(_.name).toJson,
+            "dependencies" -> collectAppDependencies().toJson,
+            "startupTime"  -> startupTime.millis.toString.toJson,
+            "serverTime"   -> currentTime.toString.toJson,
+            "uptime"       -> (currentTime - startupTime.millis).toString.toJson
+          ).toJson)
       }
     }
 
+    protected def collectAppDependencies(): Map[String, String] = {
+
+      def serviceWithLocation(serviceName: String): (String, String) =
+        serviceName -> Try(config.getString(s"services.$serviceName.baseUrl")).getOrElse("not-detected")
+
+      modules.flatMap(module => module.serviceDiscovery.getUsedServices.map(serviceWithLocation).toSeq).toMap
+    }
+
     protected def healthRoute: Route = {
+      import spray.json._
       import DefaultJsonProtocol._
       import SprayJsonSupport._
       import spray.json._
@@ -287,6 +298,8 @@ object app {
     val name: String
     def route: Route
     def routeTypes: Seq[Type]
+
+    val serviceDiscovery: ServiceDiscovery with SavingUsedServiceDiscovery = new NoServiceDiscovery()
 
     def activate(): Unit   = {}
     def deactivate(): Unit = {}

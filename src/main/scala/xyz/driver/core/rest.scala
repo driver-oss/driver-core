@@ -9,14 +9,18 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
+import akka.http.scaladsl.server.Directive0
+import com.typesafe.scalalogging.Logger
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
+import akka.http.scaladsl.settings.ClientConnectionSettings
+import akka.http.scaladsl.settings.ConnectionPoolSettings
+import akka.http.scaladsl.model.headers.`User-Agent`
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
-import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
@@ -349,7 +353,26 @@ package rest {
     def discover[T <: Service](serviceName: Name[Service]): T
   }
 
-  class HttpRestServiceTransport(actorSystem: ActorSystem,
+  class NoServiceDiscovery extends ServiceDiscovery with SavingUsedServiceDiscovery {
+
+    def discover[T <: Service](serviceName: Name[Service]): T =
+      throw new IllegalArgumentException(s"Service with name $serviceName is unknown")
+  }
+
+  trait SavingUsedServiceDiscovery {
+
+    private val usedServices = new scala.collection.mutable.HashSet[String]()
+
+    def saveServiceUsage(serviceName: Name[Service]): Unit = usedServices.synchronized {
+      usedServices += serviceName.value
+    }
+
+    def getUsedServices: Set[String] = usedServices.synchronized { usedServices.toSet }
+  }
+
+  class HttpRestServiceTransport(applicationName: Name[App],
+                                 applicationVersion: String,
+                                 actorSystem: ActorSystem,
                                  executionContext: ExecutionContext,
                                  log: Logger,
                                  time: TimeProvider)
@@ -357,6 +380,15 @@ package rest {
 
     protected implicit val materializer = ActorMaterializer()(actorSystem)
     protected implicit val execution    = executionContext
+
+    private val client = Http()(actorSystem)
+
+    private val clientConnectionSettings: ClientConnectionSettings =
+      ClientConnectionSettings(actorSystem).withUserAgentHeader(
+        Option(`User-Agent`(applicationName.value + "/" + applicationVersion)))
+
+    private val connectionPoolSettings: ConnectionPoolSettings = ConnectionPoolSettings(actorSystem)
+      .withConnectionSettings(clientConnectionSettings)
 
     def sendRequestGetResponse(context: ServiceRequestContext)(requestStub: HttpRequest): Future[HttpResponse] = {
 
@@ -376,7 +408,7 @@ package rest {
 
       log.info(s"Sending request to ${request.method} ${request.uri}")
 
-      val response = Http()(actorSystem).singleRequest(request)(materializer)
+      val response = client.singleRequest(request, settings = connectionPoolSettings)(materializer)
 
       response.onComplete {
         case Success(r) =>

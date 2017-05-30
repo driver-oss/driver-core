@@ -223,7 +223,7 @@ package rest {
   object CachedTokenAuthorization {
     def apply[U <: User](publicKeyFile: Path, issuer: String): CachedTokenAuthorization[U] = {
       lazy val publicKey: PublicKey = {
-        val publicKeyBase64Encoded = Files.readAllBytes(publicKeyFile)
+        val publicKeyBase64Encoded = new String(Files.readAllBytes(publicKeyFile)).trim
         val publicKeyBase64Decoded = java.util.Base64.getDecoder.decode(publicKeyBase64Encoded)
         val spec                   = new X509EncodedKeySpec(publicKeyBase64Decoded)
         KeyFactory.getInstance("RSA").generatePublic(spec)

@@ -7,10 +7,10 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.{HttpOriginRange, RawHeader, `Access-Control-Allow-Origin`}
+import akka.http.scaladsl.model.headers.{Allow, HttpOriginRange, RawHeader, `Access-Control-Allow-Origin`}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
-import akka.http.scaladsl.server.{ExceptionHandler, Route, RouteConcatenation}
+import akka.http.scaladsl.server._
 import akka.stream.ActorMaterializer
 import com.github.swagger.akka.SwaggerHttpService._
 import com.typesafe.config.Config
@@ -68,6 +68,22 @@ object app {
 
     private def extractHeader(request: HttpRequest)(headerName: String): Option[String] =
       request.headers.find(_.name().toLowerCase === headerName).map(_.value())
+
+    protected implicit def rejectionHandler =
+      RejectionHandler
+        .newBuilder()
+        .handleAll[MethodRejection] { rejections =>
+          val methods    = rejections map (_.supported)
+          lazy val names = methods map (_.name) mkString ", "
+
+          respondWithHeader(Allow(methods)) {
+            options {
+              complete(s"Supported methods: $names.")
+            } ~
+              complete(MethodNotAllowed -> s"HTTP method not allowed, supported methods: $names!")
+          }
+        }
+        .result()
 
     protected def bindHttp(modules: Seq[Module]): Unit = {
       val serviceTypes   = modules.flatMap(_.routeTypes)

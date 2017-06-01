@@ -76,7 +76,7 @@ object app {
           val methods    = rejections map (_.supported)
           lazy val names = methods map (_.name) mkString ", "
 
-          respondWithHeader(Allow(methods)) {
+          respondWithHeaders(List[HttpHeader](Allow(methods), `Access-Control-Allow-Origin`(HttpOriginRange.*))) {
             options {
               complete(s"Supported methods: $names.")
             } ~

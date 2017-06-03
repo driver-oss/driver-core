@@ -7,30 +7,31 @@ import java.security.{KeyFactory, PublicKey}
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
+import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader, `User-Agent`}
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
-import akka.http.scaladsl.server.Directive0
-import com.typesafe.scalalogging.Logger
+import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
-import akka.http.scaladsl.settings.ClientConnectionSettings
-import akka.http.scaladsl.settings.ConnectionPoolSettings
-import akka.http.scaladsl.model.headers.`User-Agent`
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import com.github.swagger.akka.model._
 import com.github.swagger.akka.{HasActorSystem, SwaggerHttpService}
 import com.typesafe.config.Config
+import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
+import org.slf4j.MDC
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
 import xyz.driver.core.time.provider.TimeProvider
-import org.slf4j.MDC
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-import scalaz.Scalaz.{Id => _, _}
-import scalaz.{ListT, OptionT}
+import scalaz.Scalaz.{futureInstance, intInstance, listInstance, mapEqual, mapMonoid, stringInstance}
+import scalaz.syntax.equal._
+import scalaz.syntax.semigroup._
+import scalaz.syntax.std.boolean._
+import scalaz.syntax.traverse._
+import scalaz.{ListT, OptionT, Semigroup}
 
 package rest {
 
@@ -173,9 +174,19 @@ package rest {
     val SetPermissionsTokenHeader    = "set-permissions"
   }
 
-  final case class AuthorizationResult(authorized: Boolean, token: Option[PermissionsToken])
+  final case class AuthorizationResult(authorized: Map[Permission, Boolean], token: Option[PermissionsToken])
   object AuthorizationResult {
-    val unauthorized: AuthorizationResult = AuthorizationResult(authorized = false, None)
+    val unauthorized: AuthorizationResult = AuthorizationResult(authorized = Map.empty, None)
+
+    implicit val authorizationSemigroup: Semigroup[AuthorizationResult] = new Semigroup[AuthorizationResult] {
+      private implicit val authorizedBooleanSemigroup = Semigroup.instance[Boolean](_ || _)
+      private implicit val permissionsTokenSemigroup =
+        Semigroup.instance[Option[PermissionsToken]]((a, b) => b.orElse(a))
+
+      override def append(a: AuthorizationResult, b: => AuthorizationResult): AuthorizationResult = {
+        AuthorizationResult(a.authorized |+| b.authorized, a.token |+| b.token)
+      }
+    }
   }
 
   trait Authorization[U <: User] {
@@ -185,8 +196,10 @@ package rest {
 
   class AlwaysAllowAuthorization[U <: User](implicit execution: ExecutionContext) extends Authorization[U] {
     override def userHasPermissions(user: U, permissions: Seq[Permission])(
-            implicit ctx: ServiceRequestContext): Future[AuthorizationResult] =
-      Future.successful(AuthorizationResult(authorized = true, ctx.permissionsToken))
+            implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
+      val permissionsMap = permissions.map(_ -> true).toMap
+      Future.successful(AuthorizationResult(authorized = permissionsMap, ctx.permissionsToken))
+    }
   }
 
   class CachedTokenAuthorization[U <: User](publicKey: => PublicKey, issuer: String) extends Authorization[U] {
@@ -213,7 +226,7 @@ package rest {
 
         permissionsMap <- extractPermissionsFromTokenJSON(jwtJson)
 
-        authorized = permissions.forall(p => permissionsMap.get(p.toString).contains(true))
+        authorized = permissions.map(p => p -> permissionsMap.getOrElse(p.toString, false)).toMap
       } yield AuthorizationResult(authorized, Some(token))
 
       Future.successful(result.getOrElse(AuthorizationResult.unauthorized))
@@ -237,10 +250,15 @@ package rest {
 
     override def userHasPermissions(user: U, permissions: Seq[Permission])(
             implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
+      def allAuthorized(permissionsMap: Map[Permission, Boolean]): Boolean =
+        permissions.forall(permissionsMap.getOrElse(_, false))
+
       authorizations.toList.foldLeftM[Future, AuthorizationResult](AuthorizationResult.unauthorized) {
         (authResult, authorization) =>
-          if (authResult.authorized) Future.successful(authResult)
-          else authorization.userHasPermissions(user, permissions)
+          if (allAuthorized(authResult.authorized)) Future.successful(authResult)
+          else {
+            authorization.userHasPermissions(user, permissions).map(authResult |+| _)
+          }
       }
     }
   }
@@ -271,8 +289,10 @@ package rest {
             user      <- authenticatedUser(ctx)
             authCtx = ctx.withAuthenticatedUser(authToken, user)
             authorizationResult <- authorization.userHasPermissions(user, permissions)(authCtx).toOptionT
+
             cachedPermissionsAuthCtx = authorizationResult.token.fold(authCtx)(authCtx.withPermissionsToken)
-          } yield (cachedPermissionsAuthCtx, authorizationResult.authorized)).run
+            allAuthorized            = permissions.forall(authorizationResult.authorized.getOrElse(_, false))
+          } yield (cachedPermissionsAuthCtx, allAuthorized)).run
         } flatMap {
           case Success(Some((authCtx, true))) => provide(authCtx)
           case Success(Some((authCtx, false))) =>

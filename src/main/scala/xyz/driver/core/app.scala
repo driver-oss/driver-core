@@ -69,6 +69,13 @@ object app {
     private def extractHeader(request: HttpRequest)(headerName: String): Option[String] =
       request.headers.find(_.name().toLowerCase === headerName).map(_.value())
 
+    private val allowHeaders =
+      `Access-Control-Allow-Headers`("Origin", "X-Requested–With", "Content-Type", "Accept")
+
+    private def allowOrigin(originHeader: Option[Origin]) =
+      `Access-Control-Allow-Origin`(
+        originHeader.fold[HttpOriginRange](HttpOriginRange.*)(h => HttpOriginRange(h.origins: _*)))
+
     protected implicit def rejectionHandler =
       RejectionHandler
         .newBuilder()
@@ -77,9 +84,8 @@ object app {
           lazy val names = methods map (_.name) mkString ", "
 
           options { ctx =>
-            headerValueByType[Origin]() { origin =>
-              respondWithHeaders(
-                List[HttpHeader](Allow(methods), `Access-Control-Allow-Origin`(HttpOriginRange(origin.origins: _*)))) {
+            optionalHeaderValueByType[Origin]() { originHeader =>
+              respondWithHeaders(List[HttpHeader](Allow(methods), allowOrigin(originHeader), allowHeaders)) {
                 complete(s"Supported methods: $names.")
               }
             }(ctx)
@@ -98,7 +104,7 @@ object app {
         http.bindAndHandle(
           route2HandlerFlow(extractHost { origin =>
             extractClientIP { ip =>
-              headerValueByType[Origin]() {
+              optionalHeaderValueByType[Origin]() {
                 originHeader =>
                   { ctx =>
                     val trackingId = rest.extractTrackingId(ctx.request)
@@ -122,9 +128,9 @@ object app {
 
                     handleExceptions(ExceptionHandler(exceptionHandler))({ c =>
                       requestLogging.flatMap { _ =>
-                        val responseHeaders =
-                          List[HttpHeader](RawHeader(ContextHeaders.TrackingIdHeader, trackingId),
-                                           `Access-Control-Allow-Origin`(HttpOriginRange(originHeader.origins: _*)))
+                        val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
+
+                        val responseHeaders = List[HttpHeader](tracingHeader, allowOrigin(originHeader), allowHeaders)
 
                         respondWithHeaders(responseHeaders) {
                           modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)

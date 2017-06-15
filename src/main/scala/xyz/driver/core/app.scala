@@ -83,6 +83,7 @@ object app {
         "Date",
         ContextHeaders.TrackingIdHeader,
         ContextHeaders.StacktraceHeader,
+        ContextHeaders.AuthenticationTokenHeader,
         "X-Frame-Options",
         "X-Content-Type-Options",
         "Strict-Transport-Security",

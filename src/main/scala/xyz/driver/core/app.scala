@@ -70,7 +70,7 @@ object app {
       request.headers.find(_.name().toLowerCase === headerName).map(_.value())
 
     private val allowHeaders =
-      `Access-Control-Allow-Headers`("Origin", "X-Requested–With", "Content-Type", "Accept")
+      `Access-Control-Allow-Headers`("Origin", "X-Requested-With", "Content-Type", "Accept")
 
     private def allowOrigin(originHeader: Option[Origin]) =
       `Access-Control-Allow-Origin`(

@@ -7,7 +7,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.headers.{Allow, HttpOriginRange, RawHeader, `Access-Control-Allow-Origin`}
+import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server._
@@ -76,12 +76,15 @@ object app {
           val methods    = rejections map (_.supported)
           lazy val names = methods map (_.name) mkString ", "
 
-          respondWithHeaders(List[HttpHeader](Allow(methods), `Access-Control-Allow-Origin`(HttpOriginRange.*))) {
-            options {
-              complete(s"Supported methods: $names.")
-            } ~
-              complete(MethodNotAllowed -> s"HTTP method not allowed, supported methods: $names!")
-          }
+          options { ctx =>
+            headerValueByType[Origin]() { origin =>
+              respondWithHeaders(
+                List[HttpHeader](Allow(methods), `Access-Control-Allow-Origin`(HttpOriginRange(origin.origins: _*)))) {
+                complete(s"Supported methods: $names.")
+              }
+            }(ctx)
+          } ~
+            complete(MethodNotAllowed -> s"HTTP method not allowed, supported methods: $names!")
         }
         .result()
 
@@ -94,39 +97,42 @@ object app {
       val _ = Future {
         http.bindAndHandle(
           route2HandlerFlow(extractHost { origin =>
-            extractClientIP {
-              ip =>
-                { ctx =>
-                  val trackingId = rest.extractTrackingId(ctx.request)
-                  MDC.put("trackingId", trackingId)
+            extractClientIP { ip =>
+              headerValueByType[Origin]() {
+                originHeader =>
+                  { ctx =>
+                    val trackingId = rest.extractTrackingId(ctx.request)
+                    MDC.put("trackingId", trackingId)
 
-                  val updatedStacktrace = (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
-                  MDC.put("stack", updatedStacktrace)
+                    val updatedStacktrace = (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
+                    MDC.put("stack", updatedStacktrace)
 
-                  storeRequestContextToMdc(ctx.request, origin, ip)
+                    storeRequestContextToMdc(ctx.request, origin, ip)
 
-                  def requestLogging: Future[Unit] = Future {
-                    log.info(
-                      s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
-                  }
-
-                  val contextWithTrackingId =
-                    ctx.withRequest(
-                      ctx.request
-                        .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
-                        .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
-
-                  handleExceptions(ExceptionHandler(exceptionHandler))({ c =>
-                    requestLogging.flatMap { _ =>
-                      val responseHeaders = List[HttpHeader](RawHeader(ContextHeaders.TrackingIdHeader, trackingId),
-                                                             `Access-Control-Allow-Origin`(HttpOriginRange.*))
-
-                      respondWithHeaders(responseHeaders) {
-                        modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
-                      }(c)
+                    def requestLogging: Future[Unit] = Future {
+                      log.info(
+                        s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
                     }
-                  })(contextWithTrackingId)
-                }
+
+                    val contextWithTrackingId =
+                      ctx.withRequest(
+                        ctx.request
+                          .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
+                          .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
+
+                    handleExceptions(ExceptionHandler(exceptionHandler))({ c =>
+                      requestLogging.flatMap { _ =>
+                        val responseHeaders =
+                          List[HttpHeader](RawHeader(ContextHeaders.TrackingIdHeader, trackingId),
+                                           `Access-Control-Allow-Origin`(HttpOriginRange(originHeader.origins: _*)))
+
+                        respondWithHeaders(responseHeaders) {
+                          modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
+                        }(c)
+                      }
+                    })(contextWithTrackingId)
+                  }
+              }
             }
           }),
           interface,

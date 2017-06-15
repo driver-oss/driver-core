@@ -69,8 +69,8 @@ object app {
     private def extractHeader(request: HttpRequest)(headerName: String): Option[String] =
       request.headers.find(_.name().toLowerCase === headerName).map(_.value())
 
-    private val allowHeaders =
-      `Access-Control-Allow-Headers`(
+    private val allowedHeaders =
+      Seq(
         "Origin",
         "X-Requested-With",
         "Content-Type",
@@ -104,7 +104,11 @@ object app {
 
           options { ctx =>
             optionalHeaderValueByType[Origin]() { originHeader =>
-              respondWithHeaders(List[HttpHeader](Allow(methods), allowOrigin(originHeader), allowHeaders)) {
+              respondWithHeaders(
+                List[HttpHeader](Allow(methods),
+                                 allowOrigin(originHeader),
+                                 `Access-Control-Allow-Headers`(allowedHeaders: _*),
+                                 `Access-Control-Expose-Headers`(allowedHeaders: _*))) {
                 complete(s"Supported methods: $names.")
               }
             }(ctx)
@@ -123,40 +127,43 @@ object app {
         http.bindAndHandle(
           route2HandlerFlow(extractHost { origin =>
             extractClientIP { ip =>
-              optionalHeaderValueByType[Origin]() {
-                originHeader =>
-                  { ctx =>
-                    val trackingId = rest.extractTrackingId(ctx.request)
-                    MDC.put("trackingId", trackingId)
+              optionalHeaderValueByType[Origin]() { originHeader =>
+                { ctx =>
+                  val trackingId = rest.extractTrackingId(ctx.request)
+                  MDC.put("trackingId", trackingId)
 
-                    val updatedStacktrace = (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
-                    MDC.put("stack", updatedStacktrace)
+                  val updatedStacktrace = (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
+                  MDC.put("stack", updatedStacktrace)
 
-                    storeRequestContextToMdc(ctx.request, origin, ip)
+                  storeRequestContextToMdc(ctx.request, origin, ip)
 
-                    def requestLogging: Future[Unit] = Future {
-                      log.info(
-                        s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
-                    }
+                  def requestLogging: Future[Unit] = Future {
+                    log.info(
+                      s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
+                  }
 
-                    val contextWithTrackingId =
-                      ctx.withRequest(
-                        ctx.request
-                          .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
-                          .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
+                  val contextWithTrackingId =
+                    ctx.withRequest(
+                      ctx.request
+                        .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
+                        .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
 
-                    handleExceptions(ExceptionHandler(exceptionHandler))({ c =>
+                  handleExceptions(ExceptionHandler(exceptionHandler))({
+                    c =>
                       requestLogging.flatMap { _ =>
                         val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
 
-                        val responseHeaders = List[HttpHeader](tracingHeader, allowOrigin(originHeader), allowHeaders)
+                        val responseHeaders = List[HttpHeader](tracingHeader,
+                                                               allowOrigin(originHeader),
+                                                               `Access-Control-Allow-Headers`(allowedHeaders: _*),
+                                                               `Access-Control-Expose-Headers`(allowedHeaders: _*))
 
                         respondWithHeaders(responseHeaders) {
                           modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
                         }(c)
                       }
-                    })(contextWithTrackingId)
-                  }
+                  })(contextWithTrackingId)
+                }
               }
             }
           }),

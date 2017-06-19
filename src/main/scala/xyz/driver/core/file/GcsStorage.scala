@@ -68,13 +68,14 @@ class GcsStorage(storageClient: Storage, bucketName: Name[Bucket], executionCont
     val name                        = Option(blob.getName).getOrElse(nullError("a name"))
     val generation                  = Option(blob.getGeneration).getOrElse(nullError("a generation"))
     val updateTime                  = Option(blob.getUpdateTime).getOrElse(nullError("an update time"))
+    val size                        = Option(blob.getSize).getOrElse(nullError("a size"))
 
     FileLink(
       Name(name),
       Paths.get(path.toString, name),
       Revision(generation.toString),
       Time(updateTime),
-      blob.getSize
+      size
     )
   }
 

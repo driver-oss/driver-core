@@ -64,11 +64,16 @@ class GcsStorage(storageClient: Storage, bucketName: Name[Bucket], executionCont
     })
 
   protected def blobToFileLink(path: Path, blob: Blob): FileLink = {
+    def nullError(property: String) = throw new IllegalStateException(s"Blob $blob at $path does not have $property")
+    val name                        = Option(blob.getName).getOrElse(nullError("a name"))
+    val generation                  = Option(blob.getGeneration).getOrElse(nullError("a generation"))
+    val updateTime                  = Option(blob.getUpdateTime).getOrElse(nullError("an update time"))
+
     FileLink(
-      Name(blob.getName),
-      Paths.get(path.toString, blob.getName),
-      Revision(blob.getGeneration.toString),
-      Time(blob.getUpdateTime),
+      Name(name),
+      Paths.get(path.toString, name),
+      Revision(generation.toString),
+      Time(updateTime),
       blob.getSize
     )
   }

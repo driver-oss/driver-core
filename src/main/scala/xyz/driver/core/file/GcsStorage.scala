@@ -52,15 +52,15 @@ class GcsStorage(storageClient: Storage, bucketName: Name[Bucket], executionCont
     storageClient.delete(BlobId.of(bucketName.value, filePath.toString))
   }
 
-  override def list(path: Path): ListT[Future, FileLink] =
+  override def list(directoryPath: Path): ListT[Future, FileLink] =
     ListT.listT(Future {
       val page = storageClient.list(
         bucketName.value,
         BlobListOption.currentDirectory(),
-        BlobListOption.prefix(path.toString)
+        BlobListOption.prefix(s"$directoryPath/")
       )
 
-      page.iterateAll().asScala.map(blobToFileLink(path, _)).toList
+      page.iterateAll().asScala.map(blobToFileLink(directoryPath, _)).toList
     })
 
   protected def blobToFileLink(path: Path, blob: Blob): FileLink = {

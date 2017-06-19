@@ -150,8 +150,7 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
       Iterator[Blob](blobMock).asJava,
       Iterator[Blob]().asJava
     )
-    when(
-      gcsMock.list(testBucket.value, BlobListOption.currentDirectory(), BlobListOption.prefix(testDirPath.toString)))
+    when(gcsMock.list(testBucket.value, BlobListOption.currentDirectory(), BlobListOption.prefix(s"$testDirPath/")))
       .thenReturn(pageMock)
 
     val filesBefore = Await.result(gcsStorage.list(testDirPath).run, 10 seconds)

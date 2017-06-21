@@ -40,6 +40,8 @@ package file {
     /** List contents of a directory */
     def list(directoryPath: Path): ListT[Future, FileLink]
 
+    def exists(path: Path): Future[Boolean]
+
     /** List of characters to avoid in S3 (I would say file names in general)
       *
       * @see http://stackoverflow.com/questions/7116450/what-are-valid-s3-key-names-that-can-be-accessed-via-the-s3-rest-api

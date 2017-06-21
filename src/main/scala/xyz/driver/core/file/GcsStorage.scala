@@ -79,6 +79,15 @@ class GcsStorage(storageClient: Storage, bucketName: Name[Bucket], executionCont
     )
   }
 
+  override def exists(path: Path): Future[Boolean] = Future {
+    val blob = Option(
+      storageClient.get(
+        bucketName.value,
+        path.toString
+      ))
+    blob.isDefined
+  }
+
   override def signedFileUrl(filePath: Path, duration: Duration): OptionT[Future, URL] =
     OptionT.optionT(Future {
       Option(storageClient.get(bucketName.value, filePath.toString)).filterNot(_.getSize == 0).map { blob =>

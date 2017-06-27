@@ -11,7 +11,7 @@ import java.nio.file.{Path, Paths}
 import java.util.concurrent.TimeUnit
 
 import com.google.cloud.storage.Storage.BlobListOption
-import com.google.cloud.storage._
+import com.google.cloud.storage.{Option => _, _}
 import xyz.driver.core.time.Time
 import xyz.driver.core.{Name, Revision, generators}
 

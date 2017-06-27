@@ -5,7 +5,7 @@ import java.nio.file.Paths
 
 import org.mockito.Matchers._
 import org.mockito.Mockito._
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 import xyz.driver.core.file.{FileSystemStorage, GcsStorage, S3Storage}
 

@@ -43,7 +43,7 @@ class S3Storage(s3: AmazonS3, bucket: Name[Bucket], executionContext: ExecutionC
   override def stream(filePath: Path): OptionT[Future, Source[ByteString, NotUsed]] =
     OptionT.optionT(Future {
       Option(s3.getObject(new GetObjectRequest(bucket.value, filePath.toString))).map { elem =>
-        StreamConverters.fromInputStream(elem.getObjectContent, chunkSize).mapMaterializedValue(_ => NotUsed)
+        StreamConverters.fromInputStream(() => elem.getObjectContent(), chunkSize).mapMaterializedValue(_ => NotUsed)
       }
     })
 

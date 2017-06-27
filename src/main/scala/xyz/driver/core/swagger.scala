@@ -85,7 +85,7 @@ object swagger {
       val javaType = Json.mapper().constructType(`type`)
 
       (getEnumerationInstance(javaType.getRawClass) match {
-        case Some(enumInstance) => Option.empty[Model] // ignore scala enums
+        case Some(_) => Option.empty[Model] // ignore scala enums
         case None =>
           val customObjectModel = customObjects.get(javaType.getRawClass).map { objectExampleJson =>
             val properties = objectExampleJson.asJsObject.fields.mapValues(parseJsonValueToSwaggerProperty).flatMap {
@@ -125,10 +125,10 @@ object swagger {
             case (key, value) => value.map(v => key -> v)
           }
           Option(new ObjectProperty(subProperties.asJava))
-        case JsBoolean(value) => Option(booleanProperty())
-        case JsNumber(value)  => Option(numericProperty(example = Option(value)))
-        case JsString(value)  => Option(stringProperty(example = Option(value)))
-        case _                => Option.empty[Property]
+        case JsBoolean(_)    => Option(booleanProperty())
+        case JsNumber(value) => Option(numericProperty(example = Option(value)))
+        case JsString(value) => Option(stringProperty(example = Option(value)))
+        case _               => Option.empty[Property]
       }
     }
 

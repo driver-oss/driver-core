@@ -104,7 +104,7 @@ object app {
           lazy val names = methods map (_.name) mkString ", "
 
           options { ctx =>
-            optionalHeaderValueByType[Origin]() { originHeader =>
+            optionalHeaderValueByType[Origin](()) { originHeader =>
               respondWithHeaders(List[HttpHeader](
                 Allow(methods),
                 `Access-Control-Allow-Methods`(methods),
@@ -130,7 +130,7 @@ object app {
         http.bindAndHandle(
           route2HandlerFlow(extractHost { origin =>
             extractClientIP { ip =>
-              optionalHeaderValueByType[Origin]() { originHeader =>
+              optionalHeaderValueByType[Origin](()) { originHeader =>
                 { ctx =>
                   val trackingId = rest.extractTrackingId(ctx.request)
                   MDC.put("trackingId", trackingId)

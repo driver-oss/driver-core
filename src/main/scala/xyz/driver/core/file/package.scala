@@ -37,7 +37,10 @@ package file {
 
     def delete(filePath: Path): Future[Unit]
 
-    def list(path: Path): ListT[Future, FileLink]
+    /** List contents of a directory */
+    def list(directoryPath: Path): ListT[Future, FileLink]
+
+    def exists(path: Path): Future[Boolean]
 
     /** List of characters to avoid in S3 (I would say file names in general)
       *

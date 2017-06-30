@@ -15,13 +15,13 @@ import scalaz.{ListT, OptionT}
 class S3Storage(s3: AmazonS3, bucket: Name[Bucket], executionContext: ExecutionContext) extends FileStorage {
   implicit private val execution = executionContext
 
-  def upload(localSource: File, destination: Path): Future[Unit] = Future {
+  override def upload(localSource: File, destination: Path): Future[Unit] = Future {
     checkSafeFileName(destination) {
       val _ = s3.putObject(bucket.value, destination.toString, localSource).getETag
     }
   }
 
-  def download(filePath: Path): OptionT[Future, File] =
+  override def download(filePath: Path): OptionT[Future, File] =
     OptionT.optionT(Future {
       val tempDir             = System.getProperty("java.io.tmpdir")
       val randomFolderName    = randomUUID().toString
@@ -36,11 +36,11 @@ class S3Storage(s3: AmazonS3, bucket: Name[Bucket], executionContext: ExecutionC
       }
     })
 
-  def delete(filePath: Path): Future[Unit] = Future {
+  override def delete(filePath: Path): Future[Unit] = Future {
     s3.deleteObject(bucket.value, filePath.toString)
   }
 
-  def list(path: Path): ListT[Future, FileLink] =
+  override def list(path: Path): ListT[Future, FileLink] =
     ListT.listT(Future {
       import scala.collection.JavaConverters._
       val req = new ListObjectsV2Request().withBucketName(bucket.value).withPrefix(path.toString).withMaxKeys(2)
@@ -63,4 +63,9 @@ class S3Storage(s3: AmazonS3, bucket: Name[Bucket], executionContext: ExecutionC
         } filterNot isInSubFolder(path)
       } toList
     })
+
+  override def exists(path: Path): Future[Boolean] = Future {
+    s3.doesObjectExist(bucket.value, path.toString)
+  }
+
 }

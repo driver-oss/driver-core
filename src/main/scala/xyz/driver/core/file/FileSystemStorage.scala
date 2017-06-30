@@ -1,7 +1,7 @@
 package xyz.driver.core.file
 
 import java.io.File
-import java.nio.file.{Path, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import xyz.driver.core.{Name, Revision}
 import xyz.driver.core.time.Time
@@ -12,7 +12,7 @@ import scalaz.{ListT, OptionT}
 class FileSystemStorage(executionContext: ExecutionContext) extends FileStorage {
   implicit private val execution = executionContext
 
-  def upload(localSource: File, destination: Path): Future[Unit] = Future {
+  override def upload(localSource: File, destination: Path): Future[Unit] = Future {
     checkSafeFileName(destination) {
       val destinationFile = destination.toFile
 
@@ -28,12 +28,12 @@ class FileSystemStorage(executionContext: ExecutionContext) extends FileStorage 
     }
   }
 
-  def download(filePath: Path): OptionT[Future, File] =
+  override def download(filePath: Path): OptionT[Future, File] =
     OptionT.optionT(Future {
       Option(new File(filePath.toString)).filter(file => file.exists() && file.isFile)
     })
 
-  def delete(filePath: Path): Future[Unit] = Future {
+  override def delete(filePath: Path): Future[Unit] = Future {
     val file = new File(filePath.toString)
     if (file.delete()) ()
     else {
@@ -41,7 +41,7 @@ class FileSystemStorage(executionContext: ExecutionContext) extends FileStorage 
     }
   }
 
-  def list(path: Path): ListT[Future, FileLink] =
+  override def list(path: Path): ListT[Future, FileLink] =
     ListT.listT(Future {
       val file = new File(path.toString)
       if (file.isDirectory) {
@@ -54,4 +54,9 @@ class FileSystemStorage(executionContext: ExecutionContext) extends FileStorage 
         }
       } else List.empty[FileLink]
     })
+
+  override def exists(path: Path): Future[Boolean] = Future {
+    Files.exists(path)
+  }
+
 }

@@ -19,7 +19,7 @@ object generators {
 
   def nextToken(length: Int): String = List.fill(length)(oneOf(NonAmbigiousCharacters)).mkString
 
-  def nextInt(maxValue: Int): Int = random.nextInt(maxValue)
+  def nextInt(maxValue: Int, minValue: Int = 0): Int = random.nextInt(maxValue - minValue) + minValue
 
   def nextBoolean(): Boolean = random.nextBoolean()
 
@@ -67,21 +67,24 @@ object generators {
 
   def oneOf[T](items: Set[T]): T = items.toSeq(nextInt(items.size))
 
-  def arrayOf[T: ClassTag](generator: => T, maxLength: Int = DefaultMaxLength): Array[T] =
-    Array.fill(nextInt(maxLength))(generator)
+  def arrayOf[T: ClassTag](generator: => T, maxLength: Int = DefaultMaxLength, minLength: Int = 0): Array[T] =
+    Array.fill(nextInt(maxLength, minLength))(generator)
 
-  def seqOf[T](generator: => T, maxLength: Int = DefaultMaxLength): Seq[T] =
-    Seq.fill(nextInt(maxLength))(generator)
+  def seqOf[T](generator: => T, maxLength: Int = DefaultMaxLength, minLength: Int = 0): Seq[T] =
+    Seq.fill(nextInt(maxLength, minLength))(generator)
 
-  def vectorOf[T](generator: => T, maxLength: Int = DefaultMaxLength): Vector[T] =
-    Vector.fill(nextInt(maxLength))(generator)
+  def vectorOf[T](generator: => T, maxLength: Int = DefaultMaxLength, minLength: Int = 0): Vector[T] =
+    Vector.fill(nextInt(maxLength, minLength))(generator)
 
-  def listOf[T](generator: => T, maxLength: Int = DefaultMaxLength): List[T] =
-    List.fill(nextInt(maxLength))(generator)
+  def listOf[T](generator: => T, maxLength: Int = DefaultMaxLength, minLength: Int = 0): List[T] =
+    List.fill(nextInt(maxLength, minLength))(generator)
 
-  def setOf[T](generator: => T, maxLength: Int = DefaultMaxLength): Set[T] =
-    seqOf(generator, maxLength).toSet
+  def setOf[T](generator: => T, maxLength: Int = DefaultMaxLength, minLength: Int = 0): Set[T] =
+    seqOf(generator, maxLength, minLength).toSet
 
-  def mapOf[K, V](maxLength: Int, keyGenerator: => K, valueGenerator: => V): Map[K, V] =
-    seqOf(nextPair(keyGenerator, valueGenerator), maxLength).toMap
+  def mapOf[K, V](keyGenerator: => K,
+                  valueGenerator: => V,
+                  maxLength: Int = DefaultMaxLength,
+                  minLength: Int = 0): Map[K, V] =
+    seqOf(nextPair(keyGenerator, valueGenerator), maxLength, minLength).toMap
 }

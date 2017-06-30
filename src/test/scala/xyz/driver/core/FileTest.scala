@@ -54,16 +54,25 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
     when(amazonS3Mock.listObjectsV2(any[ListObjectsV2Request]())).thenReturn(s3ResultsMock)
     when(amazonS3Mock.putObject(testBucket.value, testFilePath.toString, sourceTestFile)).thenReturn(s3PutMock)
     when(amazonS3Mock.getObject(any[GetObjectRequest](), any[File]())).thenReturn(s3ObjectMetadataMock)
+    when(amazonS3Mock.doesObjectExist(testBucket.value, testFilePath.toString)).thenReturn(
+      false, // before file is uploaded
+      true // after file is uploaded
+    )
 
     val s3Storage = new S3Storage(amazonS3Mock, testBucket, scala.concurrent.ExecutionContext.global)
 
     val filesBefore = Await.result(s3Storage.list(testDirPath).run, 10 seconds)
     filesBefore shouldBe empty
 
+    val fileExistsBeforeUpload = Await.result(s3Storage.exists(testFilePath), 10 seconds)
+    fileExistsBeforeUpload should be(false)
+
     Await.result(s3Storage.upload(sourceTestFile, testFilePath), 10 seconds)
 
     val filesAfterUpload = Await.result(s3Storage.list(testDirPath).run, 10 seconds)
     filesAfterUpload.size should be(1)
+    val fileExistsAfterUpload = Await.result(s3Storage.exists(testFilePath), 10 seconds)
+    fileExistsAfterUpload should be(true)
     val uploadedFileLine = filesAfterUpload.head
     uploadedFileLine.name should be(Name[File](testFileName))
     uploadedFileLine.location should be(testFilePath)
@@ -96,10 +105,17 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
     val filesBefore = Await.result(fileStorage.list(testDirPath).run, 10 seconds)
     filesBefore shouldBe empty
 
+    val fileExistsBeforeUpload = Await.result(fileStorage.exists(testFilePath), 10 seconds)
+    fileExistsBeforeUpload should be(false)
+
     Await.result(fileStorage.upload(sourceTestFile, testFilePath), 10 seconds)
 
     val filesAfterUpload = Await.result(fileStorage.list(testDirPath).run, 10 seconds)
     filesAfterUpload.size should be(1)
+
+    val fileExistsAfterUpload = Await.result(fileStorage.exists(testFilePath), 10 seconds)
+    fileExistsAfterUpload should be(true)
+
     val uploadedFileLine = filesAfterUpload.head
     uploadedFileLine.name should be(Name[File]("uploadTestFile"))
     uploadedFileLine.location should be(testFilePath)
@@ -150,12 +166,18 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
       Iterable[Blob](blobMock).asJava,
       Iterable[Blob]().asJava
     )
-    when(
-      gcsMock.list(testBucket.value, BlobListOption.currentDirectory(), BlobListOption.prefix(testDirPath.toString)))
+    when(gcsMock.list(testBucket.value, BlobListOption.currentDirectory(), BlobListOption.prefix(s"$testDirPath/")))
       .thenReturn(pageMock)
+    when(gcsMock.get(testBucket.value, testFilePath.toString)).thenReturn(
+      null, // before file is uploaded
+      blobMock // after file is uploaded
+    )
 
     val filesBefore = Await.result(gcsStorage.list(testDirPath).run, 10 seconds)
     filesBefore shouldBe empty
+
+    val fileExistsBeforeUpload = Await.result(gcsStorage.exists(testFilePath), 10 seconds)
+    fileExistsBeforeUpload should be(false)
 
     when(gcsMock.get(testBucket.value)).thenReturn(bucketMock)
     when(gcsMock.get(testBucket.value, testFilePath.toString)).thenReturn(blobMock)
@@ -166,6 +188,9 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
 
     val filesAfterUpload = Await.result(gcsStorage.list(testDirPath).run, 10 seconds)
     filesAfterUpload.size should be(1)
+
+    val fileExistsAfterUpload = Await.result(gcsStorage.exists(testFilePath), 10 seconds)
+    fileExistsAfterUpload should be(true)
 
     val downloadedFile = Await.result(gcsStorage.download(testFilePath).run, 10 seconds)
     downloadedFile shouldBe defined

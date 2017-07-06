@@ -11,7 +11,7 @@ import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader, `User-Agent`
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import akka.http.scaladsl.settings.{ClientConnectionSettings, ConnectionPoolSettings}
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, Materializer}
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import com.github.swagger.akka.model._
@@ -321,7 +321,7 @@ package rest {
     import spray.json._
 
     protected implicit val exec: ExecutionContext
-    protected implicit val materializer: ActorMaterializer
+    protected implicit val materializer: Materializer
 
     implicit class ResponseEntityFoldable(entity: Unmarshal[ResponseEntity]) {
       def fold[T](default: => T)(implicit um: Unmarshaller[ResponseEntity, T]): Future[T] =

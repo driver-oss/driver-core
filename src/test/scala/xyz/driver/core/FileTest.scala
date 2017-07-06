@@ -133,7 +133,7 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
   }
 
   "Google Cloud Storage" should "upload and download files" in {
-    import com.google.cloud.Page
+    import com.google.api.gax.paging.Page
     import com.google.cloud.storage.{Blob, Bucket, Storage}
     import Bucket.BlobWriteOption
     import Storage.BlobListOption
@@ -162,9 +162,9 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
     val gcsStorage = new GcsStorage(gcsMock, testBucket, scala.concurrent.ExecutionContext.global)
 
     when(pageMock.iterateAll()).thenReturn(
-      Iterator[Blob]().asJava,
-      Iterator[Blob](blobMock).asJava,
-      Iterator[Blob]().asJava
+      Iterable[Blob]().asJava,
+      Iterable[Blob](blobMock).asJava,
+      Iterable[Blob]().asJava
     )
     when(gcsMock.list(testBucket.value, BlobListOption.currentDirectory(), BlobListOption.prefix(s"$testDirPath/")))
       .thenReturn(pageMock)

@@ -60,6 +60,20 @@ object pubsub {
     }
   }
 
+  class FakePubsubPublisher[Message](topicName: String, log: Logger)(
+          implicit messageMarshaller: Marshaller[Message, String],
+          ex: ExecutionContext)
+      extends PubsubPublisher[Message] {
+
+    type Result = Id[PubsubMessage]
+
+    def publish(message: Message): Future[Result] =
+      Marshal(message).to[String].map { messageString =>
+        log.info(s"Published a message to a fake pubsub with topic $topicName: $messageString")
+        generators.nextId[PubsubMessage]()
+      }
+  }
+
   trait PubsubSubscriber {
 
     def stopListening(): Unit
@@ -92,5 +106,9 @@ object pubsub {
     override def stopListening(): Unit = {
       subscriber.stopAsync()
     }
+  }
+
+  class FakePubsubSubscriber extends PubsubSubscriber {
+    def stopListening(): Unit = ()
   }
 }

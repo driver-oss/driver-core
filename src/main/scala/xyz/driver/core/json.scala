@@ -4,10 +4,10 @@ import java.util.UUID
 
 import scala.reflect.runtime.universe._
 import scala.util.Try
-
 import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
+import akka.http.scaladsl.marshalling.{Marshaller, Marshalling}
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import spray.json._
 import xyz.driver.core.auth.AuthCredentials
@@ -212,4 +212,10 @@ object json {
       new GadtJsonFormat[T](typeField, typeValue, jsonFormat)
     }
   }
+
+  implicit val jsValueToStringMarshaller: Marshaller[JsValue, String] =
+    Marshaller.strict[JsValue, String](value => Marshalling.Opaque[String](() => value.compactPrint))
+
+  implicit def valueToStringMarshaller[T](implicit jsonFormat: JsonFormat[T]): Marshaller[T, String] =
+    jsValueToStringMarshaller.compose[T](jsonFormat.write)
 }

@@ -65,12 +65,12 @@ object pubsub {
     def stopListening(): Unit
   }
 
-  class GooglePubsubSubscriber[Message, Result](projectId: String,
-                                                subscriptionId: String,
-                                                receiver: Message => Future[Result],
-                                                log: Logger)(implicit messageMarshaller: Unmarshaller[String, Message],
-                                                             mat: Materializer,
-                                                             ex: ExecutionContext)
+  class GooglePubsubSubscriber[Message](projectId: String,
+                                        subscriptionId: String,
+                                        receiver: Message => Future[Unit],
+                                        log: Logger)(implicit messageMarshaller: Unmarshaller[String, Message],
+                                                     mat: Materializer,
+                                                     ex: ExecutionContext)
       extends PubsubSubscriber {
 
     private val subscriptionName = SubscriptionName.create(projectId, subscriptionId)

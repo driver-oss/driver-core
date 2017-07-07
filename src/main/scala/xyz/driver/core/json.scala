@@ -216,6 +216,12 @@ object json {
   implicit val jsValueToStringMarshaller: Marshaller[JsValue, String] =
     Marshaller.strict[JsValue, String](value => Marshalling.Opaque[String](() => value.compactPrint))
 
-  implicit def valueToStringMarshaller[T](implicit jsonFormat: JsonFormat[T]): Marshaller[T, String] =
+  implicit def valueToStringMarshaller[T](implicit jsonFormat: JsonWriter[T]): Marshaller[T, String] =
     jsValueToStringMarshaller.compose[T](jsonFormat.write)
+
+  implicit val stringToJsValueUnmarshaller: Unmarshaller[String, JsValue] =
+    Unmarshaller.strict[String, JsValue](value => value.parseJson)
+
+  implicit def stringToValueUnmarshaller[T](implicit jsonFormat: JsonReader[T]): Unmarshaller[String, T] =
+    stringToJsValueUnmarshaller.map[T](jsonFormat.read)
 }

@@ -174,6 +174,8 @@ package rest {
     val SetPermissionsTokenHeader    = "set-permissions"
   }
 
+  final case class Pagination(pageSize: Int, pageNumber: Int)
+
   final case class AuthorizationResult(authorized: Map[Permission, Boolean], token: Option[PermissionsToken])
   object AuthorizationResult {
     val unauthorized: AuthorizationResult = AuthorizationResult(authorized = Map.empty, None)

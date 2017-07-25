@@ -10,6 +10,9 @@ import scalaz.{ListT, OptionT}
 
 package file {
 
+  import akka.NotUsed
+  import akka.stream.scaladsl.Source
+  import akka.util.ByteString
   import java.net.URL
 
   import scala.concurrent.duration.Duration
@@ -34,6 +37,8 @@ package file {
     def upload(localSource: File, destination: Path): Future[Unit]
 
     def download(filePath: Path): OptionT[Future, File]
+
+    def stream(filePath: Path): OptionT[Future, Source[ByteString, NotUsed]]
 
     def delete(filePath: Path): Future[Unit]
 

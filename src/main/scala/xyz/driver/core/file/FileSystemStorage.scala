@@ -1,5 +1,8 @@
 package xyz.driver.core.file
 
+import akka.NotUsed
+import akka.stream.scaladsl.{FileIO, Source}
+import akka.util.ByteString
 import java.io.File
 import java.nio.file.{Files, Path, Paths}
 
@@ -31,6 +34,15 @@ class FileSystemStorage(executionContext: ExecutionContext) extends FileStorage 
   override def download(filePath: Path): OptionT[Future, File] =
     OptionT.optionT(Future {
       Option(new File(filePath.toString)).filter(file => file.exists() && file.isFile)
+    })
+
+  override def stream(filePath: Path): OptionT[Future, Source[ByteString, NotUsed]] =
+    OptionT.optionT(Future {
+      if (Files.exists(filePath)) {
+        Some(FileIO.fromPath(filePath).mapMaterializedValue(_ => NotUsed))
+      } else {
+        None
+      }
     })
 
   override def delete(filePath: Path): Future[Unit] = Future {

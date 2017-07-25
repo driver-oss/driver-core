@@ -1,5 +1,8 @@
 package xyz.driver.core.file
 
+import akka.NotUsed
+import akka.stream.scaladsl.{Source, StreamConverters}
+import akka.util.ByteString
 import java.io.File
 import java.nio.file.{Path, Paths}
 import java.util.UUID.randomUUID
@@ -12,7 +15,8 @@ import xyz.driver.core.time.Time
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, OptionT}
 
-class S3Storage(s3: AmazonS3, bucket: Name[Bucket], executionContext: ExecutionContext) extends FileStorage {
+class S3Storage(s3: AmazonS3, bucket: Name[Bucket], executionContext: ExecutionContext, chunkSize: Int = 4096)
+    extends FileStorage {
   implicit private val execution = executionContext
 
   override def upload(localSource: File, destination: Path): Future[Unit] = Future {
@@ -33,6 +37,13 @@ class S3Storage(s3: AmazonS3, bucket: Name[Bucket], executionContext: ExecutionC
         Option(s3.getObject(new GetObjectRequest(bucket.value, filePath.toString), tempDestinationFile)).map { _ =>
           tempDestinationFile
         }
+      }
+    })
+
+  override def stream(filePath: Path): OptionT[Future, Source[ByteString, NotUsed]] =
+    OptionT.optionT(Future {
+      Option(s3.getObject(new GetObjectRequest(bucket.value, filePath.toString))).map { elem =>
+        StreamConverters.fromInputStream(elem.getObjectContent, chunkSize).mapMaterializedValue(_ => NotUsed)
       }
     })
 

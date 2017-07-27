@@ -21,5 +21,7 @@ lazy val core = (project in file("."))
     "com.typesafe.slick"           %% "slick"                % "3.1.1",
     "com.typesafe"                 % "config"                % "1.2.1",
     "com.typesafe.scala-logging"   %% "scala-logging"        % "3.4.0",
-    "ch.qos.logback"               % "logback-classic"       % "1.1.3"
+    "ch.qos.logback"               % "logback-classic"       % "1.1.3",
+    "org.webjars"                  % "webjars-locator"       % "0.32",
+    "org.webjars"                  % "swagger-ui"            % "3.0.20"
   ))

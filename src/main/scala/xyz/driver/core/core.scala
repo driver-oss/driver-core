@@ -49,9 +49,37 @@ package object core {
 
 package core {
 
+  import java.nio.ByteBuffer
+  import java.security.MessageDigest
+  import java.util.UUID
+
   final case class Id[+Tag](value: String) extends AnyVal {
     @inline def length: Int       = value.length
     override def toString: String = value
+    def humanReadableHashFromUuid(numChars: Int): String = {
+
+      def byteToCharRange(intToMap: Int, lowerChar: Char, upperChar: Char) =
+        (intToMap % (upperChar.toInt - lowerChar.toInt + 1) + lowerChar.toInt).toChar
+
+      val uuid = UUID.fromString(value)
+
+      val uuidBytes =
+        ByteBuffer.allocate(16).putLong(uuid.getMostSignificantBits).putLong(uuid.getLeastSignificantBits).array()
+
+      val fullHash = MessageDigest
+        .getInstance("MD5")
+        .digest(uuidBytes)
+        .take(numChars)
+        .map(_.toInt)
+        .map(b => if (b < 0) 256 + b else b)
+
+      val (firstBytes, secondBytes) = fullHash.splitAt(numChars / 2)
+
+      val firstHalf  = secondBytes.map(byteToCharRange(_, 'A', 'Z')).mkString
+      val secondHalf = firstBytes.map(byteToCharRange(_, '0', '9')).mkString
+
+      s"$firstHalf - $secondHalf"
+    }
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.ImplicitConversion"))

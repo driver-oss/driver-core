@@ -77,6 +77,7 @@ object app {
         "Content-Length",
         "Accept",
         "X-Trace",
+        "Access-Control-Allow-Methods",
         "Access-Control-Allow-Origin",
         "Access-Control-Allow-Headers",
         "Server",
@@ -104,11 +105,13 @@ object app {
 
           options { ctx =>
             optionalHeaderValueByType[Origin]() { originHeader =>
-              respondWithHeaders(
-                List[HttpHeader](Allow(methods),
-                                 allowOrigin(originHeader),
-                                 `Access-Control-Allow-Headers`(allowedHeaders: _*),
-                                 `Access-Control-Expose-Headers`(allowedHeaders: _*))) {
+              respondWithHeaders(List[HttpHeader](
+                Allow(methods),
+                `Access-Control-Allow-Methods`(methods),
+                allowOrigin(originHeader),
+                `Access-Control-Allow-Headers`(allowedHeaders: _*),
+                `Access-Control-Expose-Headers`(allowedHeaders: _*)
+              )) {
                 complete(s"Supported methods: $names.")
               }
             }(ctx)

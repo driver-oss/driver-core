@@ -461,6 +461,8 @@ package rest {
     }
   }
 
+  import akka.http.scaladsl.server.Route
+
   import scala.reflect.runtime.universe._
 
   class Swagger(override val host: String,
@@ -498,9 +500,12 @@ package rest {
     def swaggerUI = get {
       pathPrefix("") {
         pathEndOrSingleSlash {
-          getFromResource("swagger-ui/index.html")
+          parameter('url.?) { url =>
+            url.fold[Route](redirect("/?url=/api-docs/swagger.json", StatusCodes.PermanentRedirect))(_ =>
+              getFromResource("META-INF/resources/webjars/swagger-ui/3.0.20/index.html"))
+          }
         }
-      } ~ getFromResourceDirectory("swagger-ui")
+      } ~ getFromResourceDirectory("META-INF/resources/webjars/swagger-ui/3.0.20/")
     }
   }
 }

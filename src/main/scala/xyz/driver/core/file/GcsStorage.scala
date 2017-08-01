@@ -62,6 +62,7 @@ class GcsStorage(storageClient: Storage,
         val buffer = ByteBuffer.allocate(chunkSize)
         val length = rc.read(buffer)
         if (length > 0) {
+          buffer.flip()
           Some(ByteString.fromByteBuffer(buffer))
         } else {
           None
@@ -100,8 +101,8 @@ class GcsStorage(storageClient: Storage,
     val size                        = Option(blob.getSize).getOrElse(nullError("a size"))
 
     FileLink(
-      Name(name),
-      Paths.get(path.toString, name),
+      Name(name.split('/').last),
+      Paths.get(name),
       Revision(generation.toString),
       Time(updateTime),
       size

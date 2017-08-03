@@ -1,6 +1,6 @@
 package xyz.driver
 
-import scalaz.{Equal, Functor, Monad, OptionT}
+import scalaz.{Equal, Monad, OptionT}
 
 package object core {
 
@@ -33,8 +33,8 @@ package object core {
     def continueIgnoringNone: OptionT[H, Unit] =
       optionTValue.map(_ => ()).orElse(OptionT.some[H, Unit](()))
 
-    def subflatMap[B](f: T => Option[B])(implicit F: Functor[H]): OptionT[H, B] =
-      OptionT.optionT[H](F.map(optionTValue.run)(_.flatMap(f)))
+    def subflatMap[B](f: T => Option[B]): OptionT[H, B] =
+      OptionT.optionT[H](implicitly[Monad[H]].map(optionTValue.run)(_.flatMap(f)))
   }
 
   implicit class MonadicExtensions[H[_]: Monad, T](monadicValue: H[T]) {

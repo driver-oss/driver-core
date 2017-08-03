@@ -32,6 +32,9 @@ package object core {
 
     def continueIgnoringNone: OptionT[H, Unit] =
       optionTValue.map(_ => ()).orElse(OptionT.some[H, Unit](()))
+
+    def subflatMap[B](f: T => Option[B]): OptionT[H, B] =
+      OptionT.optionT[H](implicitly[Monad[H]].map(optionTValue.run)(_.flatMap(f)))
   }
 
   implicit class MonadicExtensions[H[_]: Monad, T](monadicValue: H[T]) {

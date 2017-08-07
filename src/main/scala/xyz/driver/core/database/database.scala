@@ -1,7 +1,7 @@
 package xyz.driver.core
 
-import slick.basic.DatabaseConfig
-import slick.jdbc.JdbcProfile
+import slick.backend.DatabaseConfig
+import slick.driver.JdbcProfile
 import xyz.driver.core.date.Date
 import xyz.driver.core.time.Time
 
@@ -21,7 +21,7 @@ package database {
       val dbConfig: DatabaseConfig[JdbcProfile] = DatabaseConfig.forConfig(databaseName, config)
 
       new Database {
-        val profile: JdbcProfile                   = dbConfig.profile
+        val profile: JdbcProfile                   = dbConfig.driver
         val database: JdbcProfile#Backend#Database = dbConfig.db
       }
     }

@@ -5,7 +5,7 @@ import java.util.Calendar
 
 import date.{Date, Month}
 import slick.dbio._
-import slick.jdbc.JdbcProfile
+import slick.driver.JdbcProfile
 
 package object database {
 

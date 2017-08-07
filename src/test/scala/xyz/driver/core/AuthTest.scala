@@ -9,6 +9,7 @@ import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
+import xyz.driver.core.domain.Email
 import xyz.driver.core.logging._
 import xyz.driver.core.rest._
 
@@ -51,7 +52,14 @@ class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRo
     override def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, User] =
       OptionT.optionT[Future] {
         if (ctx.contextHeaders.keySet.contains(AuthProvider.AuthenticationTokenHeader)) {
-          Future.successful(Some(BasicUser(Id[User]("1"), Set(TestRole))))
+          Future.successful(Some(AuthTokenUserInfo(
+            Id[User]("1"),
+            authUserId = Id[AuthUser]("2"),
+            Email("foo", "bar"),
+            emailVerified = true,
+            audience = "driver",
+            roles = Set(TestRole)
+          )))
         } else {
           Future.successful(Option.empty[User])
         }

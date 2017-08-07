@@ -3,12 +3,12 @@ package xyz.driver.core
 import java.util.Locale
 
 import com.typesafe.config.{ConfigException, ConfigFactory}
-import org.scalatest.mock.MockitoSugar
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 import xyz.driver.core.messages.Messages
 import xyz.driver.core.logging.NoLogger
 
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 class MessagesTest extends FlatSpec with Matchers with MockitoSugar {
 
@@ -17,7 +17,7 @@ class MessagesTest extends FlatSpec with Matchers with MockitoSugar {
 
   "Messages" should "read messages from config and format with parameters" in {
 
-    val messagesConfig = ConfigFactory.parseMap(englishLocaleMessages)
+    val messagesConfig = ConfigFactory.parseMap(englishLocaleMessages.asJava)
 
     val messages = Messages.messages(messagesConfig, NoLogger, Locale.US)
 
@@ -28,12 +28,12 @@ class MessagesTest extends FlatSpec with Matchers with MockitoSugar {
 
   it should "be able to read messages for different locales" in {
 
-    val messagesConfig = ConfigFactory.parseMap(
+    val messagesConfig = ConfigFactory.parseMap((
       englishLocaleMessages ++ Map(
         "zh.hello"            -> "你好，世界!",
         "zh.greeting"         -> "你好，{0}!",
         "zh.greetingFullName" -> "你好，{0} {1} {2}!"
-      ))
+      )).asJava)
 
     val englishMessages    = Messages.messages(messagesConfig, NoLogger, Locale.US)
     val englishMessagesToo = Messages.messages(messagesConfig, NoLogger, Locale.ENGLISH)
@@ -55,7 +55,7 @@ class MessagesTest extends FlatSpec with Matchers with MockitoSugar {
 
   it should "raise exception when locale is not available" in {
 
-    val messagesConfig = ConfigFactory.parseMap(englishLocaleMessages)
+    val messagesConfig = ConfigFactory.parseMap(englishLocaleMessages.asJava)
 
     an[ConfigException.Missing] should be thrownBy
       Messages.messages(messagesConfig, NoLogger, Locale.GERMAN)

@@ -91,7 +91,7 @@ object `package` {
         case Seq(start, end) =>
           builder += ' '
           builder ++= byteString.slice(start, end)
-        case Seq(byteStringLength) => // Should not match; sliding on at least 2 elements
+        case Seq(_) => // Should not match; sliding on at least 2 elements
           assert(indices.nonEmpty, s"Indices should have been nonEmpty: $indices")
       }
       builder.result
@@ -205,7 +205,7 @@ trait Authorization[U <: User] {
           implicit ctx: ServiceRequestContext): Future[AuthorizationResult]
 }
 
-class AlwaysAllowAuthorization[U <: User](implicit execution: ExecutionContext) extends Authorization[U] {
+class AlwaysAllowAuthorization[U <: User] extends Authorization[U] {
   override def userHasPermissions(user: U, permissions: Seq[Permission])(
           implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
     val permissionsMap = permissions.map(_ -> true).toMap
@@ -427,9 +427,9 @@ class HttpRestServiceTransport(applicationName: Name[App],
 
     val request = requestStub
       .withHeaders(context.contextHeaders.toSeq.map {
-        case (ContextHeaders.TrackingIdHeader, headerValue) =>
+        case (ContextHeaders.TrackingIdHeader, _) =>
           RawHeader(ContextHeaders.TrackingIdHeader, context.trackingId)
-        case (ContextHeaders.StacktraceHeader, headerValue) =>
+        case (ContextHeaders.StacktraceHeader, _) =>
           RawHeader(ContextHeaders.StacktraceHeader,
                     Option(MDC.get("stack"))
                       .orElse(context.contextHeaders.get(ContextHeaders.StacktraceHeader))

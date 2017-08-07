@@ -144,9 +144,9 @@ class JsonTest extends FlatSpec with Matchers {
     implicit val case3Format = jsonFormat1(GadtCase3)
 
     val format = GadtJsonFormat.create[CustomGADT]("gadtTypeField") {
-      case t1: CustomGADT.GadtCase1 => "case1"
-      case t2: CustomGADT.GadtCase2 => "case2"
-      case t3: CustomGADT.GadtCase3 => "case3"
+      case _: CustomGADT.GadtCase1 => "case1"
+      case _: CustomGADT.GadtCase2 => "case2"
+      case _: CustomGADT.GadtCase3 => "case3"
     } {
       case "case1" => case1Format
       case "case2" => case2Format

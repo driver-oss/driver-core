@@ -7,12 +7,10 @@ import xyz.driver.core.time.Time
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext
+import java.nio.file.{Files, Paths}
+import com.typesafe.config.Config
 
 package database {
-
-  import java.nio.file.{Files, Paths}
-
-  import com.typesafe.config.Config
 
   trait Database {
     val profile: JdbcProfile
@@ -141,26 +139,23 @@ package database {
     }
 
     def insertTestData(database: xyz.driver.core.database.Database, filePath: String)(
-            implicit executionContext: ExecutionContext): Future[Seq[Int]] = {
+            implicit executionContext: ExecutionContext): Future[Int] = {
 
       import database.profile.api.{DBIO => _, _}
 
       val file    = Paths.get(filePath)
       val sqlLine = new String(Files.readAllBytes(file), "UTF-8")
 
-      val createInsertProcedure =
-        sqlu"""CREATE PROCEDURE INSERT_TEST_DATA()
-                MODIFIES SQL DATA
-               BEGIN ATOMIC
-               #$sqlLine
-               END;
-             """
-
-      val callInserts = sqlu"""{call INSERT_TEST_DATA()}"""
-
-      val dropInsertProcedure = sqlu"""drop PROCEDURE INSERT_TEST_DATA;"""
-
-      Future.sequence(Seq(createInsertProcedure, callInserts, dropInsertProcedure).map(slickDal.execute))
+      slickDal.execute(sqlu"""CREATE PROCEDURE INSERT_TEST_DATA()
+               MODIFIES SQL DATA
+             BEGIN ATOMIC
+             #$sqlLine
+             END;
+           """).flatMap { _ =>
+        slickDal.execute(sqlu"""{call INSERT_TEST_DATA()}""").flatMap { _ =>
+          slickDal.execute(sqlu"""drop PROCEDURE INSERT_TEST_DATA;""")
+        }
+      }
     }
   }
 

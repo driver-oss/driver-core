@@ -6,8 +6,11 @@ import xyz.driver.core.date.Date
 import xyz.driver.core.time.Time
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
 
 package database {
+
+  import java.nio.file.{Files, Paths}
 
   import com.typesafe.config.Config
 
@@ -135,6 +138,29 @@ package database {
 
     def dropSchema(): Unit = {
       Await.result(slickDal.execute(tables.schema.drop >> tables.dropNamespaceSchema), Duration.Inf)
+    }
+
+    def insertTestData(database: xyz.driver.core.database.Database, filePath: String)(
+            implicit executionContext: ExecutionContext): Future[Seq[Int]] = {
+
+      import database.profile.api.{DBIO => _, _}
+
+      val file    = Paths.get(filePath)
+      val sqlLine = new String(Files.readAllBytes(file), "UTF-8")
+
+      val createInsertProcedure =
+        sqlu"""CREATE PROCEDURE INSERT_TEST_DATA()
+                MODIFIES SQL DATA
+               BEGIN ATOMIC
+               #$sqlLine
+               END;
+             """
+
+      val callInserts = sqlu"""{call INSERT_TEST_DATA()}"""
+
+      val dropInsertProcedure = sqlu"""drop PROCEDURE INSERT_TEST_DATA;"""
+
+      Future.sequence(Seq(createInsertProcedure, callInserts, dropInsertProcedure).map(slickDal.execute))
     }
   }
 

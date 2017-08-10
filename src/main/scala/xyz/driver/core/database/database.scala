@@ -10,6 +10,8 @@ import scala.concurrent.ExecutionContext
 
 package database {
 
+  import java.nio.file.{Files, Paths}
+
   import com.typesafe.config.Config
 
   trait Database {
@@ -139,12 +141,12 @@ package database {
     }
 
     def insertTestData(database: xyz.driver.core.database.Database, filePath: String)(
-            implicit executionContext: ExecutionContext) = {
+            implicit executionContext: ExecutionContext): Future[Seq[Int]] = {
 
       import database.profile.api.{DBIO => _, _}
 
-      val file    = java.nio.file.Paths.get(filePath)
-      val sqlLine = new String(java.nio.file.Files.readAllBytes(file), "UTF-8")
+      val file    = Paths.get(filePath)
+      val sqlLine = new String(Files.readAllBytes(file), "UTF-8")
 
       val createInsertProcedure =
         sqlu"""CREATE PROCEDURE INSERT_TEST_DATA()

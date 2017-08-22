@@ -6,8 +6,6 @@ import xyz.driver.core.date.Date
 import xyz.driver.core.time.Time
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
-import java.nio.file.{Files, Paths}
 import com.typesafe.config.Config
 
 package database {
@@ -120,110 +118,6 @@ package database {
         .base[Id[T], java.util.UUID](id => java.util.UUID.fromString(id.value), uuid => Id[T](uuid.toString))
     def serialKeyMapper[T]  = MappedColumnType.base[Id[T], Long](_.value.toLong, serialId => Id[T](serialId.toString))
     def naturalKeyMapper[T] = MappedColumnType.base[Id[T], String](_.value, Id[T](_))
-  }
-
-  trait PostgresDockerContainerDatabase {
-    import com.spotify.docker.client._
-    import com.spotify.docker.client.messages._
-
-    lazy val dockerClient: DockerClient = DefaultDockerClient.fromEnv().build()
-
-    @SuppressWarnings(Array("org.wartremover.warts.Var"))
-    var dockerId: Option[String] = None
-
-    def setupDockerDatabase(username: String = "postgres",
-                            password: String = "postgres",
-                            database: String = "postgres",
-                            hostPort: Int = 15432): Unit = {
-      import collection.JavaConverters._
-      import sys.process._
-
-      // https://github.com/spotify/docker-client/issues/857
-      // dockerClient.pull("postgres")
-
-      "docker pull postgres" !
-
-      val portBindings: Map[String, List[PortBinding]] = Map("5432" -> List(PortBinding.of("0.0.0.0", hostPort)))
-      val portBindingsJava                             = portBindings.mapValues(_.asJava).asJava
-      val hostConfig                                   = HostConfig.builder().portBindings(portBindingsJava).build()
-      val containerConfig =
-        ContainerConfig
-          .builder()
-          .hostConfig(hostConfig)
-          .image("postgres")
-          .exposedPorts("5432")
-          .env(
-            s"POSTGRES_USER=$username",
-            s"POSTGRES_DB=$database",
-            s"POSTGRES_PASSWORD=$password"
-          )
-          .build()
-
-      val creation = dockerClient.createContainer(containerConfig)
-      dockerClient.startContainer(creation.id())
-      dockerId = Some(creation.id())
-    }
-
-    def killDockerDatabase(): Unit = {
-      dockerId.foreach(dockerClient.killContainer)
-    }
-  }
-
-  trait CreateAndDropSchema {
-    val slickDal: xyz.driver.core.database.SlickDal
-    val tables: GeneratedTables
-
-    import tables.profile.api._
-    import scala.concurrent.Await
-    import scala.concurrent.duration.Duration
-
-    def createSchema(): Unit = {
-      Await.result(slickDal.execute(tables.createNamespaceSchema >> tables.schema.create), Duration.Inf)
-    }
-
-    def dropSchema(): Unit = {
-      Await.result(slickDal.execute(tables.schema.drop >> tables.dropNamespaceSchema), Duration.Inf)
-    }
-  }
-
-  trait PostgresTestData {
-    val slickDal: xyz.driver.core.database.SlickDal
-    val tables: GeneratedTables
-
-    def insertTestData(database: xyz.driver.core.database.Database, filePath: String)(
-            implicit executionContext: ExecutionContext): Future[Int] = {
-      import database.profile.api.{DBIO => _, _}
-
-      val file    = Paths.get(filePath)
-      val inserts = new String(Files.readAllBytes(file), "UTF-8")
-
-      slickDal.execute(sql"#$inserts".asUpdate)
-    }
-  }
-
-  trait HsqlTestData {
-    val slickDal: xyz.driver.core.database.SlickDal
-    val tables: GeneratedTables
-
-    def insertTestData(database: xyz.driver.core.database.Database, filePath: String)(
-            implicit executionContext: ExecutionContext): Future[Int] = {
-
-      import database.profile.api.{DBIO => _, _}
-
-      val file    = Paths.get(filePath)
-      val sqlLine = new String(Files.readAllBytes(file), "UTF-8")
-
-      slickDal.execute(sqlu"""CREATE PROCEDURE INSERT_TEST_DATA()
-               MODIFIES SQL DATA
-             BEGIN ATOMIC
-             #$sqlLine
-             END;
-           """).flatMap { _ =>
-        slickDal.execute(sqlu"""{call INSERT_TEST_DATA()}""").flatMap { _ =>
-          slickDal.execute(sqlu"""drop PROCEDURE INSERT_TEST_DATA;""")
-        }
-      }
-    }
   }
 
   trait DatabaseObject extends ColumnTypes {

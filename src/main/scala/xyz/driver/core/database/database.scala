@@ -122,6 +122,53 @@ package database {
     def naturalKeyMapper[T] = MappedColumnType.base[Id[T], String](_.value, Id[T](_))
   }
 
+  trait PostgresDockerContainerDatabase {
+    import com.spotify.docker.client._
+    import com.spotify.docker.client.messages._
+
+    lazy val dockerClient: DockerClient = DefaultDockerClient.fromEnv().build()
+
+    @SuppressWarnings(Array("org.wartremover.warts.Var"))
+    var dockerId: Option[String] = None
+
+    def setupDockerDatabase(username: String = "postgres",
+                            password: String = "postgres",
+                            database: String = "postgres",
+                            hostPort: Int = 15432): Unit = {
+      import collection.JavaConverters._
+      import sys.process._
+
+      // https://github.com/spotify/docker-client/issues/857
+      // dockerClient.pull("postgres")
+
+      "docker pull postgres" !
+
+      val portBindings: Map[String, List[PortBinding]] = Map("5432" -> List(PortBinding.of("0.0.0.0", hostPort)))
+      val portBindingsJava                             = portBindings.mapValues(_.asJava).asJava
+      val hostConfig                                   = HostConfig.builder().portBindings(portBindingsJava).build()
+      val containerConfig =
+        ContainerConfig
+          .builder()
+          .hostConfig(hostConfig)
+          .image("postgres")
+          .exposedPorts("5432")
+          .env(
+            s"POSTGRES_USER=$username",
+            s"POSTGRES_DB=$database",
+            s"POSTGRES_PASSWORD=$password"
+          )
+          .build()
+
+      val creation = dockerClient.createContainer(containerConfig)
+      dockerClient.startContainer(creation.id())
+      dockerId = Some(creation.id())
+    }
+
+    def killDockerDatabase(): Unit = {
+      dockerId.foreach(dockerClient.killContainer)
+    }
+  }
+
   trait CreateAndDropSchema {
     val slickDal: xyz.driver.core.database.SlickDal
     val tables: GeneratedTables
@@ -137,6 +184,26 @@ package database {
     def dropSchema(): Unit = {
       Await.result(slickDal.execute(tables.schema.drop >> tables.dropNamespaceSchema), Duration.Inf)
     }
+  }
+
+  trait PostgresTestData {
+    val slickDal: xyz.driver.core.database.SlickDal
+    val tables: GeneratedTables
+
+    def insertTestData(database: xyz.driver.core.database.Database, filePath: String)(
+            implicit executionContext: ExecutionContext): Future[Int] = {
+      import database.profile.api.{DBIO => _, _}
+
+      val file    = Paths.get(filePath)
+      val inserts = new String(Files.readAllBytes(file), "UTF-8")
+
+      slickDal.execute(sql"#$inserts".asUpdate)
+    }
+  }
+
+  trait HsqlTestData {
+    val slickDal: xyz.driver.core.database.SlickDal
+    val tables: GeneratedTables
 
     def insertTestData(database: xyz.driver.core.database.Database, filePath: String)(
             implicit executionContext: ExecutionContext): Future[Int] = {

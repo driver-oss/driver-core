@@ -22,5 +22,7 @@ lazy val core = (project in file("."))
     "com.typesafe"                 % "config"                % "1.2.1",
     "com.typesafe.scala-logging"   %% "scala-logging"        % "3.5.0",
     "ch.qos.logback"               % "logback-classic"       % "1.1.3",
-    "com.spotify"                  % "docker-client"         % "8.9.0" classifier "shaded"
+    "com.spotify"                  % "docker-client"         % "8.9.0" classifier "shaded" excludeAll(
+      ExclusionRule(organization = "com.fasterxml.jackson.core")
+    )
   ))

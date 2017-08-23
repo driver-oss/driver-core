@@ -230,28 +230,45 @@ object app {
 
       case is: IllegalStateException =>
         ctx =>
-          MDC.put("trackingId", rest.extractTrackingId(ctx.request))
           log.warn(s"Request is not allowed to ${ctx.request.method} ${ctx.request.uri}", is)
-          complete(HttpResponse(BadRequest, entity = is.getMessage))(ctx)
+          errorResponse(ctx, BadRequest, message = is.getMessage, is)(ctx)
 
       case cm: ConcurrentModificationException =>
         ctx =>
-          MDC.put("trackingId", rest.extractTrackingId(ctx.request))
           log.warn(s"Concurrent modification of the resource ${ctx.request.method} ${ctx.request.uri}", cm)
-          complete(
-            HttpResponse(Conflict, entity = "Resource was changed concurrently, try requesting a newer version"))(ctx)
+          errorResponse(ctx, Conflict, "Resource was changed concurrently, try requesting a newer version", cm)(ctx)
 
-      case sex: SQLException =>
+      case se: SQLException =>
         ctx =>
-          MDC.put("trackingId", rest.extractTrackingId(ctx.request))
-          log.warn(s"Database exception for the resource ${ctx.request.method} ${ctx.request.uri}", sex)
-          complete(HttpResponse(InternalServerError, entity = "Data access error"))(ctx)
+          log.warn(s"Database exception for the resource ${ctx.request.method} ${ctx.request.uri}", se)
+          errorResponse(ctx, InternalServerError, "Data access error", se)(ctx)
 
       case t: Throwable =>
         ctx =>
-          MDC.put("trackingId", rest.extractTrackingId(ctx.request))
           log.warn(s"Request to ${ctx.request.method} ${ctx.request.uri} could not be handled normally", t)
-          complete(HttpResponse(InternalServerError, entity = t.getMessage))(ctx)
+          errorResponse(ctx, InternalServerError, t.getMessage, t)(ctx)
+    }
+
+    protected def errorResponse[T <: Throwable](ctx: RequestContext,
+                                                statusCode: StatusCode,
+                                                message: String,
+                                                exception: T): Route = {
+
+      val trackingId    = rest.extractTrackingId(ctx.request)
+      val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, rest.extractTrackingId(ctx.request))
+
+      MDC.put("trackingId", trackingId)
+
+      optionalHeaderValueByType[Origin](()) { originHeader =>
+        val responseHeaders = List[HttpHeader](tracingHeader,
+                                               allowOrigin(originHeader),
+                                               `Access-Control-Allow-Headers`(allowedHeaders: _*),
+                                               `Access-Control-Expose-Headers`(allowedHeaders: _*))
+
+        respondWithHeaders(responseHeaders) {
+          complete(HttpResponse(statusCode, entity = message))
+        }
+      }
     }
 
     protected def versionRoute(version: String, gitHash: String, startupTime: Time): Route = {

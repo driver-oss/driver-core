@@ -6,8 +6,6 @@ import xyz.driver.core.date.Date
 import xyz.driver.core.time.Time
 
 import scala.concurrent.Future
-import scala.concurrent.ExecutionContext
-import java.nio.file.{Files, Paths}
 import com.typesafe.config.Config
 
 package database {
@@ -120,43 +118,6 @@ package database {
         .base[Id[T], java.util.UUID](id => java.util.UUID.fromString(id.value), uuid => Id[T](uuid.toString))
     def serialKeyMapper[T]  = MappedColumnType.base[Id[T], Long](_.value.toLong, serialId => Id[T](serialId.toString))
     def naturalKeyMapper[T] = MappedColumnType.base[Id[T], String](_.value, Id[T](_))
-  }
-
-  trait CreateAndDropSchema {
-    val slickDal: xyz.driver.core.database.SlickDal
-    val tables: GeneratedTables
-
-    import tables.profile.api._
-    import scala.concurrent.Await
-    import scala.concurrent.duration.Duration
-
-    def createSchema(): Unit = {
-      Await.result(slickDal.execute(tables.createNamespaceSchema >> tables.schema.create), Duration.Inf)
-    }
-
-    def dropSchema(): Unit = {
-      Await.result(slickDal.execute(tables.schema.drop >> tables.dropNamespaceSchema), Duration.Inf)
-    }
-
-    def insertTestData(database: xyz.driver.core.database.Database, filePath: String)(
-            implicit executionContext: ExecutionContext): Future[Int] = {
-
-      import database.profile.api.{DBIO => _, _}
-
-      val file    = Paths.get(filePath)
-      val sqlLine = new String(Files.readAllBytes(file), "UTF-8")
-
-      slickDal.execute(sqlu"""CREATE PROCEDURE INSERT_TEST_DATA()
-               MODIFIES SQL DATA
-             BEGIN ATOMIC
-             #$sqlLine
-             END;
-           """).flatMap { _ =>
-        slickDal.execute(sqlu"""{call INSERT_TEST_DATA()}""").flatMap { _ =>
-          slickDal.execute(sqlu"""drop PROCEDURE INSERT_TEST_DATA;""")
-        }
-      }
-    }
   }
 
   trait DatabaseObject extends ColumnTypes {

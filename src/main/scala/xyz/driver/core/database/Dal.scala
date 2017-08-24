@@ -8,7 +8,7 @@ import scalaz.std.scalaFuture._
 
 trait Dal {
   type T[D]
-  implicit val monadT: Monad[T]
+  implicit def monadT: Monad[T]
 
   def execute[D](operations: T[D]): Future[D]
   def noAction[V](v: V): T[V]
@@ -42,10 +42,12 @@ class SlickDal(database: Database, executionContext: ExecutionContext) extends D
     def resultT: ListT[T, U] = ListT.listT[T](compiledQuery.result.map(_.toList))
   }
 
-  override implicit val monadT: Monad[T] = new Monad[T] {
+  private val dbioMonad = new Monad[T] {
     override def point[A](a: => A): T[A]                  = DBIO.successful(a)
     override def bind[A, B](fa: T[A])(f: A => T[B]): T[B] = fa.flatMap(f)
   }
+
+  override implicit def monadT: Monad[T] = dbioMonad
 
   override def execute[D](readOperations: T[D]): Future[D] = {
     database.database.run(readOperations.transactionally)

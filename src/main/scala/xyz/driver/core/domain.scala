@@ -23,6 +23,9 @@ object domain {
   }
 
   final case class PhoneNumber(countryCode: String = "1", number: String) {
+    require(countryCode.nonEmpty, "Country Code must be entered")
+    require(number.nonEmpty, "Phone number must be entered")
+
     override def toString: String = s"+$countryCode $number"
   }
 

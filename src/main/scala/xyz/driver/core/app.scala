@@ -50,6 +50,9 @@ object app {
     implicit private lazy val materializer = ActorMaterializer()(actorSystem)
     private lazy val http                  = Http()(actorSystem)
 
+
+
+
     def run(): Unit = {
       activateServices(modules)
       scheduleServicesDeactivation(modules)
@@ -89,7 +92,8 @@ object app {
         "X-Content-Type-Options",
         "Strict-Transport-Security",
         AuthProvider.SetAuthenticationTokenHeader,
-        AuthProvider.SetPermissionsTokenHeader
+        AuthProvider.SetPermissionsTokenHeader,
+        GoogleStackdriverTrace.HeaderKey
       )
 
     private def allowOrigin(originHeader: Option[Origin]) =
@@ -135,6 +139,11 @@ object app {
                   val trackingId = rest.extractTrackingId(ctx.request)
                   MDC.put("trackingId", trackingId)
 
+                  val googleStackDriverTrace = GoogleStackdriverTrace(appName,
+                    "driverinc-sandbox",
+                    config.getString("storage.gcs.serviceAccountKeyfile"),
+                    ctx.request.headers.filter(_.is(GoogleStackdriverTrace.HeaderKey.toLowerCase)).headOption.map(_.value()))
+
                   val updatedStacktrace = (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
                   MDC.put("stack", updatedStacktrace)
 
@@ -144,12 +153,14 @@ object app {
                     log.info(
                       s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
                   }
+                  val googleTracingHeader = RawHeader(GoogleStackdriverTrace.HeaderKey, googleStackDriverTrace.headerValue)
 
                   val contextWithTrackingId =
                     ctx.withRequest(
                       ctx.request
                         .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
-                        .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
+                        .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace))
+                        .addHeader(googleTracingHeader))
 
                   handleExceptions(ExceptionHandler(exceptionHandler))({
                     c =>
@@ -157,6 +168,7 @@ object app {
                         val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
 
                         val responseHeaders = List[HttpHeader](tracingHeader,
+                                                               googleTracingHeader,
                                                                allowOrigin(originHeader),
                                                                `Access-Control-Allow-Headers`(allowedHeaders: _*),
                                                                `Access-Control-Expose-Headers`(allowedHeaders: _*))
@@ -165,7 +177,9 @@ object app {
                           modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
                         }(c)
                       }
-                  })(contextWithTrackingId)
+                  })(contextWithTrackingId).andThen {
+                    case _ => googleStackDriverTrace.endSpan()
+                  }
                 }
               }
             }

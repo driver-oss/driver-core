@@ -1,20 +1,16 @@
 package xyz.driver.core
 
+import java.io.FileInputStream
+import java.util
+
 import com.google.auth.oauth2.GoogleCredentials
-import com.google.cloud.trace.GrpcSpanContextHandler
-import com.google.cloud.trace.SpanContextHandler
-import com.google.cloud.trace.SpanContextHandlerTracer
-import com.google.cloud.trace.Tracer
+import com.google.cloud.trace.{GrpcSpanContextHandler, SpanContextHandler, SpanContextHandlerTracer, Tracer}
 import com.google.cloud.trace.core._
 import com.google.cloud.trace.grpc.v1.GrpcTraceConsumer
 import com.google.cloud.trace.sink.TraceSink
 import com.google.cloud.trace.v1.TraceSinkV1
-import com.google.cloud.trace.v1.consumer.FlushableTraceConsumer
-import com.google.cloud.trace.v1.consumer.SimpleBufferingTraceConsumer
 import com.google.cloud.trace.v1.consumer.TraceConsumer
 import com.google.cloud.trace.v1.producer.TraceProducer
-import java.io.FileInputStream
-import java.util
 
 final case class GoogleStackdriverTrace(appName: String, projectId: String, clientSecretsFile:String, parentTraceHeaderStringOpt: Option[String]) {
 

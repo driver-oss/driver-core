@@ -136,13 +136,14 @@ object app {
             extractClientIP { ip =>
               optionalHeaderValueByType[Origin](()) { originHeader =>
                 { ctx =>
-                  val trackingId = rest.extractTrackingId(ctx.request)
-                  MDC.put("trackingId", trackingId)
-
-                  val googleStackDriverTrace = GoogleStackdriverTrace(appName,
+                  val stackTraceName = s"${ctx.request.method.toString}_${appName}_${ctx.request.uri}"
+                  val googleStackDriverTrace = GoogleStackdriverTrace(stackTraceName,
                     "driverinc-sandbox",
                     config.getString("storage.gcs.serviceAccountKeyfile"),
                     ctx.request.headers.filter(_.is(GoogleStackdriverTrace.HeaderKey.toLowerCase)).headOption.map(_.value()))
+
+                  val trackingId = googleStackDriverTrace.headerValue //rest.extractTrackingId(ctx.request)
+                  MDC.put("trackingId", trackingId)
 
                   val updatedStacktrace = (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
                   MDC.put("stack", updatedStacktrace)
@@ -159,8 +160,7 @@ object app {
                     ctx.withRequest(
                       ctx.request
                         .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
-                        .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace))
-                        .addHeader(googleTracingHeader))
+                        .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
 
                   handleExceptions(ExceptionHandler(exceptionHandler))({
                     c =>

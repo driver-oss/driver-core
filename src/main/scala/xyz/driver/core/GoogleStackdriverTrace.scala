@@ -28,7 +28,7 @@ final case class GoogleStackdriverTrace(appName: String, projectId: String, clie
   val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, flushableSink)
 
   // Create the tracer.
-  val spanContextFactory: SpanContextFactory = new SpanContextFactory(new ConstantTraceOptionsFactory(true, false))
+  val spanContextFactory: SpanContextFactory = new SpanContextFactory(new ConstantTraceOptionsFactory(true, true))
   val timestampFactory: TimestampFactory = new JavaTimestampFactory
   val spanContext: SpanContext = parentTraceHeaderStringOpt
     .fold(spanContextFactory.initialContext())(

@@ -30,6 +30,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.reflect.runtime.universe._
 import scala.util.control.NonFatal
 import scala.util.Try
+import scala.util.Success
 import scalaz.Scalaz.stringInstance
 import scalaz.syntax.equal._
 
@@ -136,11 +137,15 @@ object app {
             extractClientIP { ip =>
               optionalHeaderValueByType[Origin](()) { originHeader =>
                 { ctx =>
-                  val stackTraceName = s"${ctx.request.method.toString}_${appName}_${ctx.request.uri}"
-                  val googleStackDriverTrace = new GoogleStackdriverTrace(stackTraceName,
-                    "driverinc-sandbox",
-                    config.getString("storage.gcs.serviceAccountKeyfile"),
-                    ctx.request.headers.filter(_.is(GoogleStackdriverTrace.HeaderKey.toLowerCase)).headOption.map(_.value()))
+                  val stackTraceName = s"${ctx.request.method.value}_${appName}_${ctx.request.uri}"
+                  val googleStackDriverTraceFuture: Future[DriverTracing] = Future {
+                    new GoogleStackdriverTrace(stackTraceName,
+                      "driverinc-sandbox",
+                      config.getString("storage.gcs.serviceAccountKeyfile"),
+                      ctx.request.headers.filter(_.is(GoogleStackdriverTrace.HeaderKey.toLowerCase)).headOption.map(_.value()))
+                  }.andThen{
+                    case Success(googleStackDriverTrace:DriverTracing) => googleStackDriverTrace.endSpan()
+                  }
 
                   val trackingId = rest.extractTrackingId(ctx.request)
                   MDC.put("trackingId", trackingId)
@@ -154,7 +159,6 @@ object app {
                     log.info(
                       s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
                   }
-                  val googleTracingHeader = RawHeader(GoogleStackdriverTrace.HeaderKey, googleStackDriverTrace.headerValue)
 
                   val contextWithTrackingId =
                     ctx.withRequest(
@@ -165,21 +169,24 @@ object app {
                   handleExceptions(ExceptionHandler(exceptionHandler))({
                     c =>
                       requestLogging.flatMap { _ =>
-                        val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
+                        googleStackDriverTraceFuture.flatMap { googleStackDriverTrace =>
+                          val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
+                          val googleTracingHeader = RawHeader(GoogleStackdriverTrace.HeaderKey,
+                            googleStackDriverTrace.headerValue)
 
-                        val responseHeaders = List[HttpHeader](tracingHeader,
-                                                               googleTracingHeader,
-                                                               allowOrigin(originHeader),
-                                                               `Access-Control-Allow-Headers`(allowedHeaders: _*),
-                                                               `Access-Control-Expose-Headers`(allowedHeaders: _*))
 
-                        respondWithHeaders(responseHeaders) {
-                          modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
-                        }(c)
+                          val responseHeaders = List[HttpHeader](tracingHeader,
+                            googleTracingHeader,
+                            allowOrigin(originHeader),
+                            `Access-Control-Allow-Headers`(allowedHeaders: _*),
+                            `Access-Control-Expose-Headers`(allowedHeaders: _*))
+
+                          respondWithHeaders(responseHeaders) {
+                            modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
+                          }(c)
+                        }
                       }
-                  })(contextWithTrackingId).andThen {
-                    case _ => googleStackDriverTrace.endSpan()
-                  }
+                  })(contextWithTrackingId)
                 }
               }
             }

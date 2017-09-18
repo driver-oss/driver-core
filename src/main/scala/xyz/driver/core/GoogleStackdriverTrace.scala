@@ -12,7 +12,16 @@ import com.google.cloud.trace.v1.TraceSinkV1
 import com.google.cloud.trace.v1.consumer.{SimpleBufferingTraceConsumer, TraceConsumer}
 import com.google.cloud.trace.v1.producer.TraceProducer
 
-final class GoogleStackdriverTrace(appName: String, projectId: String, clientSecretsFile:String, parentTraceHeaderStringOpt: Option[String]) {
+
+trait DriverTracing {
+  def endSpan():Unit
+  def headerValue: String
+}
+
+final class GoogleStackdriverTrace(appName: String,
+                                   projectId: String,
+                                   clientSecretsFile:String,
+                                   parentTraceHeaderStringOpt: Option[String]) extends DriverTracing {
 
   // Create the trace sink.
   val traceProducer: TraceProducer = new TraceProducer()

@@ -4,13 +4,14 @@ import java.io.FileInputStream
 import java.util
 
 import com.google.auth.oauth2.GoogleCredentials
-import com.google.cloud.trace.{GrpcSpanContextHandler, SpanContextHandler, SpanContextHandlerTracer, Tracer}
+import com.google.cloud.trace._
 import com.google.cloud.trace.core._
 import com.google.cloud.trace.grpc.v1.GrpcTraceConsumer
 import com.google.cloud.trace.sink.TraceSink
 import com.google.cloud.trace.v1.TraceSinkV1
 import com.google.cloud.trace.v1.consumer.TraceConsumer
 import com.google.cloud.trace.v1.producer.TraceProducer
+import com.google.cloud.trace.v1.consumer.SimpleBufferingTraceConsumer
 
 final case class GoogleStackdriverTrace(appName: String, projectId: String, clientSecretsFile:String, parentTraceHeaderStringOpt: Option[String]) {
 
@@ -20,7 +21,9 @@ final case class GoogleStackdriverTrace(appName: String, projectId: String, clie
     .create("cloudtrace.googleapis.com",
       GoogleCredentials.fromStream(new FileInputStream(clientSecretsFile))
         .createScoped(util.Arrays.asList("https://www.googleapis.com/auth/trace.append")))
-  val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, traceConsumer)
+
+  val flushableSink = new SimpleBufferingTraceConsumer(traceConsumer)
+  val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, flushableSink)
 
   // Create the tracer.
   val spanContextFactory: SpanContextFactory = new SpanContextFactory(new ConstantTraceOptionsFactory(true, true))
@@ -31,15 +34,18 @@ final case class GoogleStackdriverTrace(appName: String, projectId: String, clie
     )
   val contextHandler: SpanContextHandler = new GrpcSpanContextHandler(spanContext)
   val tracer: Tracer = new SpanContextHandlerTracer(traceSink, contextHandler, spanContextFactory, timestampFactory)
+  contextHandler.attach(spanContext)
 
   // Create a span using the given timestamps.
   val context: TraceContext = tracer.startSpan(appName)
+  Trace.getTracer
 
   val stackTraceBuilder: StackTrace.Builder = ThrowableStackTraceHelper.createBuilder(new Exception)
   tracer.setStackTrace(context, stackTraceBuilder.build)
 
   def endSpan(): Unit = {
     tracer.endSpan(context)
+    flushableSink.flush()
   }
   def headerValue: String = {
     SpanContextFactory.toHeader(spanContext)

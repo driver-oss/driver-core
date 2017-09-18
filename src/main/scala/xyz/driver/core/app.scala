@@ -143,8 +143,6 @@ object app {
                       "driverinc-sandbox",
                       config.getString("storage.gcs.serviceAccountKeyfile"),
                       ctx.request.headers.filter(_.is(GoogleStackdriverTrace.HeaderKey.toLowerCase)).headOption.map(_.value()))
-                  }.andThen{
-                    case Success(googleStackDriverTrace:DriverTracing) => googleStackDriverTrace.endSpan()
                   }
 
                   val trackingId = rest.extractTrackingId(ctx.request)

@@ -12,7 +12,7 @@ import com.google.cloud.trace.v1.TraceSinkV1
 import com.google.cloud.trace.v1.consumer.{SimpleBufferingTraceConsumer, TraceConsumer}
 import com.google.cloud.trace.v1.producer.TraceProducer
 
-final case class GoogleStackdriverTrace(appName: String, projectId: String, clientSecretsFile:String, parentTraceHeaderStringOpt: Option[String]) {
+final class GoogleStackdriverTrace(appName: String, projectId: String, clientSecretsFile:String, parentTraceHeaderStringOpt: Option[String]) {
 
   // Create the trace sink.
   val traceProducer: TraceProducer = new TraceProducer()
@@ -25,8 +25,8 @@ final case class GoogleStackdriverTrace(appName: String, projectId: String, clie
   val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, flushableSink)
 
   // Create the tracer.
-  val spanContextFactory: SpanContextFactory = new SpanContextFactory(new ConstantTraceOptionsFactory(true, false))
-  val timestampFactory: TimestampFactory = new JavaTimestampFactory
+  val spanContextFactory: SpanContextFactory = new SpanContextFactory(new ConstantTraceOptionsFactory(true, true))
+  val timestampFactory: TimestampFactory = new JavaTimestampFactory()
   val spanContext: SpanContext = parentTraceHeaderStringOpt
     .fold(spanContextFactory.initialContext())(
       parentTraceHeaderString => spanContextFactory.fromHeader(parentTraceHeaderString)

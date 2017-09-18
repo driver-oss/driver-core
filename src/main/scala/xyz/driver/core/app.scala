@@ -137,7 +137,7 @@ object app {
               optionalHeaderValueByType[Origin](()) { originHeader =>
                 { ctx =>
                   val stackTraceName = s"${ctx.request.method.toString}_${appName}_${ctx.request.uri}"
-                  val googleStackDriverTrace = GoogleStackdriverTrace(stackTraceName,
+                  val googleStackDriverTrace = new GoogleStackdriverTrace(stackTraceName,
                     "driverinc-sandbox",
                     config.getString("storage.gcs.serviceAccountKeyfile"),
                     ctx.request.headers.filter(_.is(GoogleStackdriverTrace.HeaderKey.toLowerCase)).headOption.map(_.value()))

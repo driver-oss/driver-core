@@ -28,9 +28,8 @@ import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.reflect.runtime.universe._
-import scala.util.control.NonFatal
 import scala.util.Try
-import scala.util.Success
+import scala.util.control.NonFatal
 import scalaz.Scalaz.stringInstance
 import scalaz.syntax.equal._
 

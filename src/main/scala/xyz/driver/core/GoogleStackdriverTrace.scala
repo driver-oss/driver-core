@@ -24,8 +24,7 @@ final case class GoogleStackdriverTrace(appName: String, projectId: String, clie
     .create("cloudtrace.googleapis.com",
       GoogleCredentials.fromStream(new FileInputStream(clientSecretsFile))
         .createScoped(util.Arrays.asList("https://www.googleapis.com/auth/trace.append")))
-  val flushableSink: FlushableTraceConsumer = new SimpleBufferingTraceConsumer(traceConsumer)
-  val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, flushableSink)
+  val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, traceConsumer)
 
   // Create the tracer.
   val spanContextFactory: SpanContextFactory = new SpanContextFactory(new ConstantTraceOptionsFactory(true, true))
@@ -45,7 +44,6 @@ final case class GoogleStackdriverTrace(appName: String, projectId: String, clie
 
   def endSpan(): Unit = {
     tracer.endSpan(context)
-    flushableSink.flush()
   }
   def headerValue: String = {
     SpanContextFactory.toHeader(spanContext)

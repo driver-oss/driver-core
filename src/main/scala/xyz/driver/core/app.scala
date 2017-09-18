@@ -142,7 +142,7 @@ object app {
                     config.getString("storage.gcs.serviceAccountKeyfile"),
                     ctx.request.headers.filter(_.is(GoogleStackdriverTrace.HeaderKey.toLowerCase)).headOption.map(_.value()))
 
-                  val trackingId = googleStackDriverTrace.headerValue //rest.extractTrackingId(ctx.request)
+                  val trackingId = rest.extractTrackingId(ctx.request)
                   MDC.put("trackingId", trackingId)
 
                   val updatedStacktrace = (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")

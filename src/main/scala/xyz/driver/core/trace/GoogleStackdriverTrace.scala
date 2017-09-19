@@ -15,7 +15,6 @@ import com.google.cloud.trace.v1.consumer.TraceConsumer
 import com.google.cloud.trace.v1.producer.TraceProducer
 import com.google.cloud.trace.{SpanContextHandler, SpanContextHandlerTracer, Tracer}
 import com.typesafe.scalalogging.Logger
-
 import scala.collection.mutable
 
 @SuppressWarnings(
@@ -23,11 +22,15 @@ import scala.collection.mutable
 final class GoogleStackdriverTrace(projectId: String,
                                    clientSecretsFile:String,
                                    log:Logger)(implicit system: ActorSystem) extends DriverTracer{
-
+  import GoogleStackdriverTrace._
   // initialize our various tracking storage systems
   private val contextMap:mutable.Map[UUID, (Tracer, TraceContext)] = synchronized(
     mutable.Map.empty[UUID, (Tracer, TraceContext)])
-  val clientSecretsInputStreamOpt:Option[FileInputStream] = Option(new FileInputStream(clientSecretsFile))
+  val clientSecretsInputStreamOpt:Option[FileInputStream] = if(fileExists(clientSecretsFile)) {
+    Some(new FileInputStream(clientSecretsFile))
+  } else {
+    None
+  }
   private val traceProducer: TraceProducer = new TraceProducer()
   // if the google credentials are invalid, just log the traces
   private val traceConsumer: TraceConsumer = clientSecretsInputStreamOpt.fold[TraceConsumer]{
@@ -81,4 +84,9 @@ final class GoogleStackdriverTrace(projectId: String,
         contextMap.remove(uuid)
       case None => () // do nothing here
   }
+}
+
+object GoogleStackdriverTrace {
+  import java.nio.file.{Paths, Files}
+  def fileExists(path: String): Boolean = Files.exists(Paths.get(path))
 }

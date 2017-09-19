@@ -54,7 +54,8 @@ object app {
 
     val driverTracer: DriverTracer = new GoogleStackdriverTrace(
       config.getString("tracing.google.projectId"),
-      config.getString("tracing.google.serviceAccountKeyfile")
+      config.getString("tracing.google.serviceAccountKeyfile"),
+      log
     )
 
     def run(): Unit = {

@@ -7,30 +7,34 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.headers.RawHeader
 import com.google.auth.oauth2.GoogleCredentials
-import com.google.cloud.trace.core.{ConstantTraceOptionsFactory, JavaTimestampFactory, SpanContextFactory, TimestampFactory, TraceContext, _}
+import com.google.cloud.trace.core._
 import com.google.cloud.trace.grpc.v1.GrpcTraceConsumer
 import com.google.cloud.trace.sink.TraceSink
 import com.google.cloud.trace.v1.TraceSinkV1
 import com.google.cloud.trace.v1.consumer.TraceConsumer
 import com.google.cloud.trace.v1.producer.TraceProducer
 import com.google.cloud.trace.{SpanContextHandler, SpanContextHandlerTracer, Tracer}
+import com.typesafe.scalalogging.Logger
 
 import scala.collection.mutable
 
 @SuppressWarnings(
   Array("org.wartremover.warts.MutableDataStructures"))
 final class GoogleStackdriverTrace(projectId: String,
-                                   clientSecretsFile:String)(implicit system: ActorSystem) extends DriverTracer{
+                                   clientSecretsFile:String,
+                                   log:Logger)(implicit system: ActorSystem) extends DriverTracer{
 
   // initialize our various tracking storage systems
   private val contextMap:mutable.Map[UUID, (Tracer, TraceContext)] = synchronized(
     mutable.Map.empty[UUID, (Tracer, TraceContext)])
-
+  val clientSecretsInputStreamOpt:Option[FileInputStream] = Option(new FileInputStream(clientSecretsFile))
   private val traceProducer: TraceProducer = new TraceProducer()
-  private val traceConsumer: TraceConsumer = GrpcTraceConsumer
+  // if the google credentials are invalid, just log the traces
+  private val traceConsumer: TraceConsumer = clientSecretsInputStreamOpt.fold[TraceConsumer](new LoggingTraceConsumer(log))(
+    clientSecretsInputStream => GrpcTraceConsumer
     .create("cloudtrace.googleapis.com",
-      GoogleCredentials.fromStream(new FileInputStream(clientSecretsFile))
-        .createScoped(util.Arrays.asList("https://www.googleapis.com/auth/trace.append")))
+      GoogleCredentials.fromStream(clientSecretsInputStream)
+        .createScoped(util.Arrays.asList("https://www.googleapis.com/auth/trace.append"))))
 
   private val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, traceConsumer)
 

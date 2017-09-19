@@ -30,11 +30,15 @@ final class GoogleStackdriverTrace(projectId: String,
   val clientSecretsInputStreamOpt:Option[FileInputStream] = Option(new FileInputStream(clientSecretsFile))
   private val traceProducer: TraceProducer = new TraceProducer()
   // if the google credentials are invalid, just log the traces
-  private val traceConsumer: TraceConsumer = clientSecretsInputStreamOpt.fold[TraceConsumer](new LoggingTraceConsumer(log))(
+  private val traceConsumer: TraceConsumer = clientSecretsInputStreamOpt.fold[TraceConsumer]{
+    log.warn(s"Google credentials not found in path: $clientSecretsFile")
+    new LoggingTraceConsumer(log)
+  }{
     clientSecretsInputStream => GrpcTraceConsumer
     .create("cloudtrace.googleapis.com",
       GoogleCredentials.fromStream(clientSecretsInputStream)
-        .createScoped(util.Arrays.asList("https://www.googleapis.com/auth/trace.append"))))
+        .createScoped(util.Arrays.asList("https://www.googleapis.com/auth/trace.append")))
+  }
 
   private val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, traceConsumer)
 

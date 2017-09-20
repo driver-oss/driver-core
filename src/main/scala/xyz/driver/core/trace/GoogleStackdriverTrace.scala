@@ -82,19 +82,19 @@ final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String,
       spanLabelBuilder.add("/span/parent", parentHeaderOptional.get().value())
     }
 
+    val context: TraceContext = tracer.startSpan(s"($appName)$httpRelative", spanOptions)
+    tracer.annotateSpan(context, spanLabelBuilder.build())
     synchronized {
-      val context: TraceContext = tracer.startSpan(s"($appName)$httpRelative", spanOptions)
-      tracer.annotateSpan(context, spanLabelBuilder.build())
       contextMap.put(uuid, (tracer, context))
-      (uuid, RawHeader(HeaderKey, SpanContextFactory.toHeader(context.getHandle.getCurrentSpanContext)))
     }
+    (uuid, RawHeader(HeaderKey, SpanContextFactory.toHeader(context.getHandle.getCurrentSpanContext)))
   }
 
   override def endSpan(uuid: UUID): Unit =
     contextMap.get(uuid) match {
       case Some((tracer, context)) =>
+        tracer.endSpan(context)
         synchronized {
-          tracer.endSpan(context)
           contextMap.remove(uuid)
         }
       case None => log.error("ERROR you are asking to stop a span that was not found in tracing.")

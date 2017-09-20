@@ -25,6 +25,7 @@ import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
 import xyz.driver.core.{Name, generators}
 import xyz.driver.core.time.provider.TimeProvider
+import xyz.driver.core.trace.GoogleStackdriverTrace
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -56,7 +57,8 @@ object `package` {
   def extractContextHeaders(request: HttpRequest): Map[String, String] = {
     request.headers.filter { h =>
       h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader ||
-      h.name === ContextHeaders.PermissionsTokenHeader || h.name === ContextHeaders.StacktraceHeader
+      h.name === ContextHeaders.PermissionsTokenHeader || h.name === ContextHeaders.StacktraceHeader ||
+      h.name === ContextHeaders.TracingHeader
     } map { header =>
       if (header.name === ContextHeaders.AuthenticationTokenHeader) {
         header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim
@@ -174,6 +176,7 @@ object ContextHeaders {
   val AuthenticationHeaderPrefix = "Bearer"
   val TrackingIdHeader           = "X-Trace"
   val StacktraceHeader           = "X-Stacktrace"
+  val TracingHeader              = GoogleStackdriverTrace.HeaderKey
 }
 
 object AuthProvider {

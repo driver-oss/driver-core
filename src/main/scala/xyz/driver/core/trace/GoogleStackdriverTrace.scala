@@ -52,11 +52,7 @@ final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String,
   private val spanContextFactory: SpanContextFactory = new SpanContextFactory(
     new ConstantTraceOptionsFactory(true, true))
   private val timestampFactory: TimestampFactory = new JavaTimestampFactory()
-
-  override val HeaderKey: String = {
-    SpanContextFactory.headerKey()
-  }
-
+  override val headerKey                         = HeaderKey
   override def startSpan(appName: String, httpRequest: HttpRequest): (UUID, RawHeader) = {
     val uuid                 = UUID.randomUUID()
     val parentHeaderOptional = httpRequest.getHeader(HeaderKey)
@@ -74,21 +70,21 @@ final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String,
     // Create a span using the given timestamps.
     // https://cloud.google.com/trace/docs/reference/v1/rest/v1/projects.traces#TraceSpan
     val spanOptions: StartSpanOptions = (new StartSpanOptions()).setSpanKind(spanKind)
+
+    val spanLabelBuilder = Labels
+      .builder()
+      .add("/http/method", httpMethod)
+      .add("/http/url", httpRelative)
+      .add("/http/host", httpHost)
+      .add("/component", appName)
+
+    if (parentHeaderOptional.isPresent) {
+      spanLabelBuilder.add("/span/parent", parentHeaderOptional.get().value())
+    }
+
     synchronized {
       val context: TraceContext = tracer.startSpan(s"($appName)$httpRelative", spanOptions)
-      val spanLabelBuilder = Labels
-        .builder()
-        .add("/http/method", httpMethod)
-        .add("/http/url", httpRelative)
-        .add("/http/host", httpHost)
-        .add("/component", appName)
-
-      if (parentHeaderOptional.isPresent) {
-        spanLabelBuilder.add("/span/parent", parentHeaderOptional.get().value())
-      }
-
       tracer.annotateSpan(context, spanLabelBuilder.build())
-
       contextMap.put(uuid, (tracer, context))
       (uuid, RawHeader(HeaderKey, SpanContextFactory.toHeader(context.getHandle.getCurrentSpanContext)))
     }
@@ -108,4 +104,7 @@ final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String,
 object GoogleStackdriverTrace {
   import java.nio.file.{Paths, Files}
   def fileExists(path: String): Boolean = Files.exists(Paths.get(path))
+  val HeaderKey: String = {
+    SpanContextFactory.headerKey()
+  }
 }

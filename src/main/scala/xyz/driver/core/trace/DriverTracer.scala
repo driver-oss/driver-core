@@ -10,5 +10,5 @@ trait DriverTracer {
 
   def endSpan(uuid: UUID): Unit
 
-  val HeaderKey: String
+  val headerKey: String
 }

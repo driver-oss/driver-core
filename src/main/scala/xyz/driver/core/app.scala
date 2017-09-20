@@ -97,7 +97,7 @@ object app {
         "Strict-Transport-Security",
         AuthProvider.SetAuthenticationTokenHeader,
         AuthProvider.SetPermissionsTokenHeader,
-        driverTracer.HeaderKey
+        driverTracer.headerKey
       )
 
     private def allowOrigin(originHeader: Option[Origin]) =

@@ -60,23 +60,26 @@ final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String,
   override def startSpan(appName: String, httpRequest: HttpRequest): (UUID, RawHeader) = {
     val uuid                 = UUID.randomUUID()
     val parentHeaderOptional = httpRequest.getHeader(HeaderKey)
-    val spanContext: SpanContext = if (parentHeaderOptional.isPresent) {
-      spanContextFactory.fromHeader(parentHeaderOptional.get().value())
+    val (spanContext: SpanContext, spanKind: SpanKind) = if (parentHeaderOptional.isPresent) {
+      (spanContextFactory.fromHeader(parentHeaderOptional.get().value()), SpanKind.RPC_SERVER)
     } else {
-      spanContextFactory.initialContext()
+      (spanContextFactory.initialContext(), SpanKind.RPC_CLIENT)
     }
     val contextHandler: SpanContextHandler = new SimpleSpanContextHandler(spanContext)
     val httpMethod                         = httpRequest.method.value
-    val uri                                = httpRequest.uri.toString()
+    val httpHost                           = httpRequest.uri.authority.host.address()
+    val httpRelative                       = httpRequest.uri.toRelative.toString()
     val tracer: Tracer                     = new SpanContextHandlerTracer(traceSink, contextHandler, spanContextFactory, timestampFactory)
     // Create a span using the given timestamps.
     // https://cloud.google.com/trace/docs/reference/v1/rest/v1/projects.traces#TraceSpan
-    val context: TraceContext = tracer.startSpan(s"$appName:$uri")
+    val spanOptions: StartSpanOptions = (new StartSpanOptions()).setSpanKind(spanKind)
+    val context: TraceContext         = tracer.startSpan(s"($appName)/$httpRelative", spanOptions)
     tracer.annotateSpan(context,
                         Labels
                           .builder()
                           .add("/http/method", httpMethod)
-                          .add("/http/url", uri)
+                          .add("/http/url", httpRelative)
+                          .add("/http/host", httpHost)
                           .add("/component", appName)
                           .build())
     synchronized { // synchronize on mutating the map

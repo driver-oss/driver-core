@@ -142,7 +142,6 @@ object app {
             extractClientIP { ip =>
               optionalHeaderValueByType[Origin](()) { originHeader =>
                 { ctx =>
-
                   val (tracingId, tracingHeader) = serviceTracer.startSpan(ctx.request)
 
                   val trackingId = rest.extractTrackingId(ctx.request)

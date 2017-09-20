@@ -25,8 +25,7 @@ final class GoogleStackdriverTrace(projectId: String,
                                    clientSecretsFile: String,
                                    appName: String,
                                    appEnvironment: String,
-                                   log: Logger)(
-        implicit system: ActorSystem)
+                                   log: Logger)(implicit system: ActorSystem)
     extends ServiceTracer {
   override type TraceId = UUID
   import GoogleStackdriverTrace._

@@ -65,6 +65,7 @@ final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String,
     } else {
       (spanContextFactory.initialContext(), SpanKind.RPC_CLIENT)
     }
+
     val contextHandler: SpanContextHandler = new SimpleSpanContextHandler(spanContext)
     val httpMethod                         = httpRequest.method.value
     val httpHost                           = httpRequest.uri.authority.host.address()
@@ -73,26 +74,31 @@ final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String,
     // Create a span using the given timestamps.
     // https://cloud.google.com/trace/docs/reference/v1/rest/v1/projects.traces#TraceSpan
     val spanOptions: StartSpanOptions = (new StartSpanOptions()).setSpanKind(spanKind)
-    val context: TraceContext         = tracer.startSpan(s"($appName)/$httpRelative", spanOptions)
-    tracer.annotateSpan(context,
-                        Labels
-                          .builder()
-                          .add("/http/method", httpMethod)
-                          .add("/http/url", httpRelative)
-                          .add("/http/host", httpHost)
-                          .add("/component", appName)
-                          .build())
-    synchronized { // synchronize on mutating the map
+    synchronized {
+      val context: TraceContext = tracer.startSpan(s"($appName)$httpRelative", spanOptions)
+      val spanLabelBuilder = Labels
+        .builder()
+        .add("/http/method", httpMethod)
+        .add("/http/url", httpRelative)
+        .add("/http/host", httpHost)
+        .add("/component", appName)
+
+      if (parentHeaderOptional.isPresent) {
+        spanLabelBuilder.add("/span/parent", parentHeaderOptional.get().value())
+      }
+
+      tracer.annotateSpan(context, spanLabelBuilder.build())
+
       contextMap.put(uuid, (tracer, context))
+      (uuid, RawHeader(HeaderKey, SpanContextFactory.toHeader(context.getHandle.getCurrentSpanContext)))
     }
-    (uuid, RawHeader(HeaderKey, SpanContextFactory.toHeader(context.getHandle.getCurrentSpanContext)))
   }
 
   override def endSpan(uuid: UUID): Unit =
     contextMap.get(uuid) match {
       case Some((tracer, context)) =>
-        tracer.endSpan(context)
-        synchronized { // synchronize on mutating the map
+        synchronized {
+          tracer.endSpan(context)
           contextMap.remove(uuid)
         }
       case None => log.error("ERROR you are asking to stop a span that was not found in tracing.")

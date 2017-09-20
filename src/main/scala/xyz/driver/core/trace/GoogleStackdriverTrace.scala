@@ -21,7 +21,11 @@ import scala.compat.java8.OptionConverters._ // needed for the `.asScala` implic
 import scala.collection.mutable
 
 @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
-final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String, appEnvironment: String, log: Logger)(
+final class GoogleStackdriverTrace(projectId: String,
+                                   clientSecretsFile: String,
+                                   appName: String,
+                                   appEnvironment: String,
+                                   log: Logger)(
         implicit system: ActorSystem)
     extends ServiceTracer {
   override type TraceId = UUID
@@ -55,7 +59,7 @@ final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String,
     new ConstantTraceOptionsFactory(true, true))
   private val timestampFactory: TimestampFactory = new JavaTimestampFactory()
   override val headerKey                         = HeaderKey
-  override def startSpan(appName: String, httpRequest: HttpRequest): (TraceId, RawHeader) = {
+  override def startSpan(httpRequest: HttpRequest): (TraceId, RawHeader) = {
     val traceId                                                        = UUID.randomUUID()
     val parentHeaderOption: Option[akka.http.javadsl.model.HttpHeader] = httpRequest.getHeader(HeaderKey).asScala
     val (spanContext: SpanContext, spanKind: SpanKind) = parentHeaderOption.fold {

@@ -6,7 +6,7 @@ import akka.http.scaladsl.model.headers.RawHeader
 trait ServiceTracer {
   type TraceId
 
-  def startSpan(appName: String, httpRequest: HttpRequest): (TraceId, RawHeader)
+  def startSpan(httpRequest: HttpRequest): (TraceId, RawHeader)
 
   def endSpan(uuid: TraceId): Unit
 

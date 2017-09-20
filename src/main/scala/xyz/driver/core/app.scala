@@ -54,6 +54,7 @@ object app {
     val serviceTracer: ServiceTracer = new GoogleStackdriverTrace(
       config.getString("tracing.google.projectId"),
       config.getString("tracing.google.serviceAccountKeyfile"),
+      appName,
       config.getString("application.environment"),
       log
     )
@@ -141,10 +142,8 @@ object app {
             extractClientIP { ip =>
               optionalHeaderValueByType[Origin](()) { originHeader =>
                 { ctx =>
-                  val (traceId, tracingHeader) = serviceTracer.startSpan(
-                    appName = appName,
-                    httpRequest = ctx.request
-                  )
+
+                  val (tracingId, tracingHeader) = serviceTracer.startSpan(ctx.request)
 
                   val trackingId = rest.extractTrackingId(ctx.request)
                   MDC.put("trackingId", trackingId)
@@ -184,7 +183,7 @@ object app {
                         }(c)
                       }
                   })(contextWithTrackingId).andThen {
-                    case _ => serviceTracer.endSpan(traceId)
+                    case _ => serviceTracer.endSpan(tracingId)
                   }
                 }
               }

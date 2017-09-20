@@ -23,7 +23,7 @@ import xyz.driver.core.rest._
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
-import xyz.driver.core.trace.{DriverTracer, GoogleStackdriverTrace}
+import xyz.driver.core.trace.{ServiceTracer, GoogleStackdriverTrace}
 
 import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
@@ -51,9 +51,10 @@ object app {
     implicit private lazy val materializer = ActorMaterializer()(actorSystem)
     private lazy val http                  = Http()(actorSystem)
 
-    val driverTracer: DriverTracer = new GoogleStackdriverTrace(
+    val serviceTracer: ServiceTracer = new GoogleStackdriverTrace(
       config.getString("tracing.google.projectId"),
       config.getString("tracing.google.serviceAccountKeyfile"),
+      config.getString("application.environment"),
       log
     )
 
@@ -97,7 +98,7 @@ object app {
         "Strict-Transport-Security",
         AuthProvider.SetAuthenticationTokenHeader,
         AuthProvider.SetPermissionsTokenHeader,
-        driverTracer.headerKey
+        serviceTracer.headerKey
       )
 
     private def allowOrigin(originHeader: Option[Origin]) =
@@ -140,7 +141,7 @@ object app {
             extractClientIP { ip =>
               optionalHeaderValueByType[Origin](()) { originHeader =>
                 { ctx =>
-                  val (traceId, tracingHeader) = driverTracer.startSpan(
+                  val (traceId, tracingHeader) = serviceTracer.startSpan(
                     appName = appName,
                     httpRequest = ctx.request
                   )
@@ -183,7 +184,7 @@ object app {
                         }(c)
                       }
                   })(contextWithTrackingId).andThen {
-                    case _ => driverTracer.endSpan(traceId)
+                    case _ => serviceTracer.endSpan(traceId)
                   }
                 }
               }

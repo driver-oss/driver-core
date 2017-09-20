@@ -1,14 +1,14 @@
 package xyz.driver.core.trace
 
-import java.util.UUID
-
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.headers.RawHeader
 
-trait DriverTracer {
-  def startSpan(appName: String, httpRequest: HttpRequest): (UUID, RawHeader)
+trait ServiceTracer {
+  type TraceId
 
-  def endSpan(uuid: UUID): Unit
+  def startSpan(appName: String, httpRequest: HttpRequest): (TraceId, RawHeader)
+
+  def endSpan(uuid: TraceId): Unit
 
   val headerKey: String
 }

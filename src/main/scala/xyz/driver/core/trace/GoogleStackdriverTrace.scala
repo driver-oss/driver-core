@@ -17,16 +17,18 @@ import com.google.cloud.trace.v1.producer.TraceProducer
 import com.google.cloud.trace.{SpanContextHandler, SpanContextHandlerTracer, Tracer}
 import com.typesafe.scalalogging.Logger
 
+import scala.compat.java8.OptionConverters._ // needed for the `.asScala` implicit on the return type of .getHeader
 import scala.collection.mutable
 
 @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
-final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String, log: Logger)(
+final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String, appEnvironment: String, log: Logger)(
         implicit system: ActorSystem)
-    extends DriverTracer {
+    extends ServiceTracer {
+  override type TraceId = UUID
   import GoogleStackdriverTrace._
   // initialize our various tracking storage systems
-  private val contextMap: mutable.Map[UUID, (Tracer, TraceContext)] =
-    mutable.Map.empty[UUID, (Tracer, TraceContext)]
+  private val contextMap: mutable.Map[TraceId, (Tracer, TraceContext)] =
+    mutable.Map.empty[TraceId, (Tracer, TraceContext)]
   val clientSecretsInputStreamOpt: Option[FileInputStream] = if (fileExists(clientSecretsFile)) {
     Some(new FileInputStream(clientSecretsFile))
   } else {
@@ -53,13 +55,13 @@ final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String,
     new ConstantTraceOptionsFactory(true, true))
   private val timestampFactory: TimestampFactory = new JavaTimestampFactory()
   override val headerKey                         = HeaderKey
-  override def startSpan(appName: String, httpRequest: HttpRequest): (UUID, RawHeader) = {
-    val uuid                 = UUID.randomUUID()
-    val parentHeaderOptional = httpRequest.getHeader(HeaderKey)
-    val (spanContext: SpanContext, spanKind: SpanKind) = if (parentHeaderOptional.isPresent) {
-      (spanContextFactory.fromHeader(parentHeaderOptional.get().value()), SpanKind.RPC_SERVER)
-    } else {
+  override def startSpan(appName: String, httpRequest: HttpRequest): (TraceId, RawHeader) = {
+    val traceId                                                        = UUID.randomUUID()
+    val parentHeaderOption: Option[akka.http.javadsl.model.HttpHeader] = httpRequest.getHeader(HeaderKey).asScala
+    val (spanContext: SpanContext, spanKind: SpanKind) = parentHeaderOption.fold {
       (spanContextFactory.initialContext(), SpanKind.RPC_CLIENT)
+    } { parentHeader =>
+      (spanContextFactory.fromHeader(parentHeader.value()), SpanKind.RPC_SERVER)
     }
 
     val contextHandler: SpanContextHandler = new SimpleSpanContextHandler(spanContext)
@@ -77,33 +79,43 @@ final class GoogleStackdriverTrace(projectId: String, clientSecretsFile: String,
       .add("/http/url", httpRelative)
       .add("/http/host", httpHost)
       .add("/component", appName)
+      .add("/environment", appEnvironment)
 
-    if (parentHeaderOptional.isPresent) {
-      spanLabelBuilder.add("/span/parent", parentHeaderOptional.get().value())
+    parentHeaderOption.foreach { parentHeader =>
+      spanLabelBuilder.add("/span/parent", parentHeader.value())
     }
 
-    val context: TraceContext = tracer.startSpan(s"($appName)$httpRelative", spanOptions)
+    // The cloudTrace analysis reporting UI makes it easy to query by name prefix.
+    // this spanName gives us the ability to grab things that are specific to a particular UDE/env, as well as all
+    // endpoints in that service, as well as a particular endpoint in a particular environment/service.
+    val spanName: String = s"($appEnvironment->$appName)$httpRelative"
+
+    val context: TraceContext = tracer.startSpan(spanName, spanOptions)
     tracer.annotateSpan(context, spanLabelBuilder.build())
+
     synchronized {
-      contextMap.put(uuid, (tracer, context))
+      contextMap.put(traceId, (tracer, context))
     }
-    (uuid, RawHeader(HeaderKey, SpanContextFactory.toHeader(context.getHandle.getCurrentSpanContext)))
+
+    (traceId, RawHeader(HeaderKey, SpanContextFactory.toHeader(context.getHandle.getCurrentSpanContext)))
   }
 
-  override def endSpan(uuid: UUID): Unit =
-    contextMap.get(uuid) match {
+  override def endSpan(traceid: TraceId): Unit =
+    contextMap.get(traceid) match {
       case Some((tracer, context)) =>
         tracer.endSpan(context)
+
         synchronized {
-          contextMap.remove(uuid)
+          contextMap.remove(traceid)
         }
+
       case None => log.error("ERROR you are asking to stop a span that was not found in tracing.")
     }
 }
 
 object GoogleStackdriverTrace {
   import java.nio.file.{Paths, Files}
-  def fileExists(path: String): Boolean = Files.exists(Paths.get(path))
+  protected def fileExists(path: String): Boolean = Files.exists(Paths.get(path))
   val HeaderKey: String = {
     SpanContextFactory.headerKey()
   }

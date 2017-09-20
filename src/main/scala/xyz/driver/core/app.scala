@@ -51,7 +51,6 @@ object app {
     implicit private lazy val materializer = ActorMaterializer()(actorSystem)
     private lazy val http                  = Http()(actorSystem)
 
-
     val driverTracer: DriverTracer = new GoogleStackdriverTrace(
       config.getString("tracing.google.projectId"),
       config.getString("tracing.google.serviceAccountKeyfile"),
@@ -141,12 +140,9 @@ object app {
             extractClientIP { ip =>
               optionalHeaderValueByType[Origin](()) { originHeader =>
                 { ctx =>
-
                   val (traceId, tracingHeader) = driverTracer.startSpan(
                     appName = appName,
-                    httpMethod = ctx.request.method.value,
-                    uri = ctx.request.uri.toString(),
-                    parentTraceHeaderStringOpt = ctx.request.headers.filter(_.is(driverTracer.HeaderKey.toLowerCase)).headOption.map(_.value())
+                    httpRequest = ctx.request
                   )
 
                   val trackingId = rest.extractTrackingId(ctx.request)
@@ -172,19 +168,21 @@ object app {
                   handleExceptions(ExceptionHandler(exceptionHandler))({
                     c =>
                       requestLogging.flatMap { _ =>
-                          val trackingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
+                        val trackingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
 
-                          val responseHeaders = List[HttpHeader](trackingHeader,
-                            tracingHeader,
-                            allowOrigin(originHeader),
-                            `Access-Control-Allow-Headers`(allowedHeaders: _*),
-                            `Access-Control-Expose-Headers`(allowedHeaders: _*))
+                        val responseHeaders = List[HttpHeader](
+                          trackingHeader,
+                          tracingHeader,
+                          allowOrigin(originHeader),
+                          `Access-Control-Allow-Headers`(allowedHeaders: _*),
+                          `Access-Control-Expose-Headers`(allowedHeaders: _*)
+                        )
 
-                          respondWithHeaders(responseHeaders) {
-                            modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
-                          }(c)
-                        }
-                  })(contextWithTrackingId).andThen{
+                        respondWithHeaders(responseHeaders) {
+                          modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
+                        }(c)
+                      }
+                  })(contextWithTrackingId).andThen {
                     case _ => driverTracer.endSpan(traceId)
                   }
                 }

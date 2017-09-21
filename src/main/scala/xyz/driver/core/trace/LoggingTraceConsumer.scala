@@ -5,10 +5,7 @@ import com.google.devtools.cloudtrace.v1.Traces
 import com.typesafe.scalalogging.Logger
 
 class LoggingTraceConsumer(log: Logger) extends TraceConsumer {
-  import scala.collection.JavaConverters._
-  def receive(trace: Traces): Unit = {
-    for (t <- trace.getTracesList().asScala) {
-      log.debug(s"received trace with id: ${t.getTraceId}")
-    }
+  def receive(traces: Traces): Unit = {
+    log.trace(s"Received traces: $traces")
   }
 }

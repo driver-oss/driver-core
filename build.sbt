@@ -17,7 +17,7 @@ lazy val core = (project in file("."))
     "com.github.swagger-akka-http" %% "swagger-akka-http"    % "0.9.1",
     "com.amazonaws"                % "aws-java-sdk-s3"       % "1.11.26",
     "com.google.cloud"             % "google-cloud-pubsub"   % "0.17.2-alpha",
-    "com.google.cloud"             % "google-cloud-storage"  % "1.0.1",
+    "com.google.cloud"             % "google-cloud-storage"  % "1.6.0",
     "com.typesafe.slick"           %% "slick"                % "3.1.1",
     "com.typesafe"                 % "config"                % "1.2.1",
     "com.typesafe.scala-logging"   %% "scala-logging"        % "3.5.0",

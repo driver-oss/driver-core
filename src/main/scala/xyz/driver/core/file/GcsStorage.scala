@@ -84,13 +84,19 @@ class GcsStorage(storageClient: Storage,
 
   override def list(directoryPath: Path): ListT[Future, FileLink] =
     ListT.listT(Future {
+      val directory = s"$directoryPath/"
       val page = storageClient.list(
         bucketName.value,
         BlobListOption.currentDirectory(),
-        BlobListOption.prefix(s"$directoryPath/")
+        BlobListOption.prefix(directory)
       )
 
-      page.iterateAll().asScala.map(blobToFileLink(directoryPath, _)).toList
+      page
+        .iterateAll()
+        .asScala
+        .filter(_.getName != directory)
+        .map(blobToFileLink(directoryPath, _))
+        .toList
     })
 
   protected def blobToFileLink(path: Path, blob: Blob): FileLink = {

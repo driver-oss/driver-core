@@ -23,7 +23,7 @@ import xyz.driver.core.rest._
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
-import xyz.driver.core.trace.{ServiceTracer, GoogleStackdriverTrace}
+import xyz.driver.core.trace.GoogleStackdriverTrace
 
 import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
@@ -51,7 +51,7 @@ object app {
     implicit private lazy val materializer = ActorMaterializer()(actorSystem)
     private lazy val http                  = Http()(actorSystem)
 
-    val serviceTracer: ServiceTracer = new GoogleStackdriverTrace(
+    val serviceTracer = new GoogleStackdriverTrace(
       config.getString("tracing.google.projectId"),
       config.getString("tracing.google.serviceAccountKeyfile"),
       appName,
@@ -142,9 +142,9 @@ object app {
             extractClientIP { ip =>
               optionalHeaderValueByType[Origin](()) { originHeader =>
                 { ctx =>
-                  val (tracingId, tracingHeader) = serviceTracer.startSpan(ctx.request)
-
-                  val trackingId = rest.extractTrackingId(ctx.request)
+                  val traceSpan     = serviceTracer.startSpan(ctx.request)
+                  val tracingHeader = traceSpan.header
+                  val trackingId    = rest.extractTrackingId(ctx.request)
                   MDC.put("trackingId", trackingId)
 
                   val updatedStacktrace = (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
@@ -182,7 +182,7 @@ object app {
                         }(c)
                       }
                   })(contextWithTrackingId).andThen {
-                    case _ => serviceTracer.endSpan(tracingId)
+                    case _ => serviceTracer.endSpan(traceSpan)
                   }
                 }
               }

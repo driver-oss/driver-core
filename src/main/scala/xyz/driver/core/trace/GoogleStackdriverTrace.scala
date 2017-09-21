@@ -2,7 +2,6 @@ package xyz.driver.core.trace
 
 import java.io.FileInputStream
 import java.util
-import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.HttpRequest
@@ -16,9 +15,13 @@ import com.google.cloud.trace.v1.consumer.TraceConsumer
 import com.google.cloud.trace.v1.producer.TraceProducer
 import com.google.cloud.trace.{SpanContextHandler, SpanContextHandlerTracer, Tracer}
 import com.typesafe.scalalogging.Logger
+import xyz.driver.core.trace.GoogleStackdriverTrace.HeaderKey
 
-import scala.compat.java8.OptionConverters._ // needed for the `.asScala` implicit on the return type of .getHeader
-import scala.collection.mutable
+import scala.compat.java8.OptionConverters._
+
+final case class GoogleStackdriverTraceSpan(tracer: Tracer, context: TraceContext) extends SpanWithHeader {
+  def header: RawHeader = RawHeader(HeaderKey, SpanContextFactory.toHeader(context.getHandle.getCurrentSpanContext))
+}
 
 @SuppressWarnings(Array("org.wartremover.warts.MutableDataStructures"))
 final class GoogleStackdriverTrace(projectId: String,
@@ -26,12 +29,9 @@ final class GoogleStackdriverTrace(projectId: String,
                                    appName: String,
                                    appEnvironment: String,
                                    log: Logger)(implicit system: ActorSystem)
-    extends ServiceTracer {
-  override type TraceId = UUID
+    extends ServiceTracer[GoogleStackdriverTraceSpan] {
   import GoogleStackdriverTrace._
   // initialize our various tracking storage systems
-  private val contextMap: mutable.Map[TraceId, (Tracer, TraceContext)] =
-    mutable.Map.empty[TraceId, (Tracer, TraceContext)]
   val clientSecretsInputStreamOpt: Option[FileInputStream] = if (fileExists(clientSecretsFile)) {
     Some(new FileInputStream(clientSecretsFile))
   } else {
@@ -58,8 +58,8 @@ final class GoogleStackdriverTrace(projectId: String,
     new ConstantTraceOptionsFactory(true, true))
   private val timestampFactory: TimestampFactory = new JavaTimestampFactory()
   override val headerKey                         = HeaderKey
-  override def startSpan(httpRequest: HttpRequest): (TraceId, RawHeader) = {
-    val traceId                                                        = UUID.randomUUID()
+
+  override def startSpan(httpRequest: HttpRequest): GoogleStackdriverTraceSpan = {
     val parentHeaderOption: Option[akka.http.javadsl.model.HttpHeader] = httpRequest.getHeader(HeaderKey).asScala
     val (spanContext: SpanContext, spanKind: SpanKind) = parentHeaderOption.fold {
       (spanContextFactory.initialContext(), SpanKind.RPC_CLIENT)
@@ -95,25 +95,11 @@ final class GoogleStackdriverTrace(projectId: String,
 
     val context: TraceContext = tracer.startSpan(spanName, spanOptions)
     tracer.annotateSpan(context, spanLabelBuilder.build())
-
-    synchronized {
-      contextMap.put(traceId, (tracer, context))
-    }
-
-    (traceId, RawHeader(HeaderKey, SpanContextFactory.toHeader(context.getHandle.getCurrentSpanContext)))
+    GoogleStackdriverTraceSpan(tracer, context)
   }
 
-  override def endSpan(traceid: TraceId): Unit =
-    contextMap.get(traceid) match {
-      case Some((tracer, context)) =>
-        tracer.endSpan(context)
+  override def endSpan(span: GoogleStackdriverTraceSpan): Unit = span.tracer.endSpan(span.context)
 
-        synchronized {
-          contextMap.remove(traceid)
-        }
-
-      case None => log.error("ERROR you are asking to stop a span that was not found in tracing.")
-    }
 }
 
 object GoogleStackdriverTrace {

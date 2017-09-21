@@ -23,13 +23,14 @@ import xyz.driver.core.rest._
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
+import xyz.driver.core.trace.{LoggingTrace, ServiceTracer}
 
 import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.reflect.runtime.universe._
-import scala.util.control.NonFatal
 import scala.util.Try
+import scala.util.control.NonFatal
 import scalaz.Scalaz.stringInstance
 import scalaz.syntax.equal._
 
@@ -45,11 +46,14 @@ object app {
                   interface: String = "::0",
                   baseUrl: String = "localhost:8080",
                   scheme: String = "http",
-                  port: Int = 8080)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
+                  port: Int = 8080,
+                  tracer: Option[ServiceTracer] = None)(implicit actorSystem: ActorSystem,
+                                                        executionContext: ExecutionContext) {
 
     implicit private lazy val materializer = ActorMaterializer()(actorSystem)
     private lazy val http                  = Http()(actorSystem)
-
+    val appEnvironment                     = config.getString("application.environment")
+    val serviceTracer                      = tracer.getOrElse(new LoggingTrace(appName, config.getString("application.environment"), log))
     def run(): Unit = {
       activateServices(modules)
       scheduleServicesDeactivation(modules)
@@ -89,7 +93,8 @@ object app {
         "X-Content-Type-Options",
         "Strict-Transport-Security",
         AuthProvider.SetAuthenticationTokenHeader,
-        AuthProvider.SetPermissionsTokenHeader
+        AuthProvider.SetPermissionsTokenHeader,
+        trace.TracingHeaderKey
       )
 
     private def allowOrigin(originHeader: Option[Origin]) =
@@ -132,7 +137,9 @@ object app {
             extractClientIP { ip =>
               optionalHeaderValueByType[Origin](()) { originHeader =>
                 { ctx =>
-                  val trackingId = rest.extractTrackingId(ctx.request)
+                  val traceSpan     = serviceTracer.startSpan(ctx.request)
+                  val tracingHeader = traceSpan.header
+                  val trackingId    = rest.extractTrackingId(ctx.request)
                   MDC.put("trackingId", trackingId)
 
                   val updatedStacktrace = (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
@@ -148,24 +155,30 @@ object app {
                   val contextWithTrackingId =
                     ctx.withRequest(
                       ctx.request
+                        .addHeader(tracingHeader)
                         .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
                         .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
 
                   handleExceptions(ExceptionHandler(exceptionHandler))({
                     c =>
                       requestLogging.flatMap { _ =>
-                        val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
+                        val trackingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
 
-                        val responseHeaders = List[HttpHeader](tracingHeader,
-                                                               allowOrigin(originHeader),
-                                                               `Access-Control-Allow-Headers`(allowedHeaders: _*),
-                                                               `Access-Control-Expose-Headers`(allowedHeaders: _*))
+                        val responseHeaders = List[HttpHeader](
+                          trackingHeader,
+                          tracingHeader,
+                          allowOrigin(originHeader),
+                          `Access-Control-Allow-Headers`(allowedHeaders: _*),
+                          `Access-Control-Expose-Headers`(allowedHeaders: _*)
+                        )
 
                         respondWithHeaders(responseHeaders) {
                           modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
                         }(c)
                       }
-                  })(contextWithTrackingId)
+                  })(contextWithTrackingId).andThen {
+                    case _ => serviceTracer.endSpan(traceSpan)
+                  }
                 }
               }
             }

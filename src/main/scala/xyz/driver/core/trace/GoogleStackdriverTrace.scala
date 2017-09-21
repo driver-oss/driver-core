@@ -1,6 +1,7 @@
 package xyz.driver.core.trace
 
 import java.io.FileInputStream
+import java.nio.file.{Files, Paths}
 import java.util
 
 import akka.actor.ActorSystem
@@ -33,7 +34,7 @@ final class GoogleStackdriverTrace(projectId: String,
     extends ServiceTracer[GoogleStackdriverTraceSpan] {
   import GoogleStackdriverTrace._
   // initialize our various tracking storage systems
-  val clientSecretsInputStreamOpt: Option[FileInputStream] = if (fileExists(clientSecretsFile)) {
+  val clientSecretsInputStreamOpt: Option[FileInputStream] = if (Files.exists(Paths.get(clientSecretsFile))) {
     Some(new FileInputStream(clientSecretsFile))
   } else {
     None
@@ -109,8 +110,6 @@ final class GoogleStackdriverTrace(projectId: String,
 }
 
 object GoogleStackdriverTrace {
-  import java.nio.file.{Paths, Files}
-  protected def fileExists(path: String): Boolean = Files.exists(Paths.get(path))
   val HeaderKey: String = {
     SpanContextFactory.headerKey()
   }

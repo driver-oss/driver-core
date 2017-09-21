@@ -11,8 +11,9 @@ import com.google.cloud.trace.core._
 import com.google.cloud.trace.grpc.v1.GrpcTraceConsumer
 import com.google.cloud.trace.sink.TraceSink
 import com.google.cloud.trace.v1.TraceSinkV1
-import com.google.cloud.trace.v1.consumer.TraceConsumer
+import com.google.cloud.trace.v1.consumer.{SizedBufferingTraceConsumer, TraceConsumer}
 import com.google.cloud.trace.v1.producer.TraceProducer
+import com.google.cloud.trace.v1.util.RoughTraceSizer
 import com.google.cloud.trace.{SpanContextHandler, SpanContextHandlerTracer, Tracer}
 import com.typesafe.scalalogging.Logger
 import xyz.driver.core.trace.GoogleStackdriverTrace.HeaderKey
@@ -51,8 +52,10 @@ final class GoogleStackdriverTrace(projectId: String,
           .createScoped(util.Arrays.asList("https://www.googleapis.com/auth/trace.append"))
       )
   }
+  private val threadSafeBufferingTraceConsumer =
+    new SizedBufferingTraceConsumer(traceConsumer, new RoughTraceSizer(), 100)
 
-  private val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, traceConsumer)
+  private val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, threadSafeBufferingTraceConsumer)
 
   private val spanContextFactory: SpanContextFactory = new SpanContextFactory(
     new ConstantTraceOptionsFactory(true, true))
@@ -98,7 +101,10 @@ final class GoogleStackdriverTrace(projectId: String,
     GoogleStackdriverTraceSpan(tracer, context)
   }
 
-  override def endSpan(span: GoogleStackdriverTraceSpan): Unit = span.tracer.endSpan(span.context)
+  override def endSpan(span: GoogleStackdriverTraceSpan): Unit = {
+    span.tracer.endSpan(span.context)
+    threadSafeBufferingTraceConsumer.flush() // flush out the thread safe buffer
+  }
 
 }
 

@@ -3,14 +3,15 @@ package xyz.driver.core.trace
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.headers.RawHeader
 
-trait SpanWithHeader {
+trait CanMakeHeader {
   def header: RawHeader
 }
 
-trait ServiceTracer[T <: SpanWithHeader] {
-  def startSpan(httpRequest: HttpRequest): T
+trait ServiceTracer {
 
-  def endSpan(span: T): Unit
+  type TracerSpanPayload <: CanMakeHeader
 
-  val headerKey: String
+  def startSpan(httpRequest: HttpRequest): TracerSpanPayload
+
+  def endSpan(span: TracerSpanPayload): Unit
 }

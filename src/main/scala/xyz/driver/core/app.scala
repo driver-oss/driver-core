@@ -23,7 +23,7 @@ import xyz.driver.core.rest._
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
-import xyz.driver.core.trace.GoogleStackdriverTrace
+import xyz.driver.core.trace.{LoggingTrace, ServiceTracer}
 
 import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
@@ -46,19 +46,14 @@ object app {
                   interface: String = "::0",
                   baseUrl: String = "localhost:8080",
                   scheme: String = "http",
-                  port: Int = 8080)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
+                  port: Int = 8080,
+                  tracer: Option[ServiceTracer] = None)(implicit actorSystem: ActorSystem,
+                                                        executionContext: ExecutionContext) {
 
     implicit private lazy val materializer = ActorMaterializer()(actorSystem)
     private lazy val http                  = Http()(actorSystem)
-
-    val serviceTracer = new GoogleStackdriverTrace(
-      config.getString("tracing.google.projectId"),
-      config.getString("tracing.google.serviceAccountKeyfile"),
-      appName,
-      config.getString("application.environment"),
-      log
-    )
-
+    val appEnvironment                     = config.getString("application.environment")
+    val serviceTracer                      = tracer.getOrElse(new LoggingTrace(appName, config.getString("application.environment"), log))
     def run(): Unit = {
       activateServices(modules)
       scheduleServicesDeactivation(modules)
@@ -99,7 +94,7 @@ object app {
         "Strict-Transport-Security",
         AuthProvider.SetAuthenticationTokenHeader,
         AuthProvider.SetPermissionsTokenHeader,
-        serviceTracer.headerKey
+        trace.TracingHeaderKey
       )
 
     private def allowOrigin(originHeader: Option[Origin]) =

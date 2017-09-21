@@ -1,7 +1,6 @@
 package xyz.driver.core.trace
 
 import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.headers.RawHeader
 import com.google.cloud.trace.core._
 import com.google.cloud.trace.sink.TraceSink
 import com.google.cloud.trace.v1.TraceSinkV1
@@ -12,15 +11,11 @@ import com.google.cloud.trace.{SpanContextHandler, SpanContextHandlerTracer, Tra
 
 import scala.compat.java8.OptionConverters._
 
-final case class GoogleStackdriverTraceSpan(tracer: Tracer, context: TraceContext) extends CanMakeHeader {
-  def header: RawHeader =
-    RawHeader(TracingHeaderKey, SpanContextFactory.toHeader(context.getHandle.getCurrentSpanContext))
-}
-
-abstract class GoogleStackdriverTraceAbstractConsumer(projectId: String, appName: String, appEnvironment: String)
-    extends ServiceTracer {
-  protected val traceConsumer: TraceConsumer
-  override type TracerSpanPayload = GoogleStackdriverTraceSpan
+final class GoogleStackdriverTraceWithConsumer(projectId: String,
+                                               appName: String,
+                                               appEnvironment: String,
+                                               traceConsumer: TraceConsumer)
+    extends GoogleServiceTracer {
 
   private val traceProducer: TraceProducer = new TraceProducer()
   private val threadSafeBufferingTraceConsumer =

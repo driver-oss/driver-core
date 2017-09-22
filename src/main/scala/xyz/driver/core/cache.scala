@@ -24,7 +24,7 @@ object cache {
     private[this] val underlying = cache.asMap()
 
     private[this] def evictOnFailure(key: K, f: Future[V]): Future[V] = {
-      f onFailure {
+      f.failed foreach {
         case ex: Throwable =>
           log.debug(s"Evict key $key due to exception $ex")
           evict(key, f)

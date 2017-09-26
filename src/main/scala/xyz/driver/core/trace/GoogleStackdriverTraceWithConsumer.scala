@@ -8,18 +8,22 @@ import com.google.cloud.trace.v1.consumer.{SizedBufferingTraceConsumer, TraceCon
 import com.google.cloud.trace.v1.producer.TraceProducer
 import com.google.cloud.trace.v1.util.RoughTraceSizer
 import com.google.cloud.trace.{SpanContextHandler, SpanContextHandlerTracer, Tracer}
+import com.typesafe.scalalogging.Logger
 
 import scala.compat.java8.OptionConverters._
 
 final class GoogleStackdriverTraceWithConsumer(projectId: String,
                                                appName: String,
                                                appEnvironment: String,
-                                               traceConsumer: TraceConsumer)
+                                               traceConsumer: TraceConsumer,
+                                               log: Logger)
     extends GoogleServiceTracer {
 
   private val traceProducer: TraceProducer = new TraceProducer()
-  private val threadSafeBufferingTraceConsumer =
-    new SizedBufferingTraceConsumer(traceConsumer, new RoughTraceSizer(), 100)
+  private val threadSafeBufferingTraceConsumer = new ExceptionLoggingFlushableTraceConsumer(
+    new SizedBufferingTraceConsumer(traceConsumer, new RoughTraceSizer(), 100),
+    log
+  )
 
   private val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, threadSafeBufferingTraceConsumer)
 

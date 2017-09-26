@@ -11,7 +11,8 @@ final class LoggingTrace(appName: String, appEnvironment: String, log: Logger) e
     "logging-tracer",
     appName,
     appEnvironment,
-    traceConsumer
+    traceConsumer,
+    log
   )
 
   override def startSpan(httpRequest: HttpRequest): GoogleStackdriverTraceSpan =

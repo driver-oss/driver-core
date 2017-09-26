@@ -38,7 +38,7 @@ final class GoogleStackdriverTrace(projectId: String,
   }
 
   private val googleServiceTracer =
-    new GoogleStackdriverTraceWithConsumer(projectId, appName, appEnvironment, traceConsumer)
+    new GoogleStackdriverTraceWithConsumer(projectId, appName, appEnvironment, traceConsumer, log)
 
   override def startSpan(httpRequest: HttpRequest): GoogleStackdriverTraceSpan =
     googleServiceTracer.startSpan(httpRequest)

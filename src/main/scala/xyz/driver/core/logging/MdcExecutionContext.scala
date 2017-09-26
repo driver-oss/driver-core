@@ -1,4 +1,8 @@
-package xyz.driver.core.database
+/** Code ported from "de.geekonaut" %% "slickmdc"  % "1.0.0"
+  * License: @see https://github.com/AVGP/slickmdc/blob/master/LICENSE
+  * Blog post: @see http://50linesofco.de/post/2016-07-01-slick-and-slf4j-mdc-logging-in-scala.html
+  */
+package xyz.driver.core.logging
 
 import org.slf4j.MDC
 import scala.concurrent.ExecutionContext

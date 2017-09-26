@@ -1,4 +1,9 @@
-package xyz.driver.core.database
+/** Code ported from "de.geekonaut" %% "slickmdc"  % "1.0.0"
+  * License: @see https://github.com/AVGP/slickmdc/blob/master/LICENSE
+  * Blog post: @see http://50linesofco.de/post/2016-07-01-slick-and-slf4j-mdc-logging-in-scala.html
+  */
+package xyz.driver.core
+package database
 
 import java.util.concurrent._
 import java.util.concurrent.atomic.AtomicInteger
@@ -6,6 +11,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent._
 import com.typesafe.scalalogging.StrictLogging
 import slick.util.AsyncExecutor
+
+import logging.MdcExecutionContext
 
 /** Taken from the original Slick AsyncExecutor and simplified
   * @see https://github.com/slick/slick/blob/3.1/slick/src/main/scala/slick/util/AsyncExecutor.scala

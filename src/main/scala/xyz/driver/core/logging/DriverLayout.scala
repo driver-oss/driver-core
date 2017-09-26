@@ -12,7 +12,7 @@ class DriverLayout extends LayoutBase[ILoggingEvent] {
   import scala.collection.JavaConverters._
 
   private val FieldSeparator        = "="
-  private val DateFormatString      = "MM/dd/yyyy HH:mm:ss"
+  private val DateFormatString      = "yyyy-MM-dd HH:mm:ss.SSS"
   private val newline               = System.getProperty("line.separator")
   private val IgnoredClassesInStack = Set("org.apache.catalina", "org.apache.coyote", "sun.reflect", "javax.servlet")
 

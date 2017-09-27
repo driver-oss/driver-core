@@ -14,4 +14,6 @@ trait ServiceTracer {
   def startSpan(httpRequest: HttpRequest): TracerSpanPayload
 
   def endSpan(span: TracerSpanPayload): Unit
+
+  def flush(): Unit
 }

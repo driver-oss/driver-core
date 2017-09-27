@@ -16,12 +16,13 @@ final class GoogleStackdriverTraceWithConsumer(projectId: String,
                                                appName: String,
                                                appEnvironment: String,
                                                traceConsumer: TraceConsumer,
-                                               log: Logger)
+                                               log: Logger,
+                                               bufferSize: Int)
     extends GoogleServiceTracer {
 
   private val traceProducer: TraceProducer = new TraceProducer()
   private val threadSafeBufferingTraceConsumer = new ExceptionLoggingFlushableTraceConsumer(
-    new SizedBufferingTraceConsumer(traceConsumer, new RoughTraceSizer(), 100),
+    new SizedBufferingTraceConsumer(traceConsumer, new RoughTraceSizer(), bufferSize),
     log
   )
 
@@ -73,7 +74,8 @@ final class GoogleStackdriverTraceWithConsumer(projectId: String,
 
   override def endSpan(span: TracerSpanPayload): Unit = {
     span.tracer.endSpan(span.context)
-    threadSafeBufferingTraceConsumer.flush() // flush out the thread safe buffer
   }
+
+  override def flush(): Unit = threadSafeBufferingTraceConsumer.flush() // flush out the thread safe buffer
 
 }

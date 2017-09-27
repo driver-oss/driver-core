@@ -53,7 +53,8 @@ object app {
     implicit private lazy val materializer = ActorMaterializer()(actorSystem)
     private lazy val http                  = Http()(actorSystem)
     val appEnvironment                     = config.getString("application.environment")
-    val serviceTracer                      = tracer.getOrElse(new LoggingTrace(appName, config.getString("application.environment"), log))
+    val serviceTracer =
+      tracer.getOrElse(new LoggingTrace(appName, config.getString("application.environment"), log, 10))
     def run(): Unit = {
       activateServices(modules)
       scheduleServicesDeactivation(modules)
@@ -63,7 +64,8 @@ object app {
 
     def stop(): Unit = {
       http.shutdownAllConnectionPools().onComplete { _ =>
-        val _                 = actorSystem.terminate()
+        val _ = actorSystem.terminate()
+        serviceTracer.flush() // flush out any remaining traces from the buffer
         val terminated        = Await.result(actorSystem.whenTerminated, 30.seconds)
         val addressTerminated = if (terminated.addressTerminated) "is" else "is not"
         Console.print(s"${this.getClass.getName} App $addressTerminated stopped ")

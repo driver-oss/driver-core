@@ -6,7 +6,6 @@ import com.google.cloud.trace.sink.TraceSink
 import com.google.cloud.trace.v1.TraceSinkV1
 import com.google.cloud.trace.v1.consumer.{SizedBufferingTraceConsumer, TraceConsumer}
 import com.google.cloud.trace.v1.producer.TraceProducer
-import com.google.cloud.trace.v1.util.RoughTraceSizer
 import com.google.cloud.trace.{SpanContextHandler, SpanContextHandlerTracer, Tracer}
 import com.typesafe.scalalogging.Logger
 
@@ -21,8 +20,9 @@ final class GoogleStackdriverTraceWithConsumer(projectId: String,
     extends GoogleServiceTracer {
 
   private val traceProducer: TraceProducer = new TraceProducer()
+  // use a UnitTraceSizer so the interpretation of bufferSize is # of spans to hold in memory prior to flushing
   private val threadSafeBufferingTraceConsumer = new ExceptionLoggingFlushableTraceConsumer(
-    new SizedBufferingTraceConsumer(traceConsumer, new RoughTraceSizer(), bufferSize),
+    new SizedBufferingTraceConsumer(traceConsumer, new UnitTraceSizer(), bufferSize),
     log
   )
 

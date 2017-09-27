@@ -14,7 +14,8 @@ final class GoogleStackdriverTrace(projectId: String,
                                    clientSecretsFile: String,
                                    appName: String,
                                    appEnvironment: String,
-                                   log: Logger)
+                                   log: Logger,
+                                   bufferSize: Int = 10)
     extends GoogleServiceTracer {
 
   // initialize our various tracking storage systems
@@ -38,10 +39,12 @@ final class GoogleStackdriverTrace(projectId: String,
   }
 
   private val googleServiceTracer =
-    new GoogleStackdriverTraceWithConsumer(projectId, appName, appEnvironment, traceConsumer)
+    new GoogleStackdriverTraceWithConsumer(projectId, appName, appEnvironment, traceConsumer, log, bufferSize)
 
   override def startSpan(httpRequest: HttpRequest): GoogleStackdriverTraceSpan =
     googleServiceTracer.startSpan(httpRequest)
 
   override def endSpan(span: GoogleStackdriverTraceSpan): Unit = googleServiceTracer.endSpan(span)
+
+  override def flush(): Unit = googleServiceTracer.flush()
 }

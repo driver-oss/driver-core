@@ -6,20 +6,25 @@ import com.google.cloud.trace.sink.TraceSink
 import com.google.cloud.trace.v1.TraceSinkV1
 import com.google.cloud.trace.v1.consumer.{SizedBufferingTraceConsumer, TraceConsumer}
 import com.google.cloud.trace.v1.producer.TraceProducer
-import com.google.cloud.trace.v1.util.RoughTraceSizer
 import com.google.cloud.trace.{SpanContextHandler, SpanContextHandlerTracer, Tracer}
+import com.typesafe.scalalogging.Logger
 
 import scala.compat.java8.OptionConverters._
 
 final class GoogleStackdriverTraceWithConsumer(projectId: String,
                                                appName: String,
                                                appEnvironment: String,
-                                               traceConsumer: TraceConsumer)
+                                               traceConsumer: TraceConsumer,
+                                               log: Logger,
+                                               bufferSize: Int)
     extends GoogleServiceTracer {
 
   private val traceProducer: TraceProducer = new TraceProducer()
-  private val threadSafeBufferingTraceConsumer =
-    new SizedBufferingTraceConsumer(traceConsumer, new RoughTraceSizer(), 100)
+  // use a UnitTraceSizer so the interpretation of bufferSize is # of spans to hold in memory prior to flushing
+  private val threadSafeBufferingTraceConsumer = new ExceptionLoggingFlushableTraceConsumer(
+    new SizedBufferingTraceConsumer(traceConsumer, new UnitTraceSizer(), bufferSize),
+    log
+  )
 
   private val traceSink: TraceSink = new TraceSinkV1(projectId, traceProducer, threadSafeBufferingTraceConsumer)
 
@@ -69,7 +74,8 @@ final class GoogleStackdriverTraceWithConsumer(projectId: String,
 
   override def endSpan(span: TracerSpanPayload): Unit = {
     span.tracer.endSpan(span.context)
-    threadSafeBufferingTraceConsumer.flush() // flush out the thread safe buffer
   }
+
+  override def flush(): Unit = threadSafeBufferingTraceConsumer.flush() // flush out the thread safe buffer
 
 }

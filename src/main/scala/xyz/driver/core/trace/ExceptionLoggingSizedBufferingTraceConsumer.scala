@@ -1,9 +1,10 @@
 package xyz.driver.core.trace
 
-import com.google.cloud.trace.v1.consumer.{FlushableTraceConsumer}
+import com.google.cloud.trace.v1.consumer.FlushableTraceConsumer
 import com.google.devtools.cloudtrace.v1.Traces
 import com.typesafe.scalalogging.Logger
-import scala.util.Try
+
+import scala.util.control.NonFatal
 
 /**
   * ExceptionLoggingFlushableTraceConsumer simply wraps a flushable trace consumer and catches/logs any exceptions
@@ -19,8 +20,16 @@ class ExceptionLoggingFlushableTraceConsumer(traceConsumer: FlushableTraceConsum
     log.error(s"Encountered exception logging to google $exception")
 
   override def receive(trace: Traces): Unit =
-    Try(flushableTraceConsumer.receive(trace)).fold(exceptionLogger, identity)
+    try {
+      flushableTraceConsumer.receive(trace)
+    } catch {
+      case NonFatal(e) => exceptionLogger(e)
+    }
 
   override def flush(): Unit =
-    Try(flushableTraceConsumer.flush()).fold(exceptionLogger, identity)
+    try {
+      flushableTraceConsumer.flush()
+    } catch {
+      case NonFatal(e) => exceptionLogger(e)
+    }
 }

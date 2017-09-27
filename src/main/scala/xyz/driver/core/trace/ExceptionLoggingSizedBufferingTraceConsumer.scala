@@ -16,7 +16,7 @@ class ExceptionLoggingFlushableTraceConsumer(traceConsumer: FlushableTraceConsum
   private val flushableTraceConsumer = traceConsumer
 
   private def exceptionLogger(exception: Throwable): Unit =
-    log.trace(s"Encountered exception logging to google $exception")
+    log.error(s"Encountered exception logging to google $exception")
 
   override def receive(trace: Traces): Unit =
     Try(flushableTraceConsumer.receive(trace)).fold(exceptionLogger, identity)

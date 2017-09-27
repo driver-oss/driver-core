@@ -19,8 +19,8 @@ class ExceptionLoggingFlushableTraceConsumer(traceConsumer: FlushableTraceConsum
     log.error(s"Encountered exception logging to google $exception")
 
   override def receive(trace: Traces): Unit =
-    Try(flushableTraceConsumer.receive(trace)).recover({case e => exceptionLogger(e)}).get
+    Try(flushableTraceConsumer.receive(trace)).recover({ case e => exceptionLogger(e) }).get
 
   override def flush(): Unit =
-    Try(flushableTraceConsumer.flush()).recover({case e => exceptionLogger(e)}).get
+    Try(flushableTraceConsumer.flush()).recover({ case e => exceptionLogger(e) }).get
 }

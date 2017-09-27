@@ -4,7 +4,6 @@ import com.google.cloud.trace.v1.consumer.FlushableTraceConsumer
 import com.google.devtools.cloudtrace.v1.Traces
 import com.typesafe.scalalogging.Logger
 
-import scala.util.Try
 import scala.util.control.NonFatal
 
 /**

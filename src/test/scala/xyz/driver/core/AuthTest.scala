@@ -11,6 +11,7 @@ import xyz.driver.core.auth._
 import xyz.driver.core.domain.Email
 import xyz.driver.core.logging._
 import xyz.driver.core.rest._
+import xyz.driver.core.rest.auth._
 
 import scala.concurrent.Future
 import scalaz.OptionT

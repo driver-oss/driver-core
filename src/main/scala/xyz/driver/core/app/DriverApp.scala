@@ -1,10 +1,8 @@
 package xyz.driver.core.app
 
-import java.sql.SQLException
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.StatusCodes.{BadRequest, Conflict, InternalServerError, MethodNotAllowed}
+import akka.http.scaladsl.model.StatusCodes.MethodNotAllowed
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
@@ -27,9 +25,8 @@ import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
 import xyz.driver.tracing.TracingDirectives.trace
 import xyz.driver.tracing.{NoTracer, Tracer}
 
-import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext}
 import scala.reflect.runtime.universe._
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -74,67 +71,56 @@ class DriverApp(appName: String,
   private def extractHeader(request: HttpRequest)(headerName: String): Option[String] =
     request.headers.find(_.name().toLowerCase === headerName).map(_.value())
 
-  protected def bindHttp(modules: Seq[Module]): Unit = {
+  protected def appRoute: Route = {
     val serviceTypes   = modules.flatMap(_.routeTypes)
     val swaggerService = swaggerOverride(serviceTypes)
     val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
     val versionRt      = versionRoute(version, gitHash, time.currentTime())
 
-    val _ = Future {
-      http.bindAndHandle(
-        route2HandlerFlow(extractHost { origin =>
-          trace(tracer) {
-            extractClientIP { ip =>
-              optionalHeaderValueByType[Origin](()) {
-                originHeader =>
-                  {
-                    ctx =>
-                      val trackingId = rest.extractTrackingId(ctx.request)
-                      MDC.put("trackingId", trackingId)
+    extractHost { origin =>
+      extractClientIP { ip =>
+        optionalHeaderValueByType[Origin](()) { originHeader =>
+          trace(tracer) { ctx =>
+            val trackingId = rest.extractTrackingId(ctx.request)
+            MDC.put("trackingId", trackingId)
 
-                      val updatedStacktrace =
-                        (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
-                      MDC.put("stack", updatedStacktrace)
+            val updatedStacktrace =
+              (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
+            MDC.put("stack", updatedStacktrace)
 
-                      storeRequestContextToMdc(ctx.request, origin, ip)
+            storeRequestContextToMdc(ctx.request, origin, ip)
 
-                      def requestLogging: Future[Unit] = Future {
-                        log.info(
-                          s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
-                      }
+            val trackingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
 
-                      val contextWithTrackingId =
-                        ctx.withRequest(
-                          ctx.request
-                            .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
-                            .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
+            val responseHeaders = List[HttpHeader](
+              trackingHeader,
+              allowOrigin(originHeader),
+              `Access-Control-Allow-Headers`(rest.AllowedHeaders: _*),
+              `Access-Control-Expose-Headers`(rest.AllowedHeaders: _*)
+            )
 
-                      handleExceptions(ExceptionHandler(exceptionHandler))({
-                        c =>
-                          requestLogging.flatMap { _ =>
-                            val trackingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
+            log.info(s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
 
-                            val responseHeaders = List[HttpHeader](
-                              trackingHeader,
-                              allowOrigin(originHeader),
-                              `Access-Control-Allow-Headers`(rest.AllowedHeaders: _*),
-                              `Access-Control-Expose-Headers`(rest.AllowedHeaders: _*)
-                            )
+            val contextWithTrackingId =
+              ctx.withRequest(
+                ctx.request
+                  .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
+                  .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
 
-                            respondWithHeaders(responseHeaders) {
-                              modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
-                            }(c)
-                          }
-                      })(contextWithTrackingId)
-                  }
-              }
-            }
+            respondWithHeaders(responseHeaders) {
+              modules
+                .flatMap(_.routes)
+                .map(_.routeWithDefaults)
+                .foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
+            }(contextWithTrackingId)
           }
-        }),
-        interface,
-        port
-      )(materializer)
+        }
+      }
     }
+  }
+
+  protected def bindHttp(modules: Seq[Module]): Unit = {
+    val _ = http.bindAndHandle(route2HandlerFlow(appRoute), interface, port)(materializer)
   }
 
   private def storeRequestContextToMdc(request: HttpRequest, origin: String, ip: RemoteAddress): Unit = {
@@ -177,58 +163,6 @@ class DriverApp(appName: String,
             logger.error("Issue with creating swagger.json", t)
             throw t
         }
-      }
-    }
-  }
-
-  /**
-    * Override me for custom exception handling
-    *
-    * @return Exception handling route for exception type
-    */
-  protected def exceptionHandler: PartialFunction[Throwable, Route] = {
-
-    case is: IllegalStateException =>
-      ctx =>
-        log.warn(s"Request is not allowed to ${ctx.request.method} ${ctx.request.uri}", is)
-        errorResponse(ctx, BadRequest, message = is.getMessage, is)(ctx)
-
-    case cm: ConcurrentModificationException =>
-      ctx =>
-        log.warn(s"Concurrent modification of the resource ${ctx.request.method} ${ctx.request.uri}", cm)
-        errorResponse(ctx, Conflict, "Resource was changed concurrently, try requesting a newer version", cm)(ctx)
-
-    case se: SQLException =>
-      ctx =>
-        log.warn(s"Database exception for the resource ${ctx.request.method} ${ctx.request.uri}", se)
-        errorResponse(ctx, InternalServerError, "Data access error", se)(ctx)
-
-    case t: Throwable =>
-      ctx =>
-        log.warn(s"Request to ${ctx.request.method} ${ctx.request.uri} could not be handled normally", t)
-        errorResponse(ctx, InternalServerError, t.getMessage, t)(ctx)
-  }
-
-  protected def errorResponse[T <: Throwable](ctx: RequestContext,
-                                              statusCode: StatusCode,
-                                              message: String,
-                                              exception: T): Route = {
-
-    val trackingId    = rest.extractTrackingId(ctx.request)
-    val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, rest.extractTrackingId(ctx.request))
-
-    MDC.put("trackingId", trackingId)
-
-    optionalHeaderValueByType[Origin](()) { originHeader =>
-      val responseHeaders = List[HttpHeader](
-        tracingHeader,
-        allowOrigin(originHeader),
-        `Access-Control-Allow-Headers`(rest.AllowedHeaders: _*),
-        `Access-Control-Expose-Headers`(rest.AllowedHeaders: _*)
-      )
-
-      respondWithHeaders(responseHeaders) {
-        complete(HttpResponse(statusCode, entity = message))
       }
     }
   }

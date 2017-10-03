@@ -2,7 +2,7 @@ import sbt._
 import Keys._
 
 lazy val akkaHttpV = "10.0.5"
-lazy val googleTraceV = "0.4.0"
+lazy val googleTraceV = "0.5.0"
 
 lazy val core = (project in file("."))
   .driverLibrary("core")
@@ -17,8 +17,8 @@ lazy val core = (project in file("."))
     "org.mockito"                  % "mockito-core"                    % "1.9.5" % "test",
     "com.github.swagger-akka-http" %% "swagger-akka-http"              % "0.9.1",
     "com.amazonaws"                % "aws-java-sdk-s3"                 % "1.11.26",
-    "com.google.cloud"             % "google-cloud-pubsub"             % "0.17.2-alpha",
-    "com.google.cloud"             % "google-cloud-storage"            % "1.6.0",
+    "com.google.cloud"             % "google-cloud-pubsub"             % "0.25.0-beta",
+    "com.google.cloud"             % "google-cloud-storage"            % "1.7.0",
     "com.typesafe.slick"           %% "slick"                          % "3.2.1",
     "com.typesafe"                 % "config"                          % "1.2.1",
     "com.typesafe.scala-logging"   %% "scala-logging"                  % "3.5.0",

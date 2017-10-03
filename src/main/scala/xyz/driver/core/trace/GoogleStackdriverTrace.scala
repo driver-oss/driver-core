@@ -30,8 +30,7 @@ final class GoogleStackdriverTrace(projectId: String,
     new LoggingTraceConsumer(log)
   } { clientSecretsInputStream =>
     GrpcTraceConsumer
-      .create(
-        "cloudtrace.googleapis.com",
+      .createWithCredentials(
         GoogleCredentials
           .fromStream(clientSecretsInputStream)
           .createScoped(util.Arrays.asList("https://www.googleapis.com/auth/trace.append"))

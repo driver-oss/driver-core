@@ -4,7 +4,7 @@ import akka.http.scaladsl.marshalling._
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
 import com.google.api.core.{ApiFutureCallback, ApiFutures}
-import com.google.cloud.pubsub.spi.v1._
+import com.google.cloud.pubsub.v1._
 import com.google.protobuf.ByteString
 import com.google.pubsub.v1.{PubsubMessage, PushConfig, SubscriptionName, TopicName}
 import com.typesafe.scalalogging.Logger

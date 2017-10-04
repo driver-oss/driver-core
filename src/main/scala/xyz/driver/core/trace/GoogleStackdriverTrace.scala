@@ -15,7 +15,8 @@ final class GoogleStackdriverTrace(projectId: String,
                                    appName: String,
                                    appEnvironment: String,
                                    log: Logger,
-                                   bufferSize: Int = 10)
+                                   bufferSize: Int = 1024,
+                                   scheduledDelay: Int = 15)
     extends GoogleServiceTracer {
 
   // initialize our various tracking storage systems
@@ -38,7 +39,13 @@ final class GoogleStackdriverTrace(projectId: String,
   }
 
   private val googleServiceTracer =
-    new GoogleStackdriverTraceWithConsumer(projectId, appName, appEnvironment, traceConsumer, log, bufferSize)
+    new GoogleStackdriverTraceWithConsumer(projectId,
+                                           appName,
+                                           appEnvironment,
+                                           traceConsumer,
+                                           log,
+                                           bufferSize,
+                                           scheduledDelay)
 
   override def startSpan(httpRequest: HttpRequest): GoogleStackdriverTraceSpan =
     googleServiceTracer.startSpan(httpRequest)

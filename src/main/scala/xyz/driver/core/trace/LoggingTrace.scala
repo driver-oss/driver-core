@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.HttpRequest
 import com.google.cloud.trace.v1.consumer.TraceConsumer
 import com.typesafe.scalalogging.Logger
 
-final class LoggingTrace(appName: String, appEnvironment: String, log: Logger, bufferSize: Int)
+final class LoggingTrace(appName: String, appEnvironment: String, log: Logger, bufferSize: Int, scheduledDelay: Int)
     extends GoogleServiceTracer {
 
   private val traceConsumer: TraceConsumer = new LoggingTraceConsumer(log)
@@ -14,7 +14,8 @@ final class LoggingTrace(appName: String, appEnvironment: String, log: Logger, b
     appEnvironment,
     traceConsumer,
     log,
-    bufferSize
+    bufferSize,
+    scheduledDelay
   )
 
   override def startSpan(httpRequest: HttpRequest): GoogleStackdriverTraceSpan =

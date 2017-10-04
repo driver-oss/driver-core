@@ -54,7 +54,7 @@ object app {
     private lazy val http                  = Http()(actorSystem)
     val appEnvironment                     = config.getString("application.environment")
     val serviceTracer =
-      tracer.getOrElse(new LoggingTrace(appName, config.getString("application.environment"), log, 10))
+      tracer.getOrElse(new LoggingTrace(appName, config.getString("application.environment"), log, 1024, 15))
     def run(): Unit = {
       activateServices(modules)
       scheduleServicesDeactivation(modules)

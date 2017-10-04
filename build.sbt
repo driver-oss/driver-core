@@ -1,7 +1,7 @@
 import sbt._
 import Keys._
 
-lazy val akkaHttpV = "10.0.5"
+lazy val akkaHttpV = "10.0.10"
 lazy val googleTraceV = "0.5.0"
 
 lazy val core = (project in file("."))

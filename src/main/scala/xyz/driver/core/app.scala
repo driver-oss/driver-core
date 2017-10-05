@@ -23,7 +23,8 @@ import xyz.driver.core.rest._
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
-import xyz.driver.core.trace.{LoggingTrace, ServiceTracer}
+import xyz.driver.tracing.TracingDirectives._
+import xyz.driver.tracing._
 
 import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
@@ -47,14 +48,12 @@ object app {
                   baseUrl: String = "localhost:8080",
                   scheme: String = "http",
                   port: Int = 8080,
-                  tracer: Option[ServiceTracer] = None)(implicit actorSystem: ActorSystem,
-                                                        executionContext: ExecutionContext) {
+                  tracer: Tracer = NoTracer)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
 
     implicit private lazy val materializer = ActorMaterializer()(actorSystem)
     private lazy val http                  = Http()(actorSystem)
     val appEnvironment                     = config.getString("application.environment")
-    val serviceTracer =
-      tracer.getOrElse(new LoggingTrace(appName, config.getString("application.environment"), log, 1024, 15))
+
     def run(): Unit = {
       activateServices(modules)
       scheduleServicesDeactivation(modules)
@@ -64,8 +63,8 @@ object app {
 
     def stop(): Unit = {
       http.shutdownAllConnectionPools().onComplete { _ =>
-        val _ = actorSystem.terminate()
-        serviceTracer.flush() // flush out any remaining traces from the buffer
+        Await.result(tracer.close(), 15.seconds) // flush out any remaining traces from the buffer
+        val _                 = actorSystem.terminate()
         val terminated        = Await.result(actorSystem.whenTerminated, 30.seconds)
         val addressTerminated = if (terminated.addressTerminated) "is" else "is not"
         Console.print(s"${this.getClass.getName} App $addressTerminated stopped ")
@@ -89,14 +88,15 @@ object app {
         "Server",
         "Date",
         ContextHeaders.TrackingIdHeader,
+        ContextHeaders.TraceHeaderName,
+        ContextHeaders.SpanHeaderName,
         ContextHeaders.StacktraceHeader,
         ContextHeaders.AuthenticationTokenHeader,
         "X-Frame-Options",
         "X-Content-Type-Options",
         "Strict-Transport-Security",
         AuthProvider.SetAuthenticationTokenHeader,
-        AuthProvider.SetPermissionsTokenHeader,
-        trace.TracingHeaderKey
+        AuthProvider.SetPermissionsTokenHeader
       )
 
     private def allowOrigin(originHeader: Option[Origin]) =
@@ -136,52 +136,52 @@ object app {
       val _ = Future {
         http.bindAndHandle(
           route2HandlerFlow(extractHost { origin =>
-            extractClientIP { ip =>
-              optionalHeaderValueByType[Origin](()) { originHeader =>
-                { ctx =>
-                  val traceSpan     = serviceTracer.startSpan(ctx.request)
-                  val tracingHeader = traceSpan.header
-                  val trackingId    = rest.extractTrackingId(ctx.request)
-                  MDC.put("trackingId", trackingId)
+            trace(tracer) {
+              extractClientIP {
+                ip =>
+                  optionalHeaderValueByType[Origin](()) {
+                    originHeader =>
+                      {
+                        ctx =>
+                          val trackingId = rest.extractTrackingId(ctx.request)
+                          MDC.put("trackingId", trackingId)
 
-                  val updatedStacktrace = (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
-                  MDC.put("stack", updatedStacktrace)
+                          val updatedStacktrace =
+                            (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
+                          MDC.put("stack", updatedStacktrace)
 
-                  storeRequestContextToMdc(ctx.request, origin, ip)
+                          storeRequestContextToMdc(ctx.request, origin, ip)
 
-                  def requestLogging: Future[Unit] = Future {
-                    log.info(
-                      s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
-                  }
+                          def requestLogging: Future[Unit] = Future {
+                            log.info(
+                              s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
+                          }
 
-                  val contextWithTrackingId =
-                    ctx.withRequest(
-                      ctx.request
-                        .addHeader(tracingHeader)
-                        .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
-                        .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
+                          val contextWithTrackingId =
+                            ctx.withRequest(
+                              ctx.request
+                                .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
+                                .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
 
-                  handleExceptions(ExceptionHandler(exceptionHandler))({
-                    c =>
-                      requestLogging.flatMap { _ =>
-                        val trackingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
+                          handleExceptions(ExceptionHandler(exceptionHandler))({
+                            c =>
+                              requestLogging.flatMap { _ =>
+                                val trackingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
 
-                        val responseHeaders = List[HttpHeader](
-                          trackingHeader,
-                          tracingHeader,
-                          allowOrigin(originHeader),
-                          `Access-Control-Allow-Headers`(allowedHeaders: _*),
-                          `Access-Control-Expose-Headers`(allowedHeaders: _*)
-                        )
+                                val responseHeaders = List[HttpHeader](
+                                  trackingHeader,
+                                  allowOrigin(originHeader),
+                                  `Access-Control-Allow-Headers`(allowedHeaders: _*),
+                                  `Access-Control-Expose-Headers`(allowedHeaders: _*)
+                                )
 
-                        respondWithHeaders(responseHeaders) {
-                          modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
-                        }(c)
+                                respondWithHeaders(responseHeaders) {
+                                  modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
+                                }(c)
+                              }
+                          })(contextWithTrackingId)
                       }
-                  })(contextWithTrackingId).andThen {
-                    case _ => serviceTracer.endSpan(traceSpan)
                   }
-                }
               }
             }
           }),

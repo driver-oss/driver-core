@@ -25,7 +25,7 @@ import org.slf4j.MDC
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
 import xyz.driver.core.time.provider.TimeProvider
-import xyz.driver.core.{Name, generators, trace}
+import xyz.driver.core.{Name, generators}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -59,7 +59,7 @@ object `package` {
     request.headers.filter { h =>
       h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader ||
       h.name === ContextHeaders.PermissionsTokenHeader || h.name === ContextHeaders.StacktraceHeader ||
-      h.name === ContextHeaders.TracingHeader
+      h.name === ContextHeaders.TraceHeaderName || h.name === ContextHeaders.SpanHeaderName
     } map { header =>
       if (header.name === ContextHeaders.AuthenticationTokenHeader) {
         header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim
@@ -172,12 +172,14 @@ class AuthorizedServiceRequestContext[U <: User](override val trackingId: String
 }
 
 object ContextHeaders {
+  import xyz.driver.tracing.TracingDirectives
   val AuthenticationTokenHeader  = "Authorization"
   val PermissionsTokenHeader     = "Permissions"
   val AuthenticationHeaderPrefix = "Bearer"
   val TrackingIdHeader           = "X-Trace"
   val StacktraceHeader           = "X-Stacktrace"
-  val TracingHeader              = trace.TracingHeaderKey
+  val TraceHeaderName            = TracingDirectives.TraceHeaderName
+  val SpanHeaderName             = TracingDirectives.SpanHeaderName
 }
 
 object AuthProvider {

@@ -3,14 +3,13 @@ package xyz.driver.core
 import java.util.Locale
 
 import com.typesafe.config.{ConfigException, ConfigFactory}
-import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 import xyz.driver.core.messages.Messages
 import xyz.driver.core.logging.NoLogger
 
 import scala.collection.JavaConverters._
 
-class MessagesTest extends FlatSpec with Matchers with MockitoSugar {
+class MessagesTest extends FlatSpec with Matchers {
 
   val englishLocaleMessages =
     Map("en.greeting" -> "Hello {0}!", "en.greetingFullName" -> "Hello {0} {1} {2}!", "en.hello" -> "Hello world!")

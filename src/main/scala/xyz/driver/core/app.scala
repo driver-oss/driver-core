@@ -49,13 +49,12 @@ object app {
           baseUrl: String = "localhost:8080",
           scheme: String = "http",
           port: Int = 8080,
-          tracer: Option[Tracer] = None)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
+          tracer: Tracer = NoTracer)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
 
     implicit private lazy val materializer = ActorMaterializer()(actorSystem)
     private lazy val http                  = Http()(actorSystem)
     val appEnvironment                     = config.getString("application.environment")
-    val serviceTracer =
-      tracer.getOrElse(new LoggingTracer(s => log.debug(s)))
+
     def run(): Unit = {
       activateServices(modules)
       scheduleServicesDeactivation(modules)
@@ -65,7 +64,7 @@ object app {
 
     def stop(): Unit = {
       http.shutdownAllConnectionPools().onComplete { _ =>
-        serviceTracer.close() // flush out any remaining traces from the buffer
+        Await.result(tracer.close(), 15.seconds) // flush out any remaining traces from the buffer
         val _                 = actorSystem.terminate()
         val terminated        = Await.result(actorSystem.whenTerminated, 30.seconds)
         val addressTerminated = if (terminated.addressTerminated) "is" else "is not"
@@ -137,7 +136,7 @@ object app {
       val _ = Future {
         http.bindAndHandle(
           route2HandlerFlow(extractHost { origin =>
-            trace(serviceTracer) {
+            trace(tracer) {
               extractClientIP {
                 ip =>
                   optionalHeaderValueByType[Origin](()) {

@@ -88,6 +88,7 @@ object app {
         "Access-Control-Allow-Headers",
         "Server",
         "Date",
+        ContextHeaders.TrackingIdHeader,
         ContextHeaders.TraceHeaderName,
         ContextHeaders.SpanHeaderName,
         ContextHeaders.StacktraceHeader,

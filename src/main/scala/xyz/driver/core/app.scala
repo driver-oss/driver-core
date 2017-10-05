@@ -37,19 +37,18 @@ import scalaz.syntax.equal._
 
 object app {
 
-  class DriverApp(
-          appName: String,
-          version: String,
-          gitHash: String,
-          modules: Seq[Module],
-          time: TimeProvider = new SystemTimeProvider(),
-          log: Logger = Logger(LoggerFactory.getLogger(classOf[DriverApp])),
-          config: Config = core.config.loadDefaultConfig,
-          interface: String = "::0",
-          baseUrl: String = "localhost:8080",
-          scheme: String = "http",
-          port: Int = 8080,
-          tracer: Tracer = NoTracer)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
+  class DriverApp(appName: String,
+                  version: String,
+                  gitHash: String,
+                  modules: Seq[Module],
+                  time: TimeProvider = new SystemTimeProvider(),
+                  log: Logger = Logger(LoggerFactory.getLogger(classOf[DriverApp])),
+                  config: Config = core.config.loadDefaultConfig,
+                  interface: String = "::0",
+                  baseUrl: String = "localhost:8080",
+                  scheme: String = "http",
+                  port: Int = 8080,
+                  tracer: Tracer = NoTracer)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
 
     implicit private lazy val materializer = ActorMaterializer()(actorSystem)
     private lazy val http                  = Http()(actorSystem)

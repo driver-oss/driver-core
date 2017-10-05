@@ -2,12 +2,12 @@ import sbt._
 import Keys._
 
 lazy val akkaHttpV = "10.0.10"
-lazy val googleTraceV = "0.5.0"
 
 lazy val core = (project in file("."))
   .driverLibrary("core")
   .settings(lintingSettings ++ formatSettings)
   .settings(libraryDependencies ++= Seq(
+    "xyz.driver"                   %% "tracing"                        % "0.0.2",
     "com.typesafe.akka"            %% "akka-http-core"                 % akkaHttpV,
     "com.typesafe.akka"            %% "akka-http-spray-json"           % akkaHttpV,
     "com.typesafe.akka"            %% "akka-http-testkit"              % akkaHttpV,
@@ -22,12 +22,5 @@ lazy val core = (project in file("."))
     "com.typesafe.slick"           %% "slick"                          % "3.2.1",
     "com.typesafe"                 % "config"                          % "1.2.1",
     "com.typesafe.scala-logging"   %% "scala-logging"                  % "3.5.0",
-    "ch.qos.logback"               % "logback-classic"                 % "1.1.11",
-    "com.google.cloud.trace"       % "core"                            % googleTraceV,
-    "com.google.cloud.trace"       % "logging-service"                 % googleTraceV,
-    "com.google.cloud.trace"       % "trace-grpc-api-service"          % googleTraceV,
-    // the following version of netty boringssl (or maybe greater) is/was needed to avoid Jetty ALPN/NPN
-    // config errors w/ SSL in google libs. Before removing test that tracing posts to google
-    // in a service that uses this library.
-    "io.netty"                     % "netty-tcnative-boringssl-static" % "2.0.3.Final"
+    "ch.qos.logback"               % "logback-classic"                 % "1.1.11"
   ))

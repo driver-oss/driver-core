@@ -10,7 +10,7 @@ import xyz.driver.core.logging.NoLogger
 
 import scala.collection.JavaConverters._
 
-class MessagesTest extends FlatSpec with Matchers with MockitoSugar {
+class MessagesTest extends FlatSpec with Matchers {
 
   val englishLocaleMessages =
     Map("en.greeting" -> "Hello {0}!", "en.greetingFullName" -> "Hello {0} {1} {2}!", "en.hello" -> "Hello world!")

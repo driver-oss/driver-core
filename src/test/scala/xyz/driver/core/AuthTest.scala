@@ -5,7 +5,6 @@ import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsReject
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
@@ -16,7 +15,7 @@ import xyz.driver.core.rest._
 import scala.concurrent.Future
 import scalaz.OptionT
 
-class AuthTest extends FlatSpec with Matchers with MockitoSugar with ScalatestRouteTest {
+class AuthTest extends FlatSpec with Matchers with ScalatestRouteTest {
 
   case object TestRoleAllowedPermission        extends Permission
   case object TestRoleAllowedByTokenPermission extends Permission

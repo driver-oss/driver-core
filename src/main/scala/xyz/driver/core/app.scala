@@ -23,8 +23,8 @@ import xyz.driver.core.rest._
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
-import xyz.driver.tracing._
 import xyz.driver.tracing.TracingDirectives._
+import xyz.driver.tracing._
 
 import scala.compat.Platform.ConcurrentModificationException
 import scala.concurrent.duration._
@@ -89,8 +89,8 @@ object app {
         "Access-Control-Allow-Headers",
         "Server",
         "Date",
-        TraceHeaderName,
-        SpanHeaderName,
+        ContextHeaders.TraceHeaderName,
+        ContextHeaders.SpanHeaderName,
         ContextHeaders.StacktraceHeader,
         ContextHeaders.AuthenticationTokenHeader,
         "X-Frame-Options",

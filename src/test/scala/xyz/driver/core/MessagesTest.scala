@@ -3,7 +3,6 @@ package xyz.driver.core
 import java.util.Locale
 
 import com.typesafe.config.{ConfigException, ConfigFactory}
-import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 import xyz.driver.core.messages.Messages
 import xyz.driver.core.logging.NoLogger

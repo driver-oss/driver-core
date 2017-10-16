@@ -1,6 +1,8 @@
 package xyz.driver.core.rest
 
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse, ResponseEntity}
+import akka.http.scaladsl.marshalling.{ToEntityMarshaller, ToResponseMarshallable}
+import akka.http.scaladsl.model.headers.{HttpOriginRange, Origin, `Access-Control-Allow-Origin`}
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, ResponseEntity, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshal
@@ -9,6 +11,7 @@ import akka.util.ByteString
 import xyz.driver.tracing.TracingDirectives
 
 import scala.concurrent.Future
+import scalaz.{Functor, OptionT}
 import scalaz.Scalaz.{intInstance, stringInstance}
 import scalaz.syntax.equal._
 
@@ -26,6 +29,16 @@ trait ServiceTransport {
 }
 
 final case class Pagination(pageSize: Int, pageNumber: Int)
+
+object Implicits {
+  implicit class OptionTRestAdditions[T](optionT: OptionT[Future, T]) {
+    def responseOrNotFound(successCode: StatusCodes.Success = StatusCodes.OK)(
+            implicit F: Functor[Future],
+            em: ToEntityMarshaller[T]): Future[ToResponseMarshallable] = {
+      optionT.fold[ToResponseMarshallable](successCode -> _, StatusCodes.NotFound -> None)
+    }
+  }
+}
 
 object `package` {
   object ContextHeaders {
@@ -69,6 +82,10 @@ object `package` {
       AuthProvider.SetAuthenticationTokenHeader,
       AuthProvider.SetPermissionsTokenHeader
     )
+
+  def allowOrigin(originHeader: Option[Origin]): `Access-Control-Allow-Origin` =
+    `Access-Control-Allow-Origin`(
+      originHeader.fold[HttpOriginRange](HttpOriginRange.*)(h => HttpOriginRange(h.origins: _*)))
 
   def serviceContext: Directive1[ServiceRequestContext] = extract(ctx => extractServiceContext(ctx.request))
 

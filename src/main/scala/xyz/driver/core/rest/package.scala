@@ -1,16 +1,33 @@
-package xyz.driver.core
+package xyz.driver.core.rest
 
-import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse, ResponseEntity}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
+import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import xyz.driver.tracing.TracingDirectives
 
+import scala.concurrent.Future
 import scalaz.Scalaz.{intInstance, stringInstance}
 import scalaz.syntax.equal._
 
-package object rest {
+trait Service
+
+trait HttpClient {
+  def makeRequest(request: HttpRequest): Future[HttpResponse]
+}
+
+trait ServiceTransport {
+
+  def sendRequestGetResponse(context: ServiceRequestContext)(requestStub: HttpRequest): Future[HttpResponse]
+
+  def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]]
+}
+
+final case class Pagination(pageSize: Int, pageNumber: Int)
+
+object `package` {
   object ContextHeaders {
     val AuthenticationTokenHeader: String  = "Authorization"
     val PermissionsTokenHeader: String     = "Permissions"

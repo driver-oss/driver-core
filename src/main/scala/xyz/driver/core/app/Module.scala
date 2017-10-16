@@ -3,7 +3,8 @@ package xyz.driver.core.app
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.complete
 import akka.http.scaladsl.server.{Route, RouteConcatenation}
-import xyz.driver.core.rest.{NoServiceDiscovery, SavingUsedServiceDiscovery, ServiceDiscovery}
+import xyz.driver.core.rest.ServiceDiscovery
+import xyz.driver.core.rest.ServiceDiscovery.{NoServiceDiscovery, SavingUsedServiceDiscovery}
 
 import scala.reflect.runtime.universe._
 

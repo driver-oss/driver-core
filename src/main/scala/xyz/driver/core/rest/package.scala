@@ -5,26 +5,53 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
+import xyz.driver.tracing.TracingDirectives
 
 import scalaz.Scalaz.{intInstance, stringInstance}
 import scalaz.syntax.equal._
 
 package object rest {
   object ContextHeaders {
-    val AuthenticationTokenHeader  = "Authorization"
-    val PermissionsTokenHeader     = "Permissions"
-    val AuthenticationHeaderPrefix = "Bearer"
-    val TrackingIdHeader           = "X-Trace"
-    val StacktraceHeader           = "X-Stacktrace"
-    val TracingHeader              = trace.TracingHeaderKey
+    val AuthenticationTokenHeader: String  = "Authorization"
+    val PermissionsTokenHeader: String     = "Permissions"
+    val AuthenticationHeaderPrefix: String = "Bearer"
+    val TrackingIdHeader: String           = "X-Trace"
+    val StacktraceHeader: String           = "X-Stacktrace"
+    val TraceHeaderName: String            = TracingDirectives.TraceHeaderName
+    val SpanHeaderName: String             = TracingDirectives.SpanHeaderName
   }
 
   object AuthProvider {
-    val AuthenticationTokenHeader    = ContextHeaders.AuthenticationTokenHeader
-    val PermissionsTokenHeader       = ContextHeaders.PermissionsTokenHeader
-    val SetAuthenticationTokenHeader = "set-authorization"
-    val SetPermissionsTokenHeader    = "set-permissions"
+    val AuthenticationTokenHeader: String    = ContextHeaders.AuthenticationTokenHeader
+    val PermissionsTokenHeader: String       = ContextHeaders.PermissionsTokenHeader
+    val SetAuthenticationTokenHeader: String = "set-authorization"
+    val SetPermissionsTokenHeader: String    = "set-permissions"
   }
+
+  val AllowedHeaders: Seq[String] =
+    Seq(
+      "Origin",
+      "X-Requested-With",
+      "Content-Type",
+      "Content-Length",
+      "Accept",
+      "X-Trace",
+      "Access-Control-Allow-Methods",
+      "Access-Control-Allow-Origin",
+      "Access-Control-Allow-Headers",
+      "Server",
+      "Date",
+      ContextHeaders.TrackingIdHeader,
+      ContextHeaders.TraceHeaderName,
+      ContextHeaders.SpanHeaderName,
+      ContextHeaders.StacktraceHeader,
+      ContextHeaders.AuthenticationTokenHeader,
+      "X-Frame-Options",
+      "X-Content-Type-Options",
+      "Strict-Transport-Security",
+      AuthProvider.SetAuthenticationTokenHeader,
+      AuthProvider.SetPermissionsTokenHeader
+    )
 
   def serviceContext: Directive1[ServiceRequestContext] = extract(ctx => extractServiceContext(ctx.request))
 
@@ -44,7 +71,7 @@ package object rest {
     request.headers.filter { h =>
       h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader ||
       h.name === ContextHeaders.PermissionsTokenHeader || h.name === ContextHeaders.StacktraceHeader ||
-      h.name === ContextHeaders.TracingHeader
+      h.name === ContextHeaders.TraceHeaderName || h.name === ContextHeaders.SpanHeaderName
     } map { header =>
       if (header.name === ContextHeaders.AuthenticationTokenHeader) {
         header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim

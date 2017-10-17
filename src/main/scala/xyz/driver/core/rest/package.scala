@@ -30,7 +30,7 @@ trait ServiceTransport {
 
 final case class Pagination(pageSize: Int, pageNumber: Int)
 
-object Implicits {
+object `package` {
   implicit class OptionTRestAdditions[T](optionT: OptionT[Future, T]) {
     def responseOrNotFound(successCode: StatusCodes.Success = StatusCodes.OK)(
             implicit F: Functor[Future],
@@ -38,9 +38,7 @@ object Implicits {
       optionT.fold[ToResponseMarshallable](successCode -> _, StatusCodes.NotFound -> None)
     }
   }
-}
 
-object `package` {
   object ContextHeaders {
     val AuthenticationTokenHeader: String  = "Authorization"
     val PermissionsTokenHeader: String     = "Permissions"

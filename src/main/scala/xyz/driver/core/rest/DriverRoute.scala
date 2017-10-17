@@ -10,7 +10,7 @@ import akka.http.scaladsl.server.{ExceptionHandler, RequestContext, Route}
 import com.typesafe.scalalogging.Logger
 import org.slf4j.MDC
 import xyz.driver.core.rest
-import xyz.driver.core.rest.errors.APIError
+import xyz.driver.core.rest.errors.ServiceException
 
 import scala.compat.Platform.ConcurrentModificationException
 
@@ -29,12 +29,12 @@ trait DriverRoute {
     * @return Exception handling route for exception type
     */
   protected def exceptionHandler: PartialFunction[Throwable, Route] = {
-    case api: APIError if api.isPatientSensitive =>
+    case api: ServiceException if api.isPatientSensitive =>
       ctx =>
         log.info("PHI Sensitive error")
         errorResponse(ctx, InternalServerError, "Server error", api)(ctx)
 
-    case api: APIError =>
+    case api: ServiceException =>
       ctx =>
         log.info("API Error")
         errorResponse(ctx, api.statusCode, api.message, api)(ctx)

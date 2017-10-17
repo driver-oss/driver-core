@@ -2,15 +2,15 @@ package xyz.driver.core.app
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.StatusCodes.MethodNotAllowed
+import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.RouteResult.route2HandlerFlow
+import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.{Http, HttpExt}
 import akka.stream.ActorMaterializer
-import com.github.swagger.akka.SwaggerHttpService.{logger, toJavaTypeSet}
+import com.github.swagger.akka.SwaggerHttpService._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
@@ -18,12 +18,12 @@ import io.swagger.util.Json
 import org.slf4j.{LoggerFactory, MDC}
 import xyz.driver.core
 import xyz.driver.core.rest
-import xyz.driver.core.rest.{ContextHeaders, Swagger}
+import xyz.driver.core.rest._
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
-import xyz.driver.tracing.TracingDirectives.trace
-import xyz.driver.tracing.{NoTracer, Tracer}
+import xyz.driver.tracing.TracingDirectives._
+import xyz.driver.tracing._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
@@ -61,8 +61,7 @@ class DriverApp(appName: String,
   def stop(): Unit = {
     http.shutdownAllConnectionPools().onComplete { _ =>
       Await.result(tracer.close(), 15.seconds) // flush out any remaining traces from the buffer
-      val _                 = actorSystem.terminate()
-      val terminated        = Await.result(actorSystem.whenTerminated, 30.seconds)
+      val terminated        = Await.result(actorSystem.terminate(), 30.seconds)
       val addressTerminated = if (terminated.addressTerminated) "is" else "is not"
       Console.print(s"${this.getClass.getName} App $addressTerminated stopped ")
     }

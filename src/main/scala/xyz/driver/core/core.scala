@@ -1,6 +1,8 @@
 package xyz.driver
 
 import scalaz.{Equal, Monad, OptionT}
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.collection.NonEmpty
 
 package object core {
 
@@ -81,6 +83,18 @@ package core {
   object Name {
     implicit def nameEqual[T]: Equal[Name[T]]       = Equal.equal[Name[T]](_ == _)
     implicit def nameOrdering[T]: Ordering[Name[T]] = Ordering.by(_.value)
+  }
+
+  final case class NonEmptyName[+Tag](value: String Refined NonEmpty) {
+    @inline def length: Int       = value.value.length
+    override def toString: String = value.value
+  }
+
+  object NonEmptyName {
+    implicit def nonEmptyNameEqual[T]: Equal[NonEmptyName[T]] =
+      Equal.equal[NonEmptyName[T]](_.value.value == _.value.value)
+
+    implicit def nonEmptyNameOrdering[T]: Ordering[NonEmptyName[T]] = Ordering.by(_.value.value)
   }
 
   final case class Revision[T](id: String)

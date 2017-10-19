@@ -1,12 +1,16 @@
 package xyz.driver.core
 
 import java.math.MathContext
+import java.util.UUID
 
 import xyz.driver.core.time.{Time, TimeRange}
 import xyz.driver.core.date.Date
 
 import scala.reflect.ClassTag
 import scala.util.Random
+import eu.timepit.refined.refineV
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.collection._
 
 object generators {
 
@@ -35,12 +39,18 @@ object generators {
 
   def nextName[T](maxLength: Int = DefaultMaxLength): Name[T] = Name[T](nextString(maxLength))
 
-  def nextUuid() = java.util.UUID.randomUUID
+  def nextUuid(): UUID = java.util.UUID.randomUUID
 
-  def nextRevision[T]() = Revision[T](nextUuid().toString)
+  def nextRevision[T](): Revision[T] = Revision[T](nextUuid().toString)
 
   def nextString(maxLength: Int = DefaultMaxLength): String =
     (oneOf[Char](StringLetters) +: arrayOf(oneOf[Char](StringLetters), maxLength - 1)).mkString
+
+  def nextNonEmptyString(maxLength: Int = DefaultMaxLength): String Refined NonEmpty = {
+    refineV[NonEmpty](
+      (oneOf[Char](StringLetters) +: arrayOf(oneOf[Char](StringLetters), maxLength - 1)).mkString
+    ).right.get
+  }
 
   def nextOption[T](value: => T): Option[T] = if (nextBoolean()) Option(value) else None
 

@@ -22,5 +22,6 @@ lazy val core = (project in file("."))
     "com.typesafe.slick"           %% "slick"                          % "3.2.1",
     "com.typesafe"                 % "config"                          % "1.2.1",
     "com.typesafe.scala-logging"   %% "scala-logging"                  % "3.5.0",
+    "eu.timepit"                   %% "refined"                        % "0.8.4",
     "ch.qos.logback"               % "logback-classic"                 % "1.1.11"
   ))

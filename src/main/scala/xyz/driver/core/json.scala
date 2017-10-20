@@ -14,6 +14,9 @@ import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.date.{Date, Month}
 import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.time.Time
+import eu.timepit.refined.refineV
+import eu.timepit.refined.api.{Refined, Validate}
+import eu.timepit.refined.collection.NonEmpty
 
 object json {
   import DefaultJsonProtocol._
@@ -212,6 +215,42 @@ object json {
       new GadtJsonFormat[T](typeField, typeValue, jsonFormat)
     }
   }
+
+  /**
+    * Provides the JsonFormat for the Refined types provided by the Refined library.
+    *
+    * @see https://github.com/fthomas/refined
+    */
+  implicit def refinedJsonFormat[T, Predicate](implicit valueFormat: JsonFormat[T],
+                                               validate: Validate[T, Predicate]): JsonFormat[Refined[T, Predicate]] =
+    new JsonFormat[Refined[T, Predicate]] {
+      def write(x: T Refined Predicate): JsValue = valueFormat.write(x.value)
+      def read(value: JsValue): T Refined Predicate = {
+        refineV[Predicate](valueFormat.read(value))(validate) match {
+          case Right(refinedValue)   => refinedValue
+          case Left(refinementError) => deserializationError(refinementError)
+        }
+      }
+    }
+
+  def NonEmptyNameInPath[T]: PathMatcher1[NonEmptyName[T]] = new PathMatcher1[NonEmptyName[T]] {
+    def apply(path: Path) = path match {
+      case Path.Segment(segment, tail) =>
+        refineV[NonEmpty](segment) match {
+          case Left(_)               => Unmatched
+          case Right(nonEmptyString) => Matched(tail, Tuple1(NonEmptyName[T](nonEmptyString)))
+        }
+      case _ => Unmatched
+    }
+  }
+
+  implicit def nonEmptyNameFormat[T](implicit nonEmptyStringFormat: JsonFormat[Refined[String, NonEmpty]]) =
+    new RootJsonFormat[NonEmptyName[T]] {
+      def write(name: NonEmptyName[T]) = JsString(name.value.value)
+
+      def read(value: JsValue): NonEmptyName[T] =
+        NonEmptyName[T](nonEmptyStringFormat.read(value))
+    }
 
   val jsValueToStringMarshaller: Marshaller[JsValue, String] =
     Marshaller.strict[JsValue, String](value => Marshalling.Opaque[String](() => value.compactPrint))

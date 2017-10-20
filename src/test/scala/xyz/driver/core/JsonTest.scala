@@ -1,13 +1,17 @@
 package xyz.driver.core
 
+import eu.timepit.refined.collection.NonEmpty
+import eu.timepit.refined.numeric.Positive
+import eu.timepit.refined.refineMV
 import org.scalatest.{FlatSpec, Matchers}
-import xyz.driver.core.json.{EnumJsonFormat, GadtJsonFormat, ValueClassFormat}
+import xyz.driver.core.json._
 import xyz.driver.core.time.provider.SystemTimeProvider
 import spray.json._
 import xyz.driver.core.TestTypes.CustomGADT
 import xyz.driver.core.domain.{Email, PhoneNumber}
 
 class JsonTest extends FlatSpec with Matchers {
+  import DefaultJsonProtocol._
 
   "Json format for Id" should "read and write correct JSON" in {
 
@@ -29,6 +33,19 @@ class JsonTest extends FlatSpec with Matchers {
 
     val parsedName = json.nameFormat.read(writtenJson)
     parsedName should be(referenceName)
+  }
+
+  "Json format for NonEmptyName" should "read and write correct JSON" in {
+
+    val jsonFormat = json.nonEmptyNameFormat[String]
+
+    val referenceNonEmptyName = NonEmptyName[String](refineMV[NonEmpty]("Homer"))
+
+    val writtenJson = jsonFormat.write(referenceNonEmptyName)
+    writtenJson.prettyPrint should be("\"Homer\"")
+
+    val parsedNonEmptyName = jsonFormat.read(writtenJson)
+    parsedNonEmptyName should be(referenceNonEmptyName)
   }
 
   "Json format for Time" should "read and write correct JSON" in {
@@ -167,5 +184,18 @@ class JsonTest extends FlatSpec with Matchers {
 
     parsedValue1 should be(referenceValue1)
     parsedValue2 should be(referenceValue2)
+  }
+
+  "Json format for a Refined value" should "read and write correct JSON" in {
+
+    val jsonFormat = json.refinedJsonFormat[Int, Positive]
+
+    val referenceRefinedNumber = refineMV[Positive](42)
+
+    val writtenJson = jsonFormat.write(referenceRefinedNumber)
+    writtenJson should be("42".parseJson)
+
+    val parsedRefinedNumber = jsonFormat.read(writtenJson)
+    parsedRefinedNumber should be(referenceRefinedNumber)
   }
 }

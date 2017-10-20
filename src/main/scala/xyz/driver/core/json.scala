@@ -16,6 +16,7 @@ import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.time.Time
 import eu.timepit.refined.refineV
 import eu.timepit.refined.api.{Refined, Validate}
+import eu.timepit.refined.collection.NonEmpty
 
 object json {
   import DefaultJsonProtocol._
@@ -230,6 +231,25 @@ object json {
           case Left(refinementError) => deserializationError(refinementError)
         }
       }
+    }
+
+  def NonEmptyNameInPath[T]: PathMatcher1[NonEmptyName[T]] = new PathMatcher1[NonEmptyName[T]] {
+    def apply(path: Path) = path match {
+      case Path.Segment(segment, tail) =>
+        refineV[NonEmpty](segment) match {
+          case Left(_)               => Unmatched
+          case Right(nonEmptyString) => Matched(tail, Tuple1(NonEmptyName[T](nonEmptyString)))
+        }
+      case _ => Unmatched
+    }
+  }
+
+  implicit def nonEmptyNameFormat[T](implicit nonEmptyStringFormat: JsonFormat[Refined[String, NonEmpty]]) =
+    new RootJsonFormat[NonEmptyName[T]] {
+      def write(name: NonEmptyName[T]) = JsString(name.value.value)
+
+      def read(value: JsValue): NonEmptyName[T] =
+        NonEmptyName[T](nonEmptyStringFormat.read(value))
     }
 
   val jsValueToStringMarshaller: Marshaller[JsValue, String] =

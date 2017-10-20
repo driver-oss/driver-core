@@ -10,6 +10,11 @@ import com.typesafe.config.Config
 
 package database {
 
+  import java.sql.SQLDataException
+
+  import eu.timepit.refined.api.{Refined, Validate}
+  import eu.timepit.refined.refineV
+
   trait Database {
     val profile: JdbcProfile
     val database: JdbcProfile#Backend#Database
@@ -61,6 +66,33 @@ package database {
     }
   }
 
+  trait RefinedColumnTypes[T, Predicate] extends ColumnTypes {
+    import profile.api._
+    implicit def `eu.timepit.refined.api.Refined`(
+            implicit columnType: BaseColumnType[T],
+            validate: Validate[T, Predicate]): BaseColumnType[T Refined Predicate]
+  }
+
+  object RefinedColumnTypes {
+    trait RefinedValue[T, Predicate] extends RefinedColumnTypes[T, Predicate] {
+      import profile.api._
+      override implicit def `eu.timepit.refined.api.Refined`(
+              implicit columnType: BaseColumnType[T],
+              validate: Validate[T, Predicate]): BaseColumnType[T Refined Predicate] =
+        MappedColumnType.base[T Refined Predicate, T](
+          _.value, { dbValue =>
+            refineV[Predicate](dbValue) match {
+              case Left(refinementError) =>
+                throw new SQLDataException(
+                  s"Value in the database doesn't match the refinement constraints: $refinementError")
+              case Right(refinedValue) =>
+                refinedValue
+            }
+          }
+        )
+    }
+  }
+
   trait IdColumnTypes extends ColumnTypes {
     import profile.api._
     implicit def `xyz.driver.core.Id.columnType`[T]: BaseColumnType[Id[T]]
@@ -84,7 +116,7 @@ package database {
       import profile.api._
 
       override implicit def `xyz.driver.core.Id.columnType`[T] =
-        MappedColumnType.base[Id[T], String](_.value, Id[T](_))
+        MappedColumnType.base[Id[T], String](_.value, Id[T])
     }
   }
 
@@ -117,7 +149,7 @@ package database {
       MappedColumnType
         .base[Id[T], java.util.UUID](id => java.util.UUID.fromString(id.value), uuid => Id[T](uuid.toString))
     def serialKeyMapper[T]  = MappedColumnType.base[Id[T], Long](_.value.toLong, serialId => Id[T](serialId.toString))
-    def naturalKeyMapper[T] = MappedColumnType.base[Id[T], String](_.value, Id[T](_))
+    def naturalKeyMapper[T] = MappedColumnType.base[Id[T], String](_.value, Id[T])
   }
 
   trait DatabaseObject extends ColumnTypes {

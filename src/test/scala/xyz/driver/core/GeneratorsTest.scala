@@ -44,6 +44,11 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
     assert(!fixedLengthName.value.exists(_.isControl))
   }
 
+  it should "be able to generate com.drivergrp.core.NonEmptyName with non empty strings" in {
+
+    assert(nextNonEmptyName[String]().value.value.nonEmpty)
+  }
+
   it should "be able to generate proper UUIDs" in {
 
     nextUuid() should not be nextUuid()
@@ -64,6 +69,11 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
     val fixedLengthString = nextString(20)
     fixedLengthString.length should be <= 20
     assert(!fixedLengthString.exists(_.isControl))
+  }
+
+  it should "be able to generate strings non-empty strings whic are non empty" in {
+
+    assert(nextNonEmptyString().value.nonEmpty)
   }
 
   it should "be able to generate options which are sometimes have values and sometimes not" in {

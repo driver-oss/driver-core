@@ -48,6 +48,7 @@ class DriverApp(appName: String,
                 scheme: String = "http",
                 port: Int = 8080,
                 tracer: Tracer = NoTracer)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
+  import DriverApp._
 
   implicit private lazy val materializer: ActorMaterializer = ActorMaterializer()(actorSystem)
   private lazy val http: HttpExt                            = Http()(actorSystem)
@@ -72,34 +73,6 @@ class DriverApp(appName: String,
 
   private def extractHeader(request: HttpRequest)(headerName: String): Option[String] =
     request.headers.find(_.name().toLowerCase === headerName).map(_.value())
-
-  private def allowOrigin(originHeader: Option[Origin]) =
-    `Access-Control-Allow-Origin`(
-      originHeader.fold[HttpOriginRange](HttpOriginRange.*)(h => HttpOriginRange(h.origins: _*)))
-
-  protected implicit def rejectionHandler: RejectionHandler =
-    RejectionHandler
-      .newBuilder()
-      .handleAll[MethodRejection] { rejections =>
-        val methods    = rejections map (_.supported)
-        lazy val names = methods map (_.name) mkString ", "
-
-        options { ctx =>
-          optionalHeaderValueByType[Origin](()) { originHeader =>
-            respondWithHeaders(List[HttpHeader](
-              Allow(methods),
-              `Access-Control-Allow-Methods`(methods),
-              allowOrigin(originHeader),
-              `Access-Control-Allow-Headers`(rest.AllowedHeaders: _*),
-              `Access-Control-Expose-Headers`(rest.AllowedHeaders: _*)
-            )) {
-              complete(s"Supported methods: $names.")
-            }
-          }(ctx)
-        } ~
-          complete(MethodNotAllowed -> s"HTTP method not allowed, supported methods: $names!")
-      }
-      .result()
 
   protected def bindHttp(modules: Seq[Module]): Unit = {
     val serviceTypes   = modules.flatMap(_.routeTypes)
@@ -358,4 +331,36 @@ class DriverApp(appName: String,
       }
     })
   }
+}
+
+object DriverApp {
+
+  private def allowOrigin(originHeader: Option[Origin]) =
+    `Access-Control-Allow-Origin`(
+      originHeader.fold[HttpOriginRange](HttpOriginRange.*)(h => HttpOriginRange(h.origins: _*)))
+
+  implicit def rejectionHandler: RejectionHandler =
+    RejectionHandler
+      .newBuilder()
+      .handleAll[MethodRejection] { rejections =>
+        val methods    = rejections map (_.supported)
+        lazy val names = methods map (_.name) mkString ", "
+
+        options { ctx =>
+          optionalHeaderValueByType[Origin](()) { originHeader =>
+            respondWithHeaders(List[HttpHeader](
+              Allow(methods),
+              `Access-Control-Allow-Methods`(methods),
+              allowOrigin(originHeader),
+              `Access-Control-Allow-Headers`(rest.AllowedHeaders: _*),
+              `Access-Control-Expose-Headers`(rest.AllowedHeaders: _*)
+            )) {
+              complete(s"Supported methods: $names.")
+            }
+          }(ctx)
+        } ~
+          complete(MethodNotAllowed -> s"HTTP method not allowed, supported methods: $names!")
+      }
+      .result()
+
 }

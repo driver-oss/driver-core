@@ -39,6 +39,9 @@ object generators {
 
   def nextName[T](maxLength: Int = DefaultMaxLength): Name[T] = Name[T](nextString(maxLength))
 
+  def nextNonEmptyName[T](maxLength: Int = DefaultMaxLength): NonEmptyName[T] =
+    NonEmptyName[T](nextNonEmptyString(maxLength))
+
   def nextUuid(): UUID = java.util.UUID.randomUUID
 
   def nextRevision[T](): Revision[T] = Revision[T](nextUuid().toString)

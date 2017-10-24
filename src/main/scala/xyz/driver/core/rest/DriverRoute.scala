@@ -15,7 +15,7 @@ import xyz.driver.core.rest.errors._
 import scala.compat.Platform.ConcurrentModificationException
 
 trait DriverRoute {
-  val log: Logger
+  def log: Logger
 
   def route: Route
 

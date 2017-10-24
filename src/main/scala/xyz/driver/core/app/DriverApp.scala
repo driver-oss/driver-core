@@ -108,8 +108,7 @@ class DriverApp(appName: String,
 
             respondWithHeaders(responseHeaders) {
               modules
-                .flatMap(_.routes)
-                .map(_.routeWithDefaults)
+                .map(_.route)
                 .foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
             }(contextWithTrackingId)
           }

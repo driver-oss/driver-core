@@ -10,7 +10,7 @@ import scala.reflect.runtime.universe._
 
 trait Module {
   val name: String
-  def routes: Seq[DriverRoute]
+  def route: Route
   def routeTypes: Seq[Type]
 
   val serviceDiscovery: ServiceDiscovery with SavingUsedServiceDiscovery = new NoServiceDiscovery()
@@ -22,26 +22,22 @@ trait Module {
 class EmptyModule extends Module {
   override val name: String = "Nothing"
 
-  override def routes: Seq[DriverRoute] =
-    Seq(new DriverRoute {
-      override def route: Route = complete(StatusCodes.OK)
-      override val log: Logger  = xyz.driver.core.logging.NoLogger
-    })
-
+  override def route: Route          = complete(StatusCodes.OK)
   override def routeTypes: Seq[Type] = Seq.empty[Type]
 }
 
-class SimpleModule(override val name: String, route: Route, routeType: Type) extends Module { self =>
-  override def routes: Seq[DriverRoute] =
-    Seq(new DriverRoute {
-      override def route: Route = self.route
-      override val log: Logger  = xyz.driver.core.logging.NoLogger
-    })
+class SimpleModule(override val name: String, theRoute: Route, routeType: Type) extends Module {
+  private val driverRoute: DriverRoute = new DriverRoute {
+    override def route: Route = theRoute
+    override val log: Logger  = xyz.driver.core.logging.NoLogger
+  }
+
+  override def route: Route          = driverRoute.routeWithDefaults
   override def routeTypes: Seq[Type] = Seq(routeType)
 }
 
 /**
-  * Module implementation which may be used to composed a few
+  * Module implementation which may be used to compose multiple modules
   *
   * @param name    more general name of the composite module,
   *                must be provided as there is no good way to automatically
@@ -49,8 +45,8 @@ class SimpleModule(override val name: String, route: Route, routeType: Type) ext
   * @param modules modules to compose into a single one
   */
 class CompositeModule(override val name: String, modules: Seq[Module]) extends Module with RouteConcatenation {
-  override def routes: Seq[DriverRoute] = modules.flatMap(_.routes)
-  override def routeTypes: Seq[Type]    = modules.flatMap(_.routeTypes)
-  override def activate(): Unit         = modules.foreach(_.activate())
-  override def deactivate(): Unit       = modules.reverse.foreach(_.deactivate())
+  override def route: Route          = RouteConcatenation.concat(modules.map(_.route): _*)
+  override def routeTypes: Seq[Type] = modules.flatMap(_.routeTypes)
+  override def activate(): Unit      = modules.foreach(_.activate())
+  override def deactivate(): Unit    = modules.reverse.foreach(_.deactivate())
 }

@@ -6,7 +6,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ExceptionHandler, RequestContext, Route}
+import akka.http.scaladsl.server.{Directive0, ExceptionHandler, RequestContext, Route}
 import com.typesafe.scalalogging.Logger
 import org.slf4j.MDC
 import xyz.driver.core.rest
@@ -19,8 +19,23 @@ trait DriverRoute {
 
   def route: Route
 
-  def routeWithDefaults: Route = handleExceptions(ExceptionHandler(exceptionHandler)) {
-    route
+  def routeWithDefaults: Route = {
+    (defaultResponseHeaders & handleExceptions(ExceptionHandler(exceptionHandler)))(route)
+  }
+
+  protected def defaultResponseHeaders: Directive0 = {
+    (extractRequest & optionalHeaderValueByType[Origin](())) tflatMap {
+      case (request, originHeader) =>
+        val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, rest.extractTrackingId(request))
+        val responseHeaders = List[HttpHeader](
+          tracingHeader,
+          allowOrigin(originHeader),
+          `Access-Control-Allow-Headers`(AllowedHeaders: _*),
+          `Access-Control-Expose-Headers`(AllowedHeaders: _*)
+        )
+
+        respondWithHeaders(responseHeaders)
+    }
   }
 
   /**

@@ -73,47 +73,31 @@ class DriverApp(appName: String,
   protected def appRoute: Route = {
     val serviceTypes   = modules.flatMap(_.routeTypes)
     val swaggerService = swaggerOverride(serviceTypes)
-    val swaggerRoutes  = swaggerService.routes ~ swaggerService.swaggerUI
+    val swaggerRoute   = swaggerService.routes ~ swaggerService.swaggerUI
     val versionRt      = versionRoute(version, gitHash, time.currentTime())
+    val combinedRoute  = modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoute)(_ ~ _)
 
-    extractHost { origin =>
-      extractClientIP { ip =>
-        optionalHeaderValueByType[Origin](()) { originHeader =>
-          trace(tracer) { ctx =>
-            val trackingId = rest.extractTrackingId(ctx.request)
-            MDC.put("trackingId", trackingId)
+    (extractHost & extractClientIP & trace(tracer)) {
+      case (origin, ip) =>
+        ctx =>
+          val trackingId = rest.extractTrackingId(ctx.request)
+          MDC.put("trackingId", trackingId)
 
-            val updatedStacktrace =
-              (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
-            MDC.put("stack", updatedStacktrace)
+          val updatedStacktrace =
+            (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
+          MDC.put("stack", updatedStacktrace)
 
-            storeRequestContextToMdc(ctx.request, origin, ip)
+          storeRequestContextToMdc(ctx.request, origin, ip)
 
-            val trackingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
+          log.info(s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
 
-            val responseHeaders = List[HttpHeader](
-              trackingHeader,
-              allowOrigin(originHeader),
-              `Access-Control-Allow-Headers`(rest.AllowedHeaders: _*),
-              `Access-Control-Expose-Headers`(rest.AllowedHeaders: _*)
-            )
+          val contextWithTrackingId =
+            ctx.withRequest(
+              ctx.request
+                .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
+                .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
 
-            log.info(s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
-
-            val contextWithTrackingId =
-              ctx.withRequest(
-                ctx.request
-                  .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
-                  .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
-
-            respondWithHeaders(responseHeaders) {
-              modules
-                .map(_.route)
-                .foldLeft(versionRt ~ healthRoute ~ swaggerRoutes)(_ ~ _)
-            }(contextWithTrackingId)
-          }
-        }
-      }
+          combinedRoute(contextWithTrackingId)
     }
   }
 

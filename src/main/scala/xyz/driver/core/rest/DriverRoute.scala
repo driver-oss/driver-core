@@ -99,21 +99,8 @@ trait DriverRoute {
                                               statusCode: StatusCode,
                                               message: String,
                                               exception: T): Route = {
-
-    val trackingId    = rest.extractTrackingId(ctx.request)
-    val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, rest.extractTrackingId(ctx.request))
-
+    val trackingId = rest.extractTrackingId(ctx.request)
     MDC.put("trackingId", trackingId)
-
-    optionalHeaderValueByType[Origin](()) { originHeader =>
-      val responseHeaders = List[HttpHeader](tracingHeader,
-                                             allowOrigin(originHeader),
-                                             `Access-Control-Allow-Headers`(AllowedHeaders: _*),
-                                             `Access-Control-Expose-Headers`(AllowedHeaders: _*))
-
-      respondWithHeaders(responseHeaders) {
-        complete(HttpResponse(statusCode, entity = message))
-      }
-    }
+    complete(HttpResponse(statusCode, entity = message))
   }
 }

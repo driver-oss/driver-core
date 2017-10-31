@@ -17,7 +17,6 @@ import io.swagger.models.Scheme
 import io.swagger.util.Json
 import org.slf4j.{LoggerFactory, MDC}
 import xyz.driver.core
-import xyz.driver.core.rest
 import xyz.driver.core.rest._
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
@@ -80,11 +79,11 @@ class DriverApp(appName: String,
     (extractHost & extractClientIP & trace(tracer)) {
       case (origin, ip) =>
         ctx =>
-          val trackingId = rest.extractTrackingId(ctx.request)
+          val trackingId = extractTrackingId(ctx.request)
           MDC.put("trackingId", trackingId)
 
           val updatedStacktrace =
-            (rest.extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
+            (extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
           MDC.put("stack", updatedStacktrace)
 
           storeRequestContextToMdc(ctx.request, origin, ip)
@@ -250,11 +249,6 @@ class DriverApp(appName: String,
 }
 
 object DriverApp {
-
-  private def allowOrigin(originHeader: Option[Origin]) =
-    `Access-Control-Allow-Origin`(
-      originHeader.fold[HttpOriginRange](HttpOriginRange.*)(h => HttpOriginRange(h.origins: _*)))
-
   implicit def rejectionHandler: RejectionHandler =
     RejectionHandler
       .newBuilder()
@@ -268,8 +262,8 @@ object DriverApp {
               Allow(methods),
               `Access-Control-Allow-Methods`(methods),
               allowOrigin(originHeader),
-              `Access-Control-Allow-Headers`(rest.AllowedHeaders: _*),
-              `Access-Control-Expose-Headers`(rest.AllowedHeaders: _*)
+              `Access-Control-Allow-Headers`(AllowedHeaders: _*),
+              `Access-Control-Expose-Headers`(AllowedHeaders: _*)
             )) {
               complete(s"Supported methods: $names.")
             }
@@ -278,5 +272,4 @@ object DriverApp {
           complete(MethodNotAllowed -> s"HTTP method not allowed, supported methods: $names!")
       }
       .result()
-
 }

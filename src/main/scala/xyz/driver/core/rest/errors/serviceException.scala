@@ -16,8 +16,8 @@ final case class ExternalServiceException(serviceName: String, serviceMessage: S
   override def message = s"Error while calling another service: $serviceMessage"
 }
 
-final case class ExternalServiceTimeoutException(
-        override val message: String = "Another service took too long to respond")
-    extends ServiceException
+final case class ExternalServiceTimeoutException(serviceName: String) extends ServiceException {
+  override def message = s"$serviceName took too long to respond"
+}
 
 final case class DatabaseException(override val message: String = "Database access error") extends ServiceException

@@ -58,11 +58,11 @@ class HttpRestServiceTransport(applicationName: Name[App],
         log.warn(s"Failed to receive response from ${request.method} ${request.uri} in $responseLatency ms", t)
     }(executionContext)
 
-    response.transformWith {
-      case Success(r) => Future.successful(r)
-      case Failure(_: TcpIdleTimeoutException) =>
-        Future.failed(ExternalServiceTimeoutException())
-      case Failure(t: Throwable) => Future.failed(t)
+    response.recoverWith {
+      case _: TcpIdleTimeoutException =>
+        val serviceCalled = s"${requestStub.method} ${requestStub.uri}"
+        Future.failed(ExternalServiceTimeoutException(serviceCalled))
+      case t: Throwable => Future.failed(t)
     }
   }
 

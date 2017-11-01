@@ -1,8 +1,7 @@
 package xyz.driver.core.rest
 
-import org.scalatest.{FlatSpec, Matchers}
-
 import akka.util.ByteString
+import org.scalatest.{FlatSpec, Matchers}
 
 class RestTest extends FlatSpec with Matchers {
   "`escapeScriptTags` function" should "escap script tags properly" in {

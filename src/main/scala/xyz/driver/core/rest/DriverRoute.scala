@@ -82,6 +82,9 @@ trait DriverRoute {
       case e: ResourceNotFoundException =>
         log.info("Resource not found error", e)
         StatusCodes.NotFound
+      case e: ExternalServiceException =>
+        log.error("Error while calling another service", e)
+        StatusCodes.InternalServerError
       case e: ExternalServiceTimeoutException =>
         log.error("Service timeout error", e)
         StatusCodes.GatewayTimeout

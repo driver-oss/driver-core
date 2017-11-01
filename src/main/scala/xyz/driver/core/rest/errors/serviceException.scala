@@ -1,6 +1,6 @@
 package xyz.driver.core.rest.errors
 
-abstract class ServiceException extends Exception {
+sealed abstract class ServiceException extends Exception {
   def message: String
 }
 
@@ -13,7 +13,7 @@ final case class ResourceNotFoundException(override val message: String = "Resou
     extends ServiceException
 
 final case class ExternalServiceException(serviceName: String, serviceMessage: String) extends ServiceException {
-  override def message = s"Error while calling another service: $serviceMessage"
+  override def message = s"Error while calling '$serviceName': $serviceMessage"
 }
 
 final case class ExternalServiceTimeoutException(serviceName: String) extends ServiceException {

@@ -1,0 +1,23 @@
+package xyz.driver.core.rest.errors
+
+sealed abstract class ServiceException extends Exception {
+  def message: String
+}
+
+final case class InvalidInputException(override val message: String = "Invalid input") extends ServiceException
+
+final case class InvalidActionException(override val message: String = "This action is not allowed")
+    extends ServiceException
+
+final case class ResourceNotFoundException(override val message: String = "Resource not found")
+    extends ServiceException
+
+final case class ExternalServiceException(serviceName: String, serviceMessage: String) extends ServiceException {
+  override def message = s"Error while calling '$serviceName': $serviceMessage"
+}
+
+final case class ExternalServiceTimeoutException(serviceName: String) extends ServiceException {
+  override def message = s"$serviceName took too long to respond"
+}
+
+final case class DatabaseException(override val message: String = "Database access error") extends ServiceException

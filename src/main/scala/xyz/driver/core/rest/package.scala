@@ -6,6 +6,7 @@ import akka.http.scaladsl.model.{HttpRequest, HttpResponse, ResponseEntity, Stat
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.stream.Materializer
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
 import xyz.driver.tracing.TracingDirectives
@@ -25,7 +26,8 @@ trait ServiceTransport {
 
   def sendRequestGetResponse(context: ServiceRequestContext)(requestStub: HttpRequest): Future[HttpResponse]
 
-  def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest): Future[Unmarshal[ResponseEntity]]
+  def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest)(
+          implicit mat: Materializer): Future[Unmarshal[ResponseEntity]]
 }
 
 final case class Pagination(pageSize: Int, pageNumber: Int)

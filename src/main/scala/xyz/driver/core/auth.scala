@@ -8,7 +8,12 @@ object auth {
 
   trait Permission
 
-  final case class Role(id: Id[Role], name: Name[Role])
+  final case class Role(id: Id[Role], name: Name[Role]) {
+
+    def oneOf(roles: Role*): Boolean = roles.contains(this)
+
+    def oneOf(roles: Set[Role]): Boolean = roles.contains(this)
+  }
 
   object Role {
     implicit def idEqual: Equal[Role] = Equal.equal[Role](_ == _)

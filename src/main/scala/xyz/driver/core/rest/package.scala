@@ -100,7 +100,7 @@ object `package` {
 
   def extractServiceContext(request: HttpRequest, remoteAddress: RemoteAddress): ServiceRequestContext =
     new ServiceRequestContext(extractTrackingId(request),
-                              extractOriginatingIP(request: HttpRequest, remoteAddress),
+                              extractOriginatingIP(request, remoteAddress),
                               extractContextHeaders(request))
 
   def extractTrackingId(request: HttpRequest): String = {

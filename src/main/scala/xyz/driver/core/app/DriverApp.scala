@@ -44,6 +44,7 @@ class DriverApp(appName: String,
                 scheme: String = "http",
                 port: Int = 8080,
                 tracer: Tracer = NoTracer)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
+  self =>
   import DriverApp._
 
   implicit private lazy val materializer: ActorMaterializer = ActorMaterializer()(actorSystem)
@@ -74,7 +75,11 @@ class DriverApp(appName: String,
     val swaggerService = swaggerOverride(serviceTypes)
     val swaggerRoute   = swaggerService.routes ~ swaggerService.swaggerUI
     val versionRt      = versionRoute(version, gitHash, time.currentTime())
-    val combinedRoute  = modules.map(_.route).foldLeft(versionRt ~ healthRoute ~ swaggerRoute)(_ ~ _)
+    val basicRoutes = new DriverRoute {
+      override def log: Logger  = self.log
+      override def route: Route = versionRt ~ healthRoute ~ swaggerRoute
+    }
+    val combinedRoute = modules.map(_.route).foldLeft(basicRoutes.routeWithDefaults)(_ ~ _)
 
     (extractHost & extractClientIP & trace(tracer)) {
       case (origin, ip) =>

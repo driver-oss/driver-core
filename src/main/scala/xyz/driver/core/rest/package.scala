@@ -50,7 +50,7 @@ object `package` {
     val AuthenticationHeaderPrefix: String = "Bearer"
     val TrackingIdHeader: String           = "X-Trace"
     val StacktraceHeader: String           = "X-Stacktrace"
-    val OriginatingIPHeader: String        = "X-Forwarded-For"
+    val OriginatingIpHeader: String        = "X-Forwarded-For"
     val TraceHeaderName: String            = TracingDirectives.TraceHeaderName
     val SpanHeaderName: String             = TracingDirectives.SpanHeaderName
   }
@@ -80,7 +80,7 @@ object `package` {
       ContextHeaders.SpanHeaderName,
       ContextHeaders.StacktraceHeader,
       ContextHeaders.AuthenticationTokenHeader,
-      ContextHeaders.OriginatingIPHeader,
+      ContextHeaders.OriginatingIpHeader,
       "X-Frame-Options",
       "X-Content-Type-Options",
       "Strict-Transport-Security",
@@ -111,7 +111,7 @@ object `package` {
 
   def extractOriginatingIP(request: HttpRequest, remoteAddress: RemoteAddress): Option[InetAddress] = {
     request.headers
-      .find(_.name === ContextHeaders.OriginatingIPHeader)
+      .find(_.name === ContextHeaders.OriginatingIpHeader)
       .flatMap(ipName => Try(InetAddress.getByName(ipName.value)).toOption)
       .orElse(remoteAddress.toOption)
   }
@@ -124,7 +124,7 @@ object `package` {
       h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader ||
       h.name === ContextHeaders.PermissionsTokenHeader || h.name === ContextHeaders.StacktraceHeader ||
       h.name === ContextHeaders.TraceHeaderName || h.name === ContextHeaders.SpanHeaderName ||
-      h.name === ContextHeaders.OriginatingIPHeader
+      h.name === ContextHeaders.OriginatingIpHeader
     } map { header =>
       if (header.name === ContextHeaders.AuthenticationTokenHeader) {
         header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim

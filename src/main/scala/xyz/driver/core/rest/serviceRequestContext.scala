@@ -9,7 +9,7 @@ import scalaz.Scalaz.{mapEqual, stringInstance}
 import scalaz.syntax.equal._
 
 class ServiceRequestContext(val trackingId: String = generators.nextUuid().toString,
-                            val originatingIP: Option[InetAddress] = None,
+                            val originatingIp: Option[InetAddress] = None,
                             val contextHeaders: Map[String, String] = Map.empty[String, String]) {
   def authToken: Option[AuthToken] =
     contextHeaders.get(AuthProvider.AuthenticationTokenHeader).map(AuthToken.apply)
@@ -20,24 +20,24 @@ class ServiceRequestContext(val trackingId: String = generators.nextUuid().toStr
   def withAuthToken(authToken: AuthToken): ServiceRequestContext =
     new ServiceRequestContext(
       trackingId,
-      originatingIP,
+      originatingIp,
       contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value)
     )
 
   def withAuthenticatedUser[U <: User](authToken: AuthToken, user: U): AuthorizedServiceRequestContext[U] =
     new AuthorizedServiceRequestContext(
       trackingId,
-      originatingIP,
+      originatingIp,
       contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value),
       user
     )
 
   override def hashCode(): Int =
-    Seq[Any](trackingId, originatingIP, contextHeaders).foldLeft(31)((result, obj) => 31 * result + obj.hashCode())
+    Seq[Any](trackingId, originatingIp, contextHeaders).foldLeft(31)((result, obj) => 31 * result + obj.hashCode())
 
   override def equals(obj: Any): Boolean = obj match {
     case ctx: ServiceRequestContext =>
-      trackingId === ctx.trackingId && originatingIP == originatingIP && contextHeaders === ctx.contextHeaders
+      trackingId === ctx.trackingId && originatingIp == originatingIp && contextHeaders === ctx.contextHeaders
     case _ => false
   }
 
@@ -45,7 +45,7 @@ class ServiceRequestContext(val trackingId: String = generators.nextUuid().toStr
 }
 
 class AuthorizedServiceRequestContext[U <: User](override val trackingId: String = generators.nextUuid().toString,
-                                                 override val originatingIP: Option[InetAddress] = None,
+                                                 override val originatingIp: Option[InetAddress] = None,
                                                  override val contextHeaders: Map[String, String] =
                                                    Map.empty[String, String],
                                                  val authenticatedUser: U)
@@ -54,7 +54,7 @@ class AuthorizedServiceRequestContext[U <: User](override val trackingId: String
   def withPermissionsToken(permissionsToken: PermissionsToken): AuthorizedServiceRequestContext[U] =
     new AuthorizedServiceRequestContext[U](
       trackingId,
-      originatingIP,
+      originatingIp,
       contextHeaders.updated(AuthProvider.PermissionsTokenHeader, permissionsToken.value),
       authenticatedUser)
 

@@ -70,7 +70,7 @@ class DriverApp(appName: String,
   private def extractHeader(request: HttpRequest)(headerName: String): Option[String] =
     request.headers.find(_.name().toLowerCase === headerName).map(_.value())
 
-  protected def appRoute: Route = {
+  def appRoute: Route = {
     val serviceTypes   = modules.flatMap(_.routeTypes)
     val swaggerService = swaggerOverride(serviceTypes)
     val swaggerRoute   = swaggerService.routes ~ swaggerService.swaggerUI

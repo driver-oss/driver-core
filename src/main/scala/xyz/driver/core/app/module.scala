@@ -43,7 +43,7 @@ trait SingleDatabaseModule { self: Module =>
   val databaseName: String
   val config: Config
 
-  val database = Database.fromConfig(config, databaseName)
+  def database = Database.fromConfig(config, databaseName)
 
   override def deactivate(): Unit = {
     try {

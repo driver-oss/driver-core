@@ -15,6 +15,13 @@ import spray.json._
 
 object swagger {
 
+  def configureCustomSwaggerModels(customPropertiesExamples: Map[Class[_], Property],
+                                   customObjectsExamples: Map[Class[_], JsValue]) = {
+    ModelConverters
+      .getInstance()
+      .addConverter(new CustomSwaggerJsonConverter(Json.mapper(), customPropertiesExamples, customObjectsExamples))
+  }
+
   object CustomSwaggerJsonConverter {
 
     def stringProperty(pattern: Option[String] = None, example: Option[String] = None): Property = {

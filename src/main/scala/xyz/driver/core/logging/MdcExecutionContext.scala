@@ -16,8 +16,7 @@ class MdcExecutionContext(executionContext: ExecutionContext) extends ExecutionC
     executionContext.execute(new Runnable {
       def run(): Unit = {
         // copy caller thread diagnostic context to execution thread
-        // scalastyle:off
-        if (callerMdc != null) MDC.setContextMap(callerMdc)
+        Option(callerMdc).foreach(MDC.setContextMap)
         try {
           runnable.run()
         } finally {

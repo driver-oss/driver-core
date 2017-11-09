@@ -3,7 +3,9 @@ package xyz.driver.core.app
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.complete
 import akka.http.scaladsl.server.{Route, RouteConcatenation}
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.Logger
+import xyz.driver.core.database.Database
 import xyz.driver.core.rest.{DriverRoute, NoServiceDiscovery, SavingUsedServiceDiscovery, ServiceDiscovery}
 
 import scala.reflect.runtime.universe._
@@ -34,6 +36,22 @@ class SimpleModule(override val name: String, theRoute: Route, routeType: Type) 
 
   override def route: Route          = driverRoute.routeWithDefaults
   override def routeTypes: Seq[Type] = Seq(routeType)
+}
+
+trait SingleDatabaseModule { self: Module =>
+
+  val databaseName: String
+  val config: Config
+
+  def database = Database.fromConfig(config, databaseName)
+
+  override def deactivate(): Unit = {
+    try {
+      database.database.close()
+    } finally {
+      self.deactivate()
+    }
+  }
 }
 
 /**

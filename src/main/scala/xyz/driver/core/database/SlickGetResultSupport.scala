@@ -22,9 +22,9 @@ trait SlickGetResultSupport {
     GetResult(_.nextTimestampOption().map(t => Time(t.getTime)))
 
   implicit val GetDate: GetResult[Date] =
-    GetResult(r => Date.fromJavaDate(r.nextDate()))
+    GetResult(r => sqlDateToDate(r.nextDate()))
   implicit val GetDateOption: GetResult[Option[Date]] =
-    GetResult(_.nextDateOption().map(Date.fromJavaDate))
+    GetResult(_.nextDateOption().map(sqlDateToDate))
 }
 
 object SlickGetResultSupport extends SlickGetResultSupport

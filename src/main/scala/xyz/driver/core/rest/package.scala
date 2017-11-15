@@ -33,7 +33,9 @@ trait ServiceTransport {
           implicit mat: Materializer): Future[Unmarshal[ResponseEntity]]
 }
 
-final case class Pagination(pageSize: Int, pageNumber: Int)
+final case class Pagination(pageSize: Int, pageNumber: Int) {
+  def offset: Int = pageSize * pageNumber
+}
 
 object `package` {
   implicit class OptionTRestAdditions[T](optionT: OptionT[Future, T]) {

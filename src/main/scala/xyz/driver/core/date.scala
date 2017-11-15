@@ -86,5 +86,11 @@ object date {
         case _                                         => None
       }
     }
+
+    def fromJavaDate(date: java.util.Date): Date = {
+      val cal = Calendar.getInstance
+      cal.setTime(date)
+      Date(cal.get(Calendar.YEAR), Month(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
+    }
   }
 }

@@ -1,11 +1,9 @@
 package xyz.driver.core.database
 
-import java.util.Calendar
-
 import slick.jdbc.GetResult
-import xyz.driver.core.date.{Date, Month}
-import xyz.driver.core.{Id, Name}
+import xyz.driver.core.date.Date
 import xyz.driver.core.time.Time
+import xyz.driver.core.{Id, Name}
 
 trait SlickGetResultSupport {
   implicit def idGetResult[U]: GetResult[Id[U]] =
@@ -23,16 +21,10 @@ trait SlickGetResultSupport {
   implicit val timeOptionGetResult: GetResult[Option[Time]] =
     GetResult(_.nextTimestampOption().map(t => Time(t.getTime)))
 
-  private def javaDateToDate(jdate: java.util.Date): Date = {
-    val cal = Calendar.getInstance
-    cal.setTime(jdate)
-    Date(cal.get(Calendar.YEAR), Month(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
-  }
-
   implicit val dateGetResult: GetResult[Date] =
-    GetResult(r => javaDateToDate(r.nextDate()))
+    GetResult(r => Date.fromJavaDate(r.nextDate()))
   implicit val dateOptionGetResult: GetResult[Option[Date]] =
-    GetResult(_.nextDateOption().map(javaDateToDate))
+    GetResult(_.nextDateOption().map(Date.fromJavaDate))
 }
 
 object SlickGetResultSupport extends SlickGetResultSupport

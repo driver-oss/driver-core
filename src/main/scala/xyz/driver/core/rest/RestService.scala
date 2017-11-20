@@ -24,11 +24,11 @@ trait RestService extends Service {
     OptionT[Future, Unit](request.flatMap(_.to[String]).map(_ => Option(())))
 
   protected def optionalResponse[T](request: Future[Unmarshal[ResponseEntity]])(
-          implicit um: Unmarshaller[ResponseEntity, Option[T]]): OptionT[Future, T] =
+      implicit um: Unmarshaller[ResponseEntity, Option[T]]): OptionT[Future, T] =
     OptionT[Future, T](request.flatMap(_.fold(Option.empty[T])))
 
   protected def listResponse[T](request: Future[Unmarshal[ResponseEntity]])(
-          implicit um: Unmarshaller[ResponseEntity, List[T]]): ListT[Future, T] =
+      implicit um: Unmarshaller[ResponseEntity, List[T]]): ListT[Future, T] =
     ListT[Future, T](request.flatMap(_.fold(List.empty[T])))
 
   protected def jsonEntity(json: JsValue): RequestEntity =

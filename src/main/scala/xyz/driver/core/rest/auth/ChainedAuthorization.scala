@@ -12,7 +12,7 @@ class ChainedAuthorization[U <: User](authorizations: Authorization[U]*)(implici
     extends Authorization[U] {
 
   override def userHasPermissions(user: U, permissions: Seq[Permission])(
-          implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
+      implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
     def allAuthorized(permissionsMap: Map[Permission, Boolean]): Boolean =
       permissions.forall(permissionsMap.getOrElse(_, false))
 

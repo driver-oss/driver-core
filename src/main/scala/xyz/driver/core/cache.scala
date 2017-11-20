@@ -92,11 +92,12 @@ object cache {
     val DEFAULT_READ_EXPIRATION: Duration  = 10 minutes
     val DEFAULT_WRITE_EXPIRATION: Duration = 1 hour
 
-    def apply[K <: AnyRef, V <: AnyRef](name: String,
-                                        capacity: Long = DEFAULT_CAPACITY,
-                                        readExpiration: Duration = DEFAULT_READ_EXPIRATION,
-                                        writeExpiration: Duration = DEFAULT_WRITE_EXPIRATION)(
-            implicit executionContext: ExecutionContext): AsyncCache[K, V] = {
+    def apply[K <: AnyRef, V <: AnyRef](
+        name: String,
+        capacity: Long = DEFAULT_CAPACITY,
+        readExpiration: Duration = DEFAULT_READ_EXPIRATION,
+        writeExpiration: Duration = DEFAULT_WRITE_EXPIRATION)(
+        implicit executionContext: ExecutionContext): AsyncCache[K, V] = {
       val guavaCache = CacheBuilder
         .newBuilder()
         .maximumSize(capacity)

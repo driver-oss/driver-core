@@ -24,14 +24,16 @@ class DateTest extends FlatSpec with Matchers with Checkers {
   }
 
   it should "have ordering defined correctly" in {
-    Seq(Date.fromString("2013-05-10"),
-        Date.fromString("2020-02-15"),
-        Date.fromString("2017-03-05"),
-        Date.fromString("2013-05-12")).sorted should
-      contain theSameElementsInOrderAs Seq(Date.fromString("2013-05-10"),
-                                           Date.fromString("2013-05-12"),
-                                           Date.fromString("2017-03-05"),
-                                           Date.fromString("2020-02-15"))
+    Seq(
+      Date.fromString("2013-05-10"),
+      Date.fromString("2020-02-15"),
+      Date.fromString("2017-03-05"),
+      Date.fromString("2013-05-12")).sorted should
+      contain theSameElementsInOrderAs Seq(
+      Date.fromString("2013-05-10"),
+      Date.fromString("2013-05-12"),
+      Date.fromString("2017-03-05"),
+      Date.fromString("2020-02-15"))
 
     check { dates: List[Date] =>
       dates.sorted.sliding(2).filter(_.size == 2).forall {

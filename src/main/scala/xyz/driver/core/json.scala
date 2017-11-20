@@ -168,9 +168,10 @@ object json {
     }
   }
 
-  class GadtJsonFormat[T: TypeTag](typeField: String,
-                                   typeValue: PartialFunction[T, String],
-                                   jsonFormat: PartialFunction[String, JsonFormat[_ <: T]])
+  class GadtJsonFormat[T: TypeTag](
+      typeField: String,
+      typeValue: PartialFunction[T, String],
+      jsonFormat: PartialFunction[String, JsonFormat[_ <: T]])
       extends RootJsonFormat[T] {
 
     def write(value: T): JsValue = {
@@ -210,7 +211,7 @@ object json {
   object GadtJsonFormat {
 
     def create[T: TypeTag](typeField: String)(typeValue: PartialFunction[T, String])(
-            jsonFormat: PartialFunction[String, JsonFormat[_ <: T]]) = {
+        jsonFormat: PartialFunction[String, JsonFormat[_ <: T]]) = {
 
       new GadtJsonFormat[T](typeField, typeValue, jsonFormat)
     }
@@ -221,8 +222,9 @@ object json {
     *
     * @see https://github.com/fthomas/refined
     */
-  implicit def refinedJsonFormat[T, Predicate](implicit valueFormat: JsonFormat[T],
-                                               validate: Validate[T, Predicate]): JsonFormat[Refined[T, Predicate]] =
+  implicit def refinedJsonFormat[T, Predicate](
+      implicit valueFormat: JsonFormat[T],
+      validate: Validate[T, Predicate]): JsonFormat[Refined[T, Predicate]] =
     new JsonFormat[Refined[T, Predicate]] {
       def write(x: T Refined Predicate): JsValue = valueFormat.write(x.value)
       def read(value: JsValue): T Refined Predicate = {

@@ -14,7 +14,7 @@ import scalaz.Scalaz.futureInstance
 import scalaz.OptionT
 
 abstract class AuthProvider[U <: User](val authorization: Authorization[U], log: Logger)(
-        implicit execution: ExecutionContext) {
+    implicit execution: ExecutionContext) {
 
   import akka.http.scaladsl.server._
   import Directives._

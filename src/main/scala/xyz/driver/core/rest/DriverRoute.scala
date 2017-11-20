@@ -55,10 +55,11 @@ trait DriverRoute {
     case cm: ConcurrentModificationException =>
       ctx =>
         log.warn(s"Concurrent modification of the resource ${ctx.request.method} ${ctx.request.uri}", cm)
-        errorResponse(ctx,
-                      StatusCodes.Conflict,
-                      "Resource was changed concurrently, try requesting a newer version",
-                      cm)(ctx)
+        errorResponse(
+          ctx,
+          StatusCodes.Conflict,
+          "Resource was changed concurrently, try requesting a newer version",
+          cm)(ctx)
 
     case se: SQLException =>
       ctx =>
@@ -98,10 +99,11 @@ trait DriverRoute {
     }
   }
 
-  protected def errorResponse[T <: Exception](ctx: RequestContext,
-                                              statusCode: StatusCode,
-                                              message: String,
-                                              exception: T): Route = {
+  protected def errorResponse[T <: Exception](
+      ctx: RequestContext,
+      statusCode: StatusCode,
+      message: String,
+      exception: T): Route = {
     val trackingId = rest.extractTrackingId(ctx.request)
     MDC.put("trackingId", trackingId)
     complete(HttpResponse(statusCode, entity = message))

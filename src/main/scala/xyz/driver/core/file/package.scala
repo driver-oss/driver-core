@@ -18,11 +18,11 @@ package file {
   import scala.concurrent.duration.Duration
 
   final case class FileLink(
-          name: Name[File],
-          location: Path,
-          revision: Revision[File],
-          lastModificationDate: Time,
-          fileSize: Long
+      name: Name[File],
+      location: Path,
+      revision: Revision[File],
+      lastModificationDate: Time,
+      fileSize: Long
   )
 
   trait FileService {

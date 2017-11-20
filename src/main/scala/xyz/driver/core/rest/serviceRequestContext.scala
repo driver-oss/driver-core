@@ -8,9 +8,10 @@ import xyz.driver.core.generators
 import scalaz.Scalaz.{mapEqual, stringInstance}
 import scalaz.syntax.equal._
 
-class ServiceRequestContext(val trackingId: String = generators.nextUuid().toString,
-                            val originatingIp: Option[InetAddress] = None,
-                            val contextHeaders: Map[String, String] = Map.empty[String, String]) {
+class ServiceRequestContext(
+    val trackingId: String = generators.nextUuid().toString,
+    val originatingIp: Option[InetAddress] = None,
+    val contextHeaders: Map[String, String] = Map.empty[String, String]) {
   def authToken: Option[AuthToken] =
     contextHeaders.get(AuthProvider.AuthenticationTokenHeader).map(AuthToken.apply)
 
@@ -44,11 +45,11 @@ class ServiceRequestContext(val trackingId: String = generators.nextUuid().toStr
   override def toString: String = s"ServiceRequestContext($trackingId, $contextHeaders)"
 }
 
-class AuthorizedServiceRequestContext[U <: User](override val trackingId: String = generators.nextUuid().toString,
-                                                 override val originatingIp: Option[InetAddress] = None,
-                                                 override val contextHeaders: Map[String, String] =
-                                                   Map.empty[String, String],
-                                                 val authenticatedUser: U)
+class AuthorizedServiceRequestContext[U <: User](
+    override val trackingId: String = generators.nextUuid().toString,
+    override val originatingIp: Option[InetAddress] = None,
+    override val contextHeaders: Map[String, String] = Map.empty[String, String],
+    val authenticatedUser: U)
     extends ServiceRequestContext {
 
   def withPermissionsToken(permissionsToken: PermissionsToken): AuthorizedServiceRequestContext[U] =

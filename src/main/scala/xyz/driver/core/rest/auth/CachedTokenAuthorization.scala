@@ -13,7 +13,7 @@ import scalaz.syntax.std.boolean._
 
 class CachedTokenAuthorization[U <: User](publicKey: => PublicKey, issuer: String) extends Authorization[U] {
   override def userHasPermissions(user: U, permissions: Seq[Permission])(
-          implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
+      implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
     import spray.json._
 
     def extractPermissionsFromTokenJSON(tokenObject: JsObject): Option[Map[String, Boolean]] =

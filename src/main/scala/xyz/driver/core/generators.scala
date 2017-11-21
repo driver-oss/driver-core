@@ -67,8 +67,9 @@ object generators {
     val oneTime     = nextTime()
     val anotherTime = nextTime()
 
-    TimeRange(Time(scala.math.min(oneTime.millis, anotherTime.millis)),
-              Time(scala.math.max(oneTime.millis, anotherTime.millis)))
+    TimeRange(
+      Time(scala.math.min(oneTime.millis, anotherTime.millis)),
+      Time(scala.math.max(oneTime.millis, anotherTime.millis)))
   }
 
   def nextDate(): Date = nextTime().toDate(java.util.TimeZone.getTimeZone("UTC"))
@@ -95,9 +96,10 @@ object generators {
   def setOf[T](generator: => T, maxLength: Int = DefaultMaxLength, minLength: Int = 0): Set[T] =
     seqOf(generator, maxLength, minLength).toSet
 
-  def mapOf[K, V](keyGenerator: => K,
-                  valueGenerator: => V,
-                  maxLength: Int = DefaultMaxLength,
-                  minLength: Int = 0): Map[K, V] =
+  def mapOf[K, V](
+      keyGenerator: => K,
+      valueGenerator: => V,
+      maxLength: Int = DefaultMaxLength,
+      minLength: Int = 0): Map[K, V] =
     seqOf(nextPair(keyGenerator, valueGenerator), maxLength, minLength).toMap
 }

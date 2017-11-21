@@ -32,18 +32,19 @@ import scala.util.control.NonFatal
 import scalaz.Scalaz.stringInstance
 import scalaz.syntax.equal._
 
-class DriverApp(appName: String,
-                version: String,
-                gitHash: String,
-                modules: Seq[Module],
-                time: TimeProvider = new SystemTimeProvider(),
-                log: Logger = Logger(LoggerFactory.getLogger(classOf[DriverApp])),
-                config: Config = core.config.loadDefaultConfig,
-                interface: String = "::0",
-                baseUrl: String = "localhost:8080",
-                scheme: String = "http",
-                port: Int = 8080,
-                tracer: Tracer = NoTracer)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
+class DriverApp(
+    appName: String,
+    version: String,
+    gitHash: String,
+    modules: Seq[Module],
+    time: TimeProvider = new SystemTimeProvider(),
+    log: Logger = Logger(LoggerFactory.getLogger(classOf[DriverApp])),
+    config: Config = core.config.loadDefaultConfig,
+    interface: String = "::0",
+    baseUrl: String = "localhost:8080",
+    scheme: String = "http",
+    port: Int = 8080,
+    tracer: Tracer = NoTracer)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
   self =>
   import DriverApp._
 
@@ -115,10 +116,11 @@ class DriverApp(appName: String,
     MDC.put("ip", ip.toOption.map(_.getHostAddress).getOrElse("unknown"))
     MDC.put("remoteHost", ip.toOption.map(_.getHostName).getOrElse("unknown"))
 
-    MDC.put("xForwardedFor",
-            extractHeader(request)("x-forwarded-for")
-              .orElse(extractHeader(request)("x_forwarded_for"))
-              .getOrElse("unknown"))
+    MDC.put(
+      "xForwardedFor",
+      extractHeader(request)("x-forwarded-for")
+        .orElse(extractHeader(request)("x_forwarded_for"))
+        .getOrElse("unknown"))
     MDC.put("remoteAddress", extractHeader(request)("remote-address").getOrElse("unknown"))
     MDC.put("userAgent", extractHeader(request)("user-agent").getOrElse("unknown"))
   }
@@ -204,10 +206,11 @@ class DriverApp(appName: String,
             "totalGarbageCollections" -> gcStats.totalGarbageCollections.toJson
           ).toJson,
           "fileSystemSpace" -> SystemStats.fileSystemSpace.map { f =>
-            Map("path"        -> f.path.toJson,
-                "freeSpace"   -> f.freeSpace.toJson,
-                "totalSpace"  -> f.totalSpace.toJson,
-                "usableSpace" -> f.usableSpace.toJson)
+            Map(
+              "path"        -> f.path.toJson,
+              "freeSpace"   -> f.freeSpace.toJson,
+              "totalSpace"  -> f.totalSpace.toJson,
+              "usableSpace" -> f.usableSpace.toJson)
           }.toJson,
           "operatingSystem" -> SystemStats.operatingSystemStats.toJson
         ))

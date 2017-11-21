@@ -27,8 +27,8 @@ class MessagesTest extends FlatSpec with Matchers {
 
   it should "be able to read messages for different locales" in {
 
-    val messagesConfig = ConfigFactory.parseMap((
-      englishLocaleMessages ++ Map(
+    val messagesConfig = ConfigFactory.parseMap(
+      (englishLocaleMessages ++ Map(
         "zh.hello"            -> "你好，世界!",
         "zh.greeting"         -> "你好，{0}!",
         "zh.greetingFullName" -> "你好，{0} {1} {2}!"

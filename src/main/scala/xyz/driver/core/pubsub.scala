@@ -22,8 +22,8 @@ object pubsub {
   }
 
   class GooglePubsubPublisher[Message](projectId: String, topic: String, log: Logger, autoCreate: Boolean = true)(
-          implicit messageMarshaller: Marshaller[Message, String],
-          ex: ExecutionContext
+      implicit messageMarshaller: Marshaller[Message, String],
+      ex: ExecutionContext
   ) extends PubsubPublisher[Message] {
 
     type Result = Id[PubsubMessage]
@@ -72,8 +72,8 @@ object pubsub {
   }
 
   class FakePubsubPublisher[Message](topicName: String, log: Logger)(
-          implicit messageMarshaller: Marshaller[Message, String],
-          ex: ExecutionContext)
+      implicit messageMarshaller: Marshaller[Message, String],
+      ex: ExecutionContext)
       extends PubsubPublisher[Message] {
 
     type Result = Id[PubsubMessage]
@@ -91,11 +91,11 @@ object pubsub {
   }
 
   class GooglePubsubSubscriber[Message](
-          projectId: String,
-          subscriptionId: String,
-          receiver: Message => Future[Unit],
-          log: Logger,
-          autoCreateSettings: Option[GooglePubsubSubscriber.SubscriptionSettings] = None
+      projectId: String,
+      subscriptionId: String,
+      receiver: Message => Future[Unit],
+      log: Logger,
+      autoCreateSettings: Option[GooglePubsubSubscriber.SubscriptionSettings] = None
   )(implicit messageMarshaller: Unmarshaller[String, Message], mat: Materializer, ex: ExecutionContext)
       extends PubsubSubscriber {
 
@@ -117,10 +117,11 @@ object pubsub {
         val subscriptionExists = Try(adminClient.getSubscription(subscriptionName)).isSuccess
         if (!subscriptionExists) {
           val topicName = TopicName.create(projectId, subscriptionSettings.topic)
-          adminClient.createSubscription(subscriptionName,
-                                         topicName,
-                                         subscriptionSettings.pushConfig,
-                                         subscriptionSettings.ackDeadlineSeconds)
+          adminClient.createSubscription(
+            subscriptionName,
+            topicName,
+            subscriptionSettings.pushConfig,
+            subscriptionSettings.ackDeadlineSeconds)
         }
       }
 

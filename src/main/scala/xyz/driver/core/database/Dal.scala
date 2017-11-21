@@ -61,7 +61,7 @@ class SlickDal(database: Database, executionContext: ExecutionContext) extends D
   }
 
   def insertReturning[AT <: AbstractTable[_], V](table: TableQuery[AT])(
-          row: AT#TableElementType): slick.dbio.DBIO[AT#TableElementType] = {
+      row: AT#TableElementType): slick.dbio.DBIO[AT#TableElementType] = {
     table.returning(table) += row
   }
 }

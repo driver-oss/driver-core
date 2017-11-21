@@ -30,7 +30,7 @@ trait ServiceTransport {
   def sendRequestGetResponse(context: ServiceRequestContext)(requestStub: HttpRequest): Future[HttpResponse]
 
   def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest)(
-          implicit mat: Materializer): Future[Unmarshal[ResponseEntity]]
+      implicit mat: Materializer): Future[Unmarshal[ResponseEntity]]
 }
 
 final case class Pagination(pageSize: Int, pageNumber: Int) {
@@ -40,8 +40,8 @@ final case class Pagination(pageSize: Int, pageNumber: Int) {
 object `package` {
   implicit class OptionTRestAdditions[T](optionT: OptionT[Future, T]) {
     def responseOrNotFound(successCode: StatusCodes.Success = StatusCodes.OK)(
-            implicit F: Functor[Future],
-            em: ToEntityMarshaller[T]): Future[ToResponseMarshallable] = {
+        implicit F: Functor[Future],
+        em: ToEntityMarshaller[T]): Future[ToResponseMarshallable] = {
       optionT.fold[ToResponseMarshallable](successCode -> _, StatusCodes.NotFound -> None)
     }
   }
@@ -101,9 +101,10 @@ object `package` {
   }
 
   def extractServiceContext(request: HttpRequest, remoteAddress: RemoteAddress): ServiceRequestContext =
-    new ServiceRequestContext(extractTrackingId(request),
-                              extractOriginatingIP(request, remoteAddress),
-                              extractContextHeaders(request))
+    new ServiceRequestContext(
+      extractTrackingId(request),
+      extractOriginatingIP(request, remoteAddress),
+      extractContextHeaders(request))
 
   def extractTrackingId(request: HttpRequest): String = {
     request.headers

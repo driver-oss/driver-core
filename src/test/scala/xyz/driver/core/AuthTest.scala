@@ -37,7 +37,7 @@ class AuthTest extends FlatSpec with Matchers with ScalatestRouteTest {
   val basicAuthorization: Authorization[User] = new Authorization[User] {
 
     override def userHasPermissions(user: User, permissions: Seq[Permission])(
-            implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
+        implicit ctx: ServiceRequestContext): Future[AuthorizationResult] = {
       val authorized = permissions.map(p => p -> (p === TestRoleAllowedPermission)).toMap
       Future.successful(AuthorizationResult(authorized, ctx.permissionsToken))
     }
@@ -52,14 +52,16 @@ class AuthTest extends FlatSpec with Matchers with ScalatestRouteTest {
     override def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, User] =
       OptionT.optionT[Future] {
         if (ctx.contextHeaders.keySet.contains(AuthProvider.AuthenticationTokenHeader)) {
-          Future.successful(Some(AuthTokenUserInfo(
-            Id[User]("1"),
-            authUserId = Id[AuthUser]("2"),
-            Email("foo", "bar"),
-            emailVerified = true,
-            audience = "driver",
-            roles = Set(TestRole)
-          )))
+          Future.successful(
+            Some(
+              AuthTokenUserInfo(
+                Id[User]("1"),
+                authUserId = Id[AuthUser]("2"),
+                Email("foo", "bar"),
+                emailVerified = true,
+                audience = "driver",
+                roles = Set(TestRole)
+              )))
         } else {
           Future.successful(Option.empty[User])
         }

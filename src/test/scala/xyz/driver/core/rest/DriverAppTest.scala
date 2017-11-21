@@ -15,15 +15,15 @@ import scala.reflect.runtime.universe._
 
 class DriverAppTest extends FlatSpec with ScalatestRouteTest with Matchers {
   class TestRoute extends DriverRoute {
-    override def log: Logger = xyz.driver.core.logging.NoLogger
+    override def log: Logger  = xyz.driver.core.logging.NoLogger
     override def route: Route = path("api" / "v1" / "test")(post(complete("OK")))
   }
 
   val module: Module = new Module {
-    val testRoute = new TestRoute
-    override def route: Route = testRoute.routeWithDefaults
+    val testRoute                      = new TestRoute
+    override def route: Route          = testRoute.routeWithDefaults
     override def routeTypes: Seq[Type] = Seq(typeOf[TestRoute])
-    override val name: String = "test-module"
+    override val name: String          = "test-module"
   }
 
   val app: DriverApp = new DriverApp(
@@ -33,9 +33,10 @@ class DriverAppTest extends FlatSpec with ScalatestRouteTest with Matchers {
     modules = Seq(module)
   )
 
-  val config: Config = xyz.driver.core.config.loadDefaultConfig
+  val config: Config                   = xyz.driver.core.config.loadDefaultConfig
   val routingSettings: RoutingSettings = RoutingSettings(config)
-  val appRoute: Route = Route.seal(app.appRoute)(routingSettings = routingSettings, rejectionHandler = DriverApp.rejectionHandler)
+  val appRoute: Route =
+    Route.seal(app.appRoute)(routingSettings = routingSettings, rejectionHandler = DriverApp.rejectionHandler)
 
   "DriverApp" should "respond with the correct CORS headers for the swagger OPTIONS route" in {
     Options(s"/api-docs/swagger.json") ~> appRoute ~> check {

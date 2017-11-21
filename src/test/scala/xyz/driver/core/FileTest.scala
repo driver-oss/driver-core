@@ -39,10 +39,11 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
 
     val s3ResultsMock = mock[ListObjectsV2Result]
     when(s3ResultsMock.getNextContinuationToken).thenReturn("continuationToken")
-    when(s3ResultsMock.isTruncated).thenReturn(false, // before file created it is empty (zero pages)
-                                               true,
-                                               false, // after file is uploaded it contains this one file (one page)
-                                               false) // after file is deleted it is empty (zero pages) again
+    when(s3ResultsMock.isTruncated).thenReturn(
+      false, // before file created it is empty (zero pages)
+      true,
+      false, // after file is uploaded it contains this one file (one page)
+      false) // after file is deleted it is empty (zero pages) again
     when(s3ResultsMock.getObjectSummaries).thenReturn(
       // before file created it is empty, `getObjectSummaries` is never called
       List[S3ObjectSummary](s3ObjectSummaryMock).asJava, // after file is uploaded it contains this one file

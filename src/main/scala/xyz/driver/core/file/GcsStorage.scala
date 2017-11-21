@@ -20,10 +20,11 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, OptionT}
 
-class GcsStorage(storageClient: Storage,
-                 bucketName: Name[Bucket],
-                 executionContext: ExecutionContext,
-                 chunkSize: Int = 4096)
+class GcsStorage(
+    storageClient: Storage,
+    bucketName: Name[Bucket],
+    executionContext: ExecutionContext,
+    chunkSize: Int = 4096)
     extends SignedFileStorage {
   implicit private val execution: ExecutionContext = executionContext
 

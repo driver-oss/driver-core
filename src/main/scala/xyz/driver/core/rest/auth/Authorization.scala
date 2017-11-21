@@ -7,5 +7,5 @@ import scala.concurrent.Future
 
 trait Authorization[U <: User] {
   def userHasPermissions(user: U, permissions: Seq[Permission])(
-          implicit ctx: ServiceRequestContext): Future[AuthorizationResult]
+      implicit ctx: ServiceRequestContext): Future[AuthorizationResult]
 }

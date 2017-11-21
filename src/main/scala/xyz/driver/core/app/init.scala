@@ -90,11 +90,12 @@ object init {
     ApplicationContext(config, time, log)
   }
 
-  def createDefaultApplication(modules: Seq[Module],
-                               buildInfo: RequiredBuildInfo,
-                               actorSystem: ActorSystem,
-                               tracer: Tracer,
-                               context: ApplicationContext) = {
+  def createDefaultApplication(
+      modules: Seq[Module],
+      buildInfo: RequiredBuildInfo,
+      actorSystem: ActorSystem,
+      tracer: Tracer,
+      context: ApplicationContext) = {
     val scheme  = context.config.getString("application.scheme")
     val baseUrl = context.config.getString("application.baseUrl")
     val port    = context.config.getInt("application.port")

@@ -14,11 +14,11 @@ import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 class PooledHttpClient(
-        baseUri: Uri,
-        applicationName: Name[App],
-        applicationVersion: String,
-        requestRateLimit: Int = 64,
-        requestQueueSize: Int = 1024)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext)
+    baseUri: Uri,
+    applicationName: Name[App],
+    applicationVersion: String,
+    requestRateLimit: Int = 64,
+    requestQueueSize: Int = 1024)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext)
     extends HttpClient {
 
   private val host   = baseUri.authority.host.toString()

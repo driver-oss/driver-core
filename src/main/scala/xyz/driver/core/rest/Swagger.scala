@@ -10,12 +10,13 @@ import io.swagger.models.Scheme
 
 import scala.reflect.runtime.universe._
 
-class Swagger(override val host: String,
-              override val scheme: Scheme,
-              version: String,
-              override val actorSystem: ActorSystem,
-              override val apiTypes: Seq[Type],
-              val config: Config)
+class Swagger(
+    override val host: String,
+    override val scheme: Scheme,
+    version: String,
+    override val actorSystem: ActorSystem,
+    override val apiTypes: Seq[Type],
+    val config: Config)
     extends SwaggerHttpService with HasActorSystem {
 
   val materializer: ActorMaterializer = ActorMaterializer()(actorSystem)

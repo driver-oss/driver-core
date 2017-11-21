@@ -15,8 +15,9 @@ import spray.json._
 
 object swagger {
 
-  def configureCustomSwaggerModels(customPropertiesExamples: Map[Class[_], Property],
-                                   customObjectsExamples: Map[Class[_], JsValue]) = {
+  def configureCustomSwaggerModels(
+      customPropertiesExamples: Map[Class[_], Property],
+      customObjectsExamples: Map[Class[_], JsValue]) = {
     ModelConverters
       .getInstance()
       .addConverter(new CustomSwaggerJsonConverter(Json.mapper(), customPropertiesExamples, customObjectsExamples))
@@ -54,16 +55,18 @@ object swagger {
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.Null"))
-  class CustomSwaggerJsonConverter(mapper: ObjectMapper,
-                                   customProperties: Map[Class[_], Property],
-                                   customObjects: Map[Class[_], JsValue])
+  class CustomSwaggerJsonConverter(
+      mapper: ObjectMapper,
+      customProperties: Map[Class[_], Property],
+      customObjects: Map[Class[_], JsValue])
       extends AbstractModelConverter(mapper) {
     import CustomSwaggerJsonConverter._
 
-    override def resolveProperty(`type`: Type,
-                                 context: ModelConverterContext,
-                                 annotations: Array[Annotation],
-                                 chain: util.Iterator[ModelConverter]): Property = {
+    override def resolveProperty(
+        `type`: Type,
+        context: ModelConverterContext,
+        annotations: Array[Annotation],
+        chain: util.Iterator[ModelConverter]): Property = {
       val javaType = Json.mapper().constructType(`type`)
 
       Option(javaType.getRawClass) flatMap { cls =>

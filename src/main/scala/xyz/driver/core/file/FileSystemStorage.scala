@@ -58,11 +58,12 @@ class FileSystemStorage(executionContext: ExecutionContext) extends FileStorage 
       val file = new File(path.toString)
       if (file.isDirectory) {
         file.listFiles().toList.filter(_.isFile).map { file =>
-          FileLink(Name[File](file.getName),
-                   Paths.get(file.getPath),
-                   Revision[File](file.hashCode.toString),
-                   Time(file.lastModified()),
-                   file.length())
+          FileLink(
+            Name[File](file.getName),
+            Paths.get(file.getPath),
+            Revision[File](file.hashCode.toString),
+            Time(file.lastModified()),
+            file.length())
         }
       } else List.empty[FileLink]
     })

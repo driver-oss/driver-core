@@ -9,8 +9,7 @@ final case class InvalidInputException(override val message: String = "Invalid i
 final case class InvalidActionException(override val message: String = "This action is not allowed")
     extends ServiceException
 
-final case class ResourceNotFoundException(override val message: String = "Resource not found")
-    extends ServiceException
+final case class ResourceNotFoundException(override val message: String = "Resource not found") extends ServiceException
 
 final case class ExternalServiceException(serviceName: String, serviceMessage: String) extends ServiceException {
   override def message = s"Error while calling '$serviceName': $serviceMessage"

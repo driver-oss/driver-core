@@ -15,12 +15,13 @@ import xyz.driver.core.time.provider.TimeProvider
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-class HttpRestServiceTransport(applicationName: Name[App],
-                               applicationVersion: String,
-                               actorSystem: ActorSystem,
-                               executionContext: ExecutionContext,
-                               log: Logger,
-                               time: TimeProvider)
+class HttpRestServiceTransport(
+    applicationName: Name[App],
+    applicationVersion: String,
+    actorSystem: ActorSystem,
+    executionContext: ExecutionContext,
+    log: Logger,
+    time: TimeProvider)
     extends ServiceTransport {
 
   protected implicit val execution: ExecutionContext = executionContext
@@ -36,10 +37,11 @@ class HttpRestServiceTransport(applicationName: Name[App],
         case (ContextHeaders.TrackingIdHeader, _) =>
           RawHeader(ContextHeaders.TrackingIdHeader, context.trackingId)
         case (ContextHeaders.StacktraceHeader, _) =>
-          RawHeader(ContextHeaders.StacktraceHeader,
-                    Option(MDC.get("stack"))
-                      .orElse(context.contextHeaders.get(ContextHeaders.StacktraceHeader))
-                      .getOrElse(""))
+          RawHeader(
+            ContextHeaders.StacktraceHeader,
+            Option(MDC.get("stack"))
+              .orElse(context.contextHeaders.get(ContextHeaders.StacktraceHeader))
+              .getOrElse(""))
         case (header, headerValue) => RawHeader(header, headerValue)
       }: _*)
 
@@ -67,7 +69,7 @@ class HttpRestServiceTransport(applicationName: Name[App],
   }
 
   def sendRequest(context: ServiceRequestContext)(requestStub: HttpRequest)(
-          implicit mat: Materializer): Future[Unmarshal[ResponseEntity]] = {
+      implicit mat: Materializer): Future[Unmarshal[ResponseEntity]] = {
 
     sendRequestGetResponse(context)(requestStub) flatMap { response =>
       if (response.status == StatusCodes.NotFound) {

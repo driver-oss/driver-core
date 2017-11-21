@@ -69,16 +69,16 @@ package database {
   trait RefinedColumnTypes[T, Predicate] extends ColumnTypes {
     import profile.api._
     implicit def `eu.timepit.refined.api.Refined`(
-            implicit columnType: BaseColumnType[T],
-            validate: Validate[T, Predicate]): BaseColumnType[T Refined Predicate]
+        implicit columnType: BaseColumnType[T],
+        validate: Validate[T, Predicate]): BaseColumnType[T Refined Predicate]
   }
 
   object RefinedColumnTypes {
     trait RefinedValue[T, Predicate] extends RefinedColumnTypes[T, Predicate] {
       import profile.api._
       override implicit def `eu.timepit.refined.api.Refined`(
-              implicit columnType: BaseColumnType[T],
-              validate: Validate[T, Predicate]): BaseColumnType[T Refined Predicate] =
+          implicit columnType: BaseColumnType[T],
+          validate: Validate[T, Predicate]): BaseColumnType[T Refined Predicate] =
         MappedColumnType.base[T Refined Predicate, T](
           _.value, { dbValue =>
             refineV[Predicate](dbValue) match {
@@ -130,8 +130,9 @@ package database {
       import profile.api._
 
       override implicit def `xyz.driver.core.time.Time.columnType`: BaseColumnType[Time] =
-        MappedColumnType.base[Time, java.sql.Timestamp](time => new java.sql.Timestamp(time.millis),
-                                                        timestamp => Time(timestamp.getTime))
+        MappedColumnType.base[Time, java.sql.Timestamp](
+          time => new java.sql.Timestamp(time.millis),
+          timestamp => Time(timestamp.getTime))
     }
 
     trait PrimitiveTimestamp extends TimestampColumnTypes {

@@ -1,7 +1,7 @@
 package xyz.driver
 
 import scalaz.{Equal, Monad, OptionT}
-import eu.timepit.refined.api.Refined
+import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
 
 package object core {
@@ -83,6 +83,12 @@ package core {
   object Name {
     implicit def nameEqual[T]: Equal[Name[T]]       = Equal.equal[Name[T]](_ == _)
     implicit def nameOrdering[T]: Ordering[Name[T]] = Ordering.by(_.value)
+
+    implicit def nameValidator[T, P](implicit stringValidate: Validate[String, P]): Validate[Name[T], P] = {
+      Validate.instance[Name[T], P, stringValidate.R](
+        name => stringValidate.validate(name.value),
+        name => stringValidate.showExpr(name.value))
+    }
   }
 
   final case class NonEmptyName[+Tag](value: String Refined NonEmpty) {

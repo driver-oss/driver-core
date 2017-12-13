@@ -53,6 +53,8 @@ object `package` {
     val TrackingIdHeader: String           = "X-Trace"
     val StacktraceHeader: String           = "X-Stacktrace"
     val OriginatingIpHeader: String        = "X-Forwarded-For"
+    val ResourceCount: String              = "X-Resource-Count"
+    val PageCount: String                  = "X-Page-Count"
     val TraceHeaderName: String            = TracingDirectives.TraceHeaderName
     val SpanHeaderName: String             = TracingDirectives.SpanHeaderName
   }

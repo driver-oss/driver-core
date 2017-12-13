@@ -29,7 +29,7 @@ object init {
     * Otherwise if another command causes the logger to be instantiated,
     * it will default to logback.xml, and not honor this configuration
     */
-  def configureLogging() = {
+  def configureLogging(): Unit = {
     scala.sys.env.get("JSON_LOGGING") match {
       case Some("true") =>
         System.setProperty("logback.configurationFile", "deployed-logback.xml")
@@ -64,7 +64,7 @@ object init {
     }
   }
 
-  def serviceActorSystem(serviceName: String, executionContext: ExecutionContext, config: Config) = {
+  def serviceActorSystem(serviceName: String, executionContext: ExecutionContext, config: Config): ActorSystem = {
     val actorSystem =
       ActorSystem(s"$serviceName-actors", Option(config), Option.empty[ClassLoader], Option(executionContext))
 
@@ -81,7 +81,7 @@ object init {
   def newFixedMdcExecutionContext(capacity: Int): MdcExecutionContext =
     toMdcExecutionContext(Executors.newFixedThreadPool(capacity))
 
-  def defaultApplicationContext() = {
+  def defaultApplicationContext(): ApplicationContext = {
     val config = getEnvironmentSpecificConfig()
 
     val time = new SystemTimeProvider()
@@ -95,7 +95,7 @@ object init {
       buildInfo: RequiredBuildInfo,
       actorSystem: ActorSystem,
       tracer: Tracer,
-      context: ApplicationContext) = {
+      context: ApplicationContext): DriverApp = {
     val scheme  = context.config.getString("application.scheme")
     val baseUrl = context.config.getString("application.baseUrl")
     val port    = context.config.getInt("application.port")
@@ -108,7 +108,7 @@ object init {
       context.time,
       context.log,
       context.config,
-      interface = "::0",
+      interface = "0.0.0.0",
       baseUrl,
       scheme,
       port,

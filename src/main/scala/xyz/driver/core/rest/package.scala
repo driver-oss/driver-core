@@ -85,6 +85,8 @@ object `package` {
       ContextHeaders.StacktraceHeader,
       ContextHeaders.AuthenticationTokenHeader,
       ContextHeaders.OriginatingIpHeader,
+      ContextHeaders.ResourceCount,
+      ContextHeaders.PageCount,
       "X-Frame-Options",
       "X-Content-Type-Options",
       "Strict-Transport-Security",

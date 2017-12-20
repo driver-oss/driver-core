@@ -1,5 +1,7 @@
 package xyz.driver.core
 
+import java.net.InetAddress
+
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.refineMV
@@ -197,5 +199,22 @@ class JsonTest extends FlatSpec with Matchers {
 
     val parsedRefinedNumber = jsonFormat.read(writtenJson)
     parsedRefinedNumber should be(referenceRefinedNumber)
+  }
+
+  "InetAddress format" should "read and write correct JSON" in {
+    val address = InetAddress.getByName("127.0.0.1")
+    val json    = inetAddressFormat.write(address)
+
+    json shouldBe JsString("127.0.0.1")
+
+    val parsed = inetAddressFormat.read(json)
+    parsed shouldBe address
+  }
+
+  it should "throw a DeserializationException for an invalid IP Address" in {
+    assertThrows[DeserializationException] {
+      val invalidAddress = JsString("foobar")
+      inetAddressFormat.read(invalidAddress)
+    }
   }
 }

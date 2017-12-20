@@ -1,5 +1,6 @@
 package xyz.driver.core
 
+import java.net.InetAddress
 import java.util.UUID
 
 import scala.reflect.runtime.universe._
@@ -142,6 +143,18 @@ object json {
   implicit val phoneNumberFormat = jsonFormat2(PhoneNumber.apply)
 
   implicit val authCredentialsFormat = jsonFormat2(AuthCredentials)
+
+  implicit object inetAddressFormat extends JsonFormat[InetAddress] {
+    override def read(json: JsValue): InetAddress = json match {
+      case JsString(ipString) =>
+        Try(InetAddress.getByName(ipString))
+          .getOrElse(deserializationError(s"Invalid IP Address: $ipString"))
+      case _ => deserializationError(s"Expected string for IP Address, got $json")
+    }
+
+    override def write(obj: InetAddress): JsValue =
+      JsString(obj.getHostAddress)
+  }
 
   class EnumJsonFormat[T](mapping: (String, T)*) extends RootJsonFormat[T] {
     private val map = mapping.toMap

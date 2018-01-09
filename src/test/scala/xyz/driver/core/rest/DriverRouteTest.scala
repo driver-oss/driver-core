@@ -25,7 +25,7 @@ class DriverRouteTest extends AsyncFlatSpec with ScalatestRouteTest with Matcher
     }
   }
 
-  it should "respond with a 400 for an InvalidInputException" in {
+  it should "respond with a 401 for an InvalidInputException" in {
     val route = new TestRoute(akkaComplete(Future.failed[String](InvalidInputException())))
 
     Post("/api/v1/foo/bar") ~> route.routeWithDefaults ~> check {
@@ -35,7 +35,7 @@ class DriverRouteTest extends AsyncFlatSpec with ScalatestRouteTest with Matcher
     }
   }
 
-  it should "respond with a 400 for InvalidActionException" in {
+  it should "respond with a 403 for InvalidActionException" in {
     val route = new TestRoute(akkaComplete(Future.failed[String](InvalidActionException())))
 
     Post("/api/v1/foo/bar") ~> route.routeWithDefaults ~> check {

@@ -43,6 +43,18 @@ trait RestService extends Service {
   protected def postJson(baseUri: Uri, path: String, json: JsValue) =
     HttpRequest(HttpMethods.POST, endpointUri(baseUri, path), entity = jsonEntity(json))
 
+  protected def put(baseUri: Uri, path: String, httpEntity: RequestEntity) =
+    HttpRequest(HttpMethods.PUT, endpointUri(baseUri, path), entity = httpEntity)
+
+  protected def putJson(baseUri: Uri, path: String, json: JsValue) =
+    HttpRequest(HttpMethods.PUT, endpointUri(baseUri, path), entity = jsonEntity(json))
+
+  protected def patch(baseUri: Uri, path: String, httpEntity: RequestEntity) =
+    HttpRequest(HttpMethods.PATCH, endpointUri(baseUri, path), entity = httpEntity)
+
+  protected def patchJson(baseUri: Uri, path: String, json: JsValue) =
+    HttpRequest(HttpMethods.PATCH, endpointUri(baseUri, path), entity = jsonEntity(json))
+
   protected def delete(baseUri: Uri, path: String) =
     HttpRequest(HttpMethods.DELETE, endpointUri(baseUri, path))
 

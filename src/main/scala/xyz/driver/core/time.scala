@@ -78,6 +78,7 @@ object time {
     final class SystemTimeProvider extends TimeProvider {
       def currentTime() = Time(System.currentTimeMillis())
     }
+    final val SystemTimeProvider = new SystemTimeProvider
 
     final class SpecificTimeProvider(time: Time) extends TimeProvider {
       def currentTime() = time

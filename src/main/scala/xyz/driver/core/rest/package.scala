@@ -3,7 +3,7 @@ package xyz.driver.core.rest
 import java.net.InetAddress
 
 import akka.http.scaladsl.marshalling.{ToEntityMarshaller, ToResponseMarshallable}
-import akka.http.scaladsl.model.headers.{HttpOriginRange, Origin, `Access-Control-Allow-Origin`}
+import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
@@ -108,6 +108,25 @@ object `package` {
     extractClientIP flatMap { remoteAddress =>
       extract(ctx => extractServiceContext(ctx.request, remoteAddress))
     }
+  }
+
+  def respondWithCorsHeaders: Directive0 = {
+    optionalHeaderValueByType[Origin](()) flatMap { originHeader =>
+      respondWithHeaders(
+        List[HttpHeader](
+          allowOrigin(originHeader),
+          `Access-Control-Allow-Headers`(AllowedHeaders: _*),
+          `Access-Control-Expose-Headers`(AllowedHeaders: _*)
+        ))
+    }
+  }
+
+  def respondWithCorsAllowedMethodHeaders(methods: scala.collection.immutable.Seq[HttpMethod]): Directive0 = {
+    respondWithHeaders(
+      List[HttpHeader](
+        Allow(methods),
+        `Access-Control-Allow-Methods`(methods)
+      ))
   }
 
   def extractServiceContext(request: HttpRequest, remoteAddress: RemoteAddress): ServiceRequestContext =

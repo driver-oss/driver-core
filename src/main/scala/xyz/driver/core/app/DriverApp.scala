@@ -223,25 +223,6 @@ class DriverApp(
 }
 
 object DriverApp {
-  def defaultCorsHeaders: Directive0 = {
-    optionalHeaderValueByType[Origin](()) flatMap { originHeader =>
-      respondWithHeaders(
-        List[HttpHeader](
-          allowOrigin(originHeader),
-          `Access-Control-Allow-Headers`(AllowedHeaders: _*),
-          `Access-Control-Expose-Headers`(AllowedHeaders: _*)
-        ))
-    }
-  }
-
-  def corsAllowedMethodHeaders(methods: scala.collection.immutable.Seq[HttpMethod]): Directive0 = {
-    respondWithHeaders(
-      List[HttpHeader](
-        Allow(methods),
-        `Access-Control-Allow-Methods`(methods)
-      ))
-  }
-
   implicit def rejectionHandler: RejectionHandler =
     RejectionHandler
       .newBuilder()
@@ -250,8 +231,8 @@ object DriverApp {
         lazy val names = methods map (_.name) mkString ", "
 
         options {
-          defaultCorsHeaders {
-            corsAllowedMethodHeaders(methods) {
+          respondWithCorsHeaders {
+            respondWithCorsAllowedMethodHeaders(methods) {
               complete(s"Supported methods: $names.")
             }
           }
@@ -259,9 +240,10 @@ object DriverApp {
           complete(MethodNotAllowed -> s"HTTP method not allowed, supported methods: $names!")
       }
       .handleAll[Rejection] { rejections =>
-        defaultCorsHeaders {
-          RejectionHandler.default(rejections).getOrElse(reject)
+        respondWithCorsHeaders {
+          reject(rejections: _*)
         }
       }
       .result()
+      .seal
 }

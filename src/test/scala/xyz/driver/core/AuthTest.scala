@@ -56,7 +56,6 @@ class AuthTest extends FlatSpec with Matchers with ScalatestRouteTest {
             Some(
               AuthTokenUserInfo(
                 Id[User]("1"),
-                authUserId = Id[AuthUser]("2"),
                 Email("foo", "bar"),
                 emailVerified = true,
                 audience = "driver",

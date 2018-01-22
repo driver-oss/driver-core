@@ -12,6 +12,7 @@ import xyz.driver.core.domain.Email
 import xyz.driver.core.logging._
 import xyz.driver.core.rest._
 import xyz.driver.core.rest.auth._
+import xyz.driver.core.time.Time
 
 import scala.concurrent.Future
 import scalaz.OptionT
@@ -59,7 +60,8 @@ class AuthTest extends FlatSpec with Matchers with ScalatestRouteTest {
                 Email("foo", "bar"),
                 emailVerified = true,
                 audience = "driver",
-                roles = Set(TestRole)
+                roles = Set(TestRole),
+                expirationTime = Time(1000000L)
               )))
         } else {
           Future.successful(Option.empty[User])

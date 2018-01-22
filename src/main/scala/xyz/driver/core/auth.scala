@@ -1,6 +1,7 @@
 package xyz.driver.core
 
 import xyz.driver.core.domain.Email
+import xyz.driver.core.time.Time
 
 import scalaz.Equal
 
@@ -30,7 +31,8 @@ object auth {
       email: Email,
       emailVerified: Boolean,
       audience: String,
-      roles: Set[Role])
+      roles: Set[Role],
+      expirationTime: Time)
       extends User
 
   final case class RefreshToken(value: String)

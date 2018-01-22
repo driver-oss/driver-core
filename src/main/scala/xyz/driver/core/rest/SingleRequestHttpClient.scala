@@ -24,6 +24,6 @@ class SingleRequestHttpClient(applicationName: Name[App], applicationVersion: St
     .withConnectionSettings(clientConnectionSettings)
 
   def makeRequest(request: HttpRequest): Future[HttpResponse] = {
-    client.singleRequest(request, settings = connectionPoolSettings)(materializer)
+    client.singleRequest(request, settings = connectionPoolSettings)
   }
 }

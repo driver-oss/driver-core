@@ -10,11 +10,9 @@ import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.{Http, HttpExt}
 import akka.stream.ActorMaterializer
-import com.github.swagger.akka.SwaggerHttpService._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
-import io.swagger.util.Json
 import org.slf4j.{LoggerFactory, MDC}
 import xyz.driver.core
 import xyz.driver.core.rest._
@@ -26,9 +24,7 @@ import xyz.driver.tracing._
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
-import scala.reflect.runtime.universe._
 import scala.util.Try
-import scala.util.control.NonFatal
 import scalaz.Scalaz.stringInstance
 import scalaz.syntax.equal._
 
@@ -73,7 +69,7 @@ class DriverApp(
 
   def appRoute: Route = {
     val serviceTypes   = modules.flatMap(_.routeTypes)
-    val swaggerService = swaggerOverride(serviceTypes)
+    val swaggerService = new Swagger(baseUrl, Scheme.forValue(scheme) :: Nil, version, serviceTypes, config, log)
     val swaggerRoute   = swaggerService.routes ~ swaggerService.swaggerUI
     val versionRt      = versionRoute(version, gitHash, time.currentTime())
     val basicRoutes = new DriverRoute {
@@ -123,36 +119,6 @@ class DriverApp(
         .getOrElse("unknown"))
     MDC.put("remoteAddress", extractHeader(request)("remote-address").getOrElse("unknown"))
     MDC.put("userAgent", extractHeader(request)("user-agent").getOrElse("unknown"))
-  }
-
-  protected def swaggerOverride(apiTypes: Seq[Type]): Swagger = {
-    new Swagger(baseUrl, Scheme.forValue(scheme), version, actorSystem, apiTypes, config) {
-      override def generateSwaggerJson: String = {
-        import io.swagger.models.Swagger
-
-        import scala.collection.JavaConverters._
-
-        try {
-          val swagger: Swagger = reader.read(toJavaTypeSet(apiTypes).asJava)
-
-          // Removing trailing spaces
-          swagger.setPaths(
-            swagger.getPaths.asScala
-              .map {
-                case (key, path) =>
-                  key.trim -> path
-              }
-              .toMap
-              .asJava)
-
-          Json.pretty().writeValueAsString(swagger)
-        } catch {
-          case NonFatal(t) =>
-            logger.error("Issue with creating swagger.json", t)
-            throw t
-        }
-      }
-    }
   }
 
   protected def versionRoute(version: String, gitHash: String, startupTime: Time): Route = {

@@ -1,6 +1,11 @@
 package xyz.driver.core.rest
 
+import akka.http.scaladsl.model.{ContentType, ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.directives.FileAndResourceDirectives.ResourceFile
+import akka.stream.ActorAttributes
+import akka.stream.scaladsl.{Framing, StreamConverters}
+import akka.util.ByteString
 import com.github.swagger.akka.SwaggerHttpService
 import com.github.swagger.akka.model._
 import com.typesafe.config.Config
@@ -87,9 +92,36 @@ class Swagger(
     vendorExtensions = Map.empty[String, AnyRef]
   )
 
+  /** A very simple templating extractor. Gets a resource from the classpath and subsitutes any `{{key}}` with a value. */
+  private def getTemplatedResource(
+      resourceName: String,
+      contentType: ContentType,
+      substitution: (String, String)): Route = get {
+    Option(this.getClass.getClassLoader.getResource(resourceName)) flatMap ResourceFile.apply match {
+      case Some(ResourceFile(url, length, _)) =>
+        extractSettings { settings =>
+          val stream = StreamConverters
+            .fromInputStream(() => url.openStream())
+            .withAttributes(ActorAttributes.dispatcher(settings.fileIODispatcher))
+            .via(Framing.delimiter(ByteString("\n"), 4096, true).map(_.utf8String))
+            .map { line =>
+              line.replaceAll(s"\\{\\{${substitution._1}\\}\\}", substitution._2)
+            }
+            .map(line => ByteString(line))
+          complete(
+            HttpEntity.Default(contentType, length, stream)
+          )
+        }
+      case None => reject
+    }
+  }
+
   def swaggerUI: Route =
     pathEndOrSingleSlash {
-      getFromResource("swagger-ui/index.html")
+      getTemplatedResource(
+        "swagger-ui/index.html",
+        ContentTypes.`text/html(UTF-8)`,
+        "title" -> config.getString("swagger.apiInfo.title"))
     } ~ getFromResourceDirectory("swagger-ui")
 
 }

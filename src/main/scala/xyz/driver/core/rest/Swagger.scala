@@ -98,7 +98,7 @@ class Swagger(
       contentType: ContentType,
       substitution: (String, String)): Route = get {
     Option(this.getClass.getClassLoader.getResource(resourceName)) flatMap ResourceFile.apply match {
-      case Some(ResourceFile(url, length, _)) =>
+      case Some(ResourceFile(url, length @ _, _)) =>
         extractSettings { settings =>
           val stream = StreamConverters
             .fromInputStream(() => url.openStream())
@@ -107,9 +107,9 @@ class Swagger(
             .map { line =>
               line.replaceAll(s"\\{\\{${substitution._1}\\}\\}", substitution._2)
             }
-            .map(line => ByteString(line))
+            .map(line => ByteString(line + "\n"))
           complete(
-            HttpEntity.Default(contentType, length, stream)
+            HttpEntity(contentType, stream)
           )
         }
       case None => reject

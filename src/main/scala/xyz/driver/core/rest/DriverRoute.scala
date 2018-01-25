@@ -24,17 +24,9 @@ trait DriverRoute {
   }
 
   protected def defaultResponseHeaders: Directive0 = {
-    (extractRequest & optionalHeaderValueByType[Origin](())) tflatMap {
-      case (request, originHeader) =>
-        val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, rest.extractTrackingId(request))
-        val responseHeaders = List[HttpHeader](
-          tracingHeader,
-          allowOrigin(originHeader),
-          `Access-Control-Allow-Headers`(AllowedHeaders: _*),
-          `Access-Control-Expose-Headers`(AllowedHeaders: _*)
-        )
-
-        respondWithHeaders(responseHeaders)
+    extractRequest flatMap { request =>
+      val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, rest.extractTrackingId(request))
+      respondWithHeader(tracingHeader) & respondWithCorsHeaders
     }
   }
 

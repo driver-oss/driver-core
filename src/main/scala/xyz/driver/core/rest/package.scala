@@ -33,6 +33,11 @@ trait ServiceTransport {
       implicit mat: Materializer): Future[Unmarshal[ResponseEntity]]
 }
 
+object Pagination {
+
+  val Default = Pagination(pageSize = 100, pageNumber = 1)
+}
+
 final case class Pagination(pageSize: Int, pageNumber: Int) {
   def offset: Int = pageSize * pageNumber
 }

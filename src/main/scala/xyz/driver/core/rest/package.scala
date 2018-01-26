@@ -110,22 +110,25 @@ object `package` {
     }
   }
 
-  def respondWithCorsHeaders: Directive0 = {
-    optionalHeaderValueByType[Origin](()) flatMap { originHeader =>
-      respondWithHeaders(
-        List[HttpHeader](
-          allowOrigin(originHeader),
-          `Access-Control-Allow-Headers`(AllowedHeaders: _*),
-          `Access-Control-Expose-Headers`(AllowedHeaders: _*)
-        ))
+  def respondWithCorsAllowedHeaders: Directive0 = {
+    respondWithHeaders(
+      List[HttpHeader](
+        `Access-Control-Allow-Headers`(AllowedHeaders: _*),
+        `Access-Control-Expose-Headers`(AllowedHeaders: _*)
+      ))
+  }
+
+  def respondWithCorsAllowedOriginHeaders(origin: Origin): Directive0 = {
+    respondWithHeader {
+      `Access-Control-Allow-Origin`(HttpOriginRange(origin.origins: _*))
     }
   }
 
-  def respondWithCorsAllowedMethodHeaders(methods: scala.collection.immutable.Seq[HttpMethod]): Directive0 = {
+  def respondWithCorsAllowedMethodHeaders(methods: Set[HttpMethod]): Directive0 = {
     respondWithHeaders(
       List[HttpHeader](
-        Allow(methods),
-        `Access-Control-Allow-Methods`(methods)
+        Allow(methods.to[collection.immutable.Seq]),
+        `Access-Control-Allow-Methods`(methods.to[collection.immutable.Seq])
       ))
   }
 

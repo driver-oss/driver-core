@@ -2,7 +2,6 @@ package xyz.driver.core.app
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
@@ -42,7 +41,6 @@ class DriverApp(
     port: Int = 8080,
     tracer: Tracer = NoTracer)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
   self =>
-  import DriverApp._
 
   implicit private lazy val materializer: ActorMaterializer = ActorMaterializer()(actorSystem)
   private lazy val http: HttpExt                            = Http()(actorSystem)
@@ -73,8 +71,9 @@ class DriverApp(
     val swaggerRoute   = swaggerService.routes ~ swaggerService.swaggerUI
     val versionRt      = versionRoute(version, gitHash, time.currentTime())
     val basicRoutes = new DriverRoute {
-      override def log: Logger  = self.log
-      override def route: Route = versionRt ~ healthRoute ~ swaggerRoute
+      override def log: Logger    = self.log
+      override def config: Config = xyz.driver.core.config.loadDefaultConfig
+      override def route: Route   = versionRt ~ healthRoute ~ swaggerRoute
     }
     val combinedRoute = modules.map(_.route).foldLeft(basicRoutes.routeWithDefaults)(_ ~ _)
 
@@ -220,30 +219,4 @@ class DriverApp(
       }
     })
   }
-}
-
-object DriverApp {
-  implicit def rejectionHandler: RejectionHandler =
-    RejectionHandler
-      .newBuilder()
-      .handleAll[MethodRejection] { rejections =>
-        val methods    = rejections map (_.supported)
-        lazy val names = methods map (_.name) mkString ", "
-
-        options {
-          respondWithCorsHeaders {
-            respondWithCorsAllowedMethodHeaders(methods) {
-              complete(s"Supported methods: $names.")
-            }
-          }
-        } ~
-          complete(MethodNotAllowed -> s"HTTP method not allowed, supported methods: $names!")
-      }
-      .handleAll[Rejection] { rejections =>
-        respondWithCorsHeaders {
-          reject(rejections: _*)
-        }
-      }
-      .result()
-      .seal
 }

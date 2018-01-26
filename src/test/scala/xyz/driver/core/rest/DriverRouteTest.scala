@@ -4,6 +4,7 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete => akkaComplete}
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import com.typesafe.config.Config
 import com.typesafe.scalalogging.Logger
 import org.scalatest.{AsyncFlatSpec, Matchers}
 import xyz.driver.core.logging.NoLogger
@@ -13,7 +14,8 @@ import scala.concurrent.Future
 
 class DriverRouteTest extends AsyncFlatSpec with ScalatestRouteTest with Matchers {
   class TestRoute(override val route: Route) extends DriverRoute {
-    override def log: Logger = NoLogger
+    override def log: Logger    = NoLogger
+    override def config: Config = xyz.driver.core.config.loadDefaultConfig
   }
 
   "DriverRoute" should "respond with 200 OK for a basic route" in {

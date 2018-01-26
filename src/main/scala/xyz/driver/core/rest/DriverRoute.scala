@@ -42,8 +42,9 @@ trait DriverRoute {
     config.getStringList("application.cors.allowedMethods").asScala.toSet.flatMap(HttpMethods.getForKey)
   }
 
-  protected lazy val defaultCorsAllowedOrigin: Origin =
+  protected lazy val defaultCorsAllowedOrigin: Origin = {
     Origin(allowedCorsDomainSuffixes.to[collection.immutable.Seq])
+  }
 
   protected def corsAllowedOriginHeader(origin: Option[Origin]): HttpHeader = {
     val allowedOrigin =

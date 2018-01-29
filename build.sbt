@@ -1,7 +1,7 @@
 import sbt._
 import Keys._
 
-lazy val akkaHttpV = "10.0.10"
+lazy val akkaHttpV = "10.0.11"
 
 lazy val core = (project in file("."))
   .driverLibrary("core")
@@ -20,7 +20,7 @@ lazy val core = (project in file("."))
     "com.google.cloud"             % "google-cloud-pubsub"             % "0.25.0-beta",
     "com.google.cloud"             % "google-cloud-storage"            % "1.7.0",
     "com.typesafe.slick"           %% "slick"                          % "3.2.1",
-    "com.typesafe"                 % "config"                          % "1.2.1",
+    "com.typesafe"                 % "config"                          % "1.3.1",
     "com.typesafe.scala-logging"   %% "scala-logging"                  % "3.5.0",
     "eu.timepit"                   %% "refined"                        % "0.8.4",
     "ch.qos.logback"               % "logback-classic"                 % "1.1.11"

@@ -1,6 +1,7 @@
 package xyz.driver.core
 
-import xyz.driver.core.domain.{Email, PhoneNumber}
+import xyz.driver.core.domain.Email
+import xyz.driver.core.time.Time
 
 import scalaz.Equal
 
@@ -25,23 +26,13 @@ object auth {
 
   final case class AuthToken(value: String)
 
-  final case class AuthUser(
-      id: Id[AuthUser],
-      userId: Id[User],
-      email: Email,
-      emailVerified: Boolean,
-      phoneNumber: Option[PhoneNumber],
-      phoneVerified: Boolean,
-      isBlocked: Boolean,
-      roles: Set[Role])
-
   final case class AuthTokenUserInfo(
       id: Id[User],
-      authUserId: Id[AuthUser],
       email: Email,
       emailVerified: Boolean,
       audience: String,
-      roles: Set[Role])
+      roles: Set[Role],
+      expirationTime: Time)
       extends User
 
   final case class RefreshToken(value: String)

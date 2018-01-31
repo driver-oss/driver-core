@@ -45,7 +45,7 @@ class HttpRestServiceTransport(
         case (header, headerValue) => RawHeader(header, headerValue)
       }: _*)
 
-    log.info(s"Sending request to ${request.method} ${request.uri}")
+    log.debug(s"Sending request to ${request.method} ${request.uri}")
 
     val response = httpClient.makeRequest(request)
 

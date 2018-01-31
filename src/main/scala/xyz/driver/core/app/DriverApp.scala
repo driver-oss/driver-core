@@ -90,7 +90,7 @@ class DriverApp(
 
           storeRequestContextToMdc(ctx.request, origin, ip)
 
-          log.info(s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
+          log.debug(s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
 
           val contextWithTrackingId =
             ctx.withRequest(

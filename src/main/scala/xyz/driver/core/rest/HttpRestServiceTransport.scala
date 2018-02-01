@@ -52,11 +52,10 @@ class HttpRestServiceTransport(
     response.onComplete {
       case Success(r) =>
         val responseLatency = requestTime.durationTo(time.currentTime())
-        log.info(s"Response from ${request.uri} to request $requestStub is successful in $responseLatency ms: $r")
+        log.debug(s"Response from ${request.uri} to request $requestStub is successful in $responseLatency ms: $r")
 
       case Failure(t: Throwable) =>
         val responseLatency = requestTime.durationTo(time.currentTime())
-        log.info(s"Failed to receive response from ${request.method} ${request.uri} in $responseLatency ms", t)
         log.warn(s"Failed to receive response from ${request.method} ${request.uri} in $responseLatency ms", t)
     }(executionContext)
 

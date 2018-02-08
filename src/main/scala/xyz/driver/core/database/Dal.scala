@@ -1,7 +1,6 @@
 package xyz.driver.core.database
 
 import slick.lifted.AbstractTable
-import xyz.driver.core.rest.errors.DatabaseException
 
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, Monad, OptionT}

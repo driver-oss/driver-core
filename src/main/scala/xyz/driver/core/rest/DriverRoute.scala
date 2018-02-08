@@ -6,7 +6,7 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{Directive0, ExceptionHandler, RequestContext, Route}
+import akka.http.scaladsl.server._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.Logger
 import org.slf4j.MDC
@@ -22,7 +22,7 @@ trait DriverRoute {
   def route: Route
 
   def routeWithDefaults: Route = {
-    (defaultResponseHeaders & handleExceptions(ExceptionHandler(exceptionHandler))) {
+    (defaultResponseHeaders & handleRejections(rejectionHandler) & handleExceptions(ExceptionHandler(exceptionHandler))) {
       route ~ defaultOptionsRoute
     }
   }
@@ -83,6 +83,19 @@ trait DriverRoute {
       respondWithHeader(tracingHeader) & respondWithAllCorsHeaders
     }
   }
+
+  protected def rejectionHandler: RejectionHandler =
+    RejectionHandler
+      .newBuilder()
+      .handle {
+        case rejection =>
+          respondWithAllCorsHeaders {
+            RejectionHandler
+              .default(scala.collection.immutable.Seq(rejection))
+              .getOrElse(complete("OK"))
+          }
+      }
+      .result()
 
   /**
     * Override me for custom exception handling

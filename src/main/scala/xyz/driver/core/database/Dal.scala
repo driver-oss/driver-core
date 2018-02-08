@@ -17,10 +17,6 @@ trait Dal {
 
   def customAction[R](action: => OptionT[Future, R]): OptionT[T, R] =
     OptionT[T, R](customAction(action.run))
-
-  implicit def fromStringOrThrow[D](mapper: (String) => Option[D])(msg: String)(fs: String): D = {
-    mapper(fs).getOrElse(throw DatabaseException(msg))
-  }
 }
 
 class FutureDal(executionContext: ExecutionContext) extends Dal {

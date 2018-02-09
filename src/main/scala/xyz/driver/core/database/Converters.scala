@@ -21,6 +21,6 @@ trait Converters {
 
   def expectValidOrEmpty[ADT](mapper: String => Option[ADT], query: Option[String], contextMsg: String = "")(
       implicit ct: ClassTag[ADT]): Option[ADT] = {
-    if (query.isDefined) Some(expectValid[ADT](mapper, query.get)) else None
+    query.map(expectValid[ADT](mapper, _))
   }
 }

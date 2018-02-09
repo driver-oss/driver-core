@@ -29,36 +29,45 @@ abstract class AuthProvider[U <: User](val authorization: Authorization[U], log:
   def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, U]
 
   /**
+    * Verifies if a service context is authenticated and authorized to have `permissions`
+    */
+  def authorize(
+      context: ServiceRequestContext,
+      permissions: Permission*): Directive1[AuthorizedServiceRequestContext[U]] = {
+    onComplete {
+      (for {
+        authToken <- OptionT.optionT(Future.successful(context.authToken))
+        user      <- authenticatedUser(context)
+        authCtx = context.withAuthenticatedUser(authToken, user)
+        authorizationResult <- authorization.userHasPermissions(user, permissions)(authCtx).toOptionT
+
+        cachedPermissionsAuthCtx = authorizationResult.token.fold(authCtx)(authCtx.withPermissionsToken)
+        allAuthorized            = permissions.forall(authorizationResult.authorized.getOrElse(_, false))
+      } yield (cachedPermissionsAuthCtx, allAuthorized)).run
+    } flatMap {
+      case Success(Some((authCtx, true))) => provide(authCtx)
+      case Success(Some((authCtx, false))) =>
+        val challenge =
+          HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
+        log.warn(
+          s"User ${authCtx.authenticatedUser} does not have the required permissions: ${permissions.mkString(", ")}")
+        reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
+      case Success(None) =>
+        log.warn(
+          s"Wasn't able to find authenticated user for the token provided to verify ${permissions.mkString(", ")}")
+        reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
+      case Failure(t) =>
+        log.warn(s"Wasn't able to verify token for authenticated user to verify ${permissions.mkString(", ")}", t)
+        reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))
+    }
+  }
+
+  /**
     * Verifies if request is authenticated and authorized to have `permissions`
     */
   def authorize(permissions: Permission*): Directive1[AuthorizedServiceRequestContext[U]] = {
     serviceContext flatMap { ctx =>
-      onComplete {
-        (for {
-          authToken <- OptionT.optionT(Future.successful(ctx.authToken))
-          user      <- authenticatedUser(ctx)
-          authCtx = ctx.withAuthenticatedUser(authToken, user)
-          authorizationResult <- authorization.userHasPermissions(user, permissions)(authCtx).toOptionT
-
-          cachedPermissionsAuthCtx = authorizationResult.token.fold(authCtx)(authCtx.withPermissionsToken)
-          allAuthorized            = permissions.forall(authorizationResult.authorized.getOrElse(_, false))
-        } yield (cachedPermissionsAuthCtx, allAuthorized)).run
-      } flatMap {
-        case Success(Some((authCtx, true))) => provide(authCtx)
-        case Success(Some((authCtx, false))) =>
-          val challenge =
-            HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
-          log.warn(
-            s"User ${authCtx.authenticatedUser} does not have the required permissions: ${permissions.mkString(", ")}")
-          reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
-        case Success(None) =>
-          log.warn(
-            s"Wasn't able to find authenticated user for the token provided to verify ${permissions.mkString(", ")}")
-          reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
-        case Failure(t) =>
-          log.warn(s"Wasn't able to verify token for authenticated user to verify ${permissions.mkString(", ")}", t)
-          reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))
-      }
+      authorize(ctx, permissions: _*)
     }
   }
 }

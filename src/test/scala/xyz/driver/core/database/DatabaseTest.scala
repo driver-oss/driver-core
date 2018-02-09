@@ -17,12 +17,17 @@ class DatabaseTest extends FlatSpec with Matchers with Checkers {
 
     val validLength                       = nextInt(10)
     val valid                             = nextToken(validLength)
+    val validOp                           = Some(valid)
     val invalid                           = nextToken(validLength + nextInt(10, 1))
+    val invalidOp                         = Some(invalid)
     def mapper(s: String): Option[String] = if (s.length == validLength) Some(s) else None
 
     TestConverter.fromStringOrThrow(valid, mapper, valid) should be(valid)
     TestConverter.expectValid(mapper, valid) should be(valid)
+    TestConverter.expectExistsAndValid(mapper, validOp) should be(valid)
+
     an[DatabaseException] should be thrownBy TestConverter.fromStringOrThrow(invalid, mapper, invalid)
+    an[DatabaseException] should be thrownBy TestConverter.expectExistsAndValid(mapper, invalidOp)
   }
 
 }

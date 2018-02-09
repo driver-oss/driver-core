@@ -5,10 +5,9 @@ import xyz.driver.core.rest.errors.DatabaseException
 import scala.reflect.ClassTag
 
 trait Converters {
-  def fromStringOrThrow[T](entityStr: String, mapper: (String => Option[T]), entityName: String): T =
+  def fromStringOrThrow[ADT](entityStr: String, mapper: (String => Option[ADT]), entityName: String): ADT =
     mapper(entityStr).getOrElse(throw DatabaseException(s"Invalid $entityName in database: $entityStr"))
 
-  def expectValid[T](mapper: String => Option[T], query: String)(implicit ct: ClassTag[T]): T = {
-    fromStringOrThrow[T](query, mapper, ct.toString())
-  }
+  def expectValid[ADT](mapper: String => Option[ADT], query: String)(implicit ct: ClassTag[ADT]): ADT =
+    fromStringOrThrow[ADT](query, mapper, ct.toString())
 }

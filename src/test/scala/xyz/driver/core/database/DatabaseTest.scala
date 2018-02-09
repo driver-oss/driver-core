@@ -23,11 +23,21 @@ class DatabaseTest extends FlatSpec with Matchers with Checkers {
     def mapper(s: String): Option[String] = if (s.length == validLength) Some(s) else None
 
     TestConverter.fromStringOrThrow(valid, mapper, valid) should be(valid)
+
     TestConverter.expectValid(mapper, valid) should be(valid)
+
     TestConverter.expectExistsAndValid(mapper, validOp) should be(valid)
 
+    TestConverter.expectValidOrEmpty(mapper, validOp) should be(Some(valid))
+    TestConverter.expectValidOrEmpty(mapper, None) should be(None)
+
     an[DatabaseException] should be thrownBy TestConverter.fromStringOrThrow(invalid, mapper, invalid)
+
+    an[DatabaseException] should be thrownBy TestConverter.expectValid(mapper, invalid)
+
     an[DatabaseException] should be thrownBy TestConverter.expectExistsAndValid(mapper, invalidOp)
+
+    an[DatabaseException] should be thrownBy TestConverter.expectValidOrEmpty(mapper, invalidOp)
   }
 
 }

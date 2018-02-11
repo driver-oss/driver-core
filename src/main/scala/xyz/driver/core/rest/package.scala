@@ -72,6 +72,7 @@ object ListResponse {
 }
 
 object `package` {
+
   implicit class OptionTRestAdditions[T](optionT: OptionT[Future, T]) {
     def responseOrNotFound(successCode: StatusCodes.Success = StatusCodes.OK)(
         implicit F: Functor[Future],
@@ -133,11 +134,8 @@ object `package` {
     `Access-Control-Allow-Origin`(
       originHeader.fold[HttpOriginRange](HttpOriginRange.*)(h => HttpOriginRange(h.origins: _*)))
 
-  def serviceContext: Directive1[ServiceRequestContext] = {
-    extractClientIP flatMap { remoteAddress =>
-      extract(ctx => extractServiceContext(ctx.request, remoteAddress))
-    }
-  }
+  @deprecated("Moved to xyz.driver.core.rest.Directives", "driver-core 1.9.0")
+  def serviceContext: Directive1[ServiceRequestContext] = Directives.serviceContext
 
   def respondWithCorsAllowedHeaders: Directive0 = {
     respondWithHeaders(
@@ -161,18 +159,21 @@ object `package` {
       ))
   }
 
+  @deprecated("Use the directive xyz.driver.core.rest.Directives.serviceContext instead", "driver-core 1.9.0")
   def extractServiceContext(request: HttpRequest, remoteAddress: RemoteAddress): ServiceRequestContext =
     new ServiceRequestContext(
       extractTrackingId(request),
       extractOriginatingIP(request, remoteAddress),
       extractContextHeaders(request))
 
+  @deprecated("Use the directive xyz.driver.core.rest.Directives.trackingId instead", "driver-core 1.9.0")
   def extractTrackingId(request: HttpRequest): String = {
     request.headers
       .find(_.name === ContextHeaders.TrackingIdHeader)
       .fold(java.util.UUID.randomUUID.toString)(_.value())
   }
 
+  @deprecated("Use the directive xyz.driver.core.rest.Directives.optionalOriginatingIP instead", "driver-core 1.9.0")
   def extractOriginatingIP(request: HttpRequest, remoteAddress: RemoteAddress): Option[InetAddress] = {
     request.headers
       .find(_.name === ContextHeaders.OriginatingIpHeader)
@@ -183,6 +184,7 @@ object `package` {
   def extractStacktrace(request: HttpRequest): Array[String] =
     request.headers.find(_.name == ContextHeaders.StacktraceHeader).fold("")(_.value()).split("->")
 
+  @deprecated("Use the directive xyz.driver.core.rest.Directives.contextHeaders instead", "driver-core 1.9.0")
   def extractContextHeaders(request: HttpRequest): Map[String, String] = {
     request.headers.filter { h =>
       h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader ||
@@ -230,6 +232,7 @@ object `package` {
     }
   }
 
+  // TODO @stewsquared, is this used anywhere?
   val sanitizeRequestEntity: Directive0 = {
     mapRequest(request => request.mapEntity(entity => entity.transformDataBytes(Flow.fromFunction(escapeScriptTags))))
   }

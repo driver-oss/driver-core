@@ -5,7 +5,7 @@ lazy val akkaHttpV = "10.0.11"
 
 lazy val core = (project in file("."))
   .driverLibrary("core")
-  .settings(lintingSettings ++ formatSettings)
+  .settings(formatSettings)
   .settings(libraryDependencies ++= Seq(
     "xyz.driver"                   %% "tracing"                        % "0.0.2",
     "com.typesafe.akka"            %% "akka-http-core"                 % akkaHttpV,

@@ -3,34 +3,26 @@ package xyz.driver.core
 import java.net.InetAddress
 import java.util.UUID
 
-import scala.reflect.runtime.universe._
-import scala.util.Try
-import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.server._
-import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
 import akka.http.scaladsl.marshalling.{Marshaller, Marshalling}
+import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
+import eu.timepit.refined.api.{Refined, Validate}
+import eu.timepit.refined.collection.NonEmpty
+import eu.timepit.refined.refineV
 import spray.json._
 import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.date.{Date, Month}
 import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.time.Time
-import eu.timepit.refined.refineV
-import eu.timepit.refined.api.{Refined, Validate}
-import eu.timepit.refined.collection.NonEmpty
+
+import scala.reflect.runtime.universe._
+import scala.util.Try
 
 object json {
   import DefaultJsonProtocol._
 
-  private def UuidInPath[T]: PathMatcher1[Id[T]] =
-    PathMatchers.JavaUUID.map((id: UUID) => Id[T](id.toString.toLowerCase))
-
-  def IdInPath[T]: PathMatcher1[Id[T]] = UuidInPath[T] | new PathMatcher1[Id[T]] {
-    def apply(path: Path) = path match {
-      case Path.Segment(segment, tail) => Matched(tail, Tuple1(Id[T](segment)))
-      case _                           => Unmatched
-    }
-  }
+  @deprecated("Moved to xyz.driver.core.rest.Directives", "driver-core 1.8.0")
+  def IdInPath[T]: PathMatcher1[Id[T]] = rest.Directives.IdInPath[T]
 
   implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
     def write(id: Id[T]) = JsString(id.value)
@@ -42,12 +34,8 @@ object json {
     }
   }
 
-  def NameInPath[T]: PathMatcher1[Name[T]] = new PathMatcher1[Name[T]] {
-    def apply(path: Path) = path match {
-      case Path.Segment(segment, tail) => Matched(tail, Tuple1(Name[T](segment)))
-      case _                           => Unmatched
-    }
-  }
+  @deprecated("Moved to xyz.driver.core.rest.Directives", "driver-core 1.8.0")
+  def NameInPath[T]: PathMatcher1[Name[T]] = rest.Directives.NameInPath[T]
 
   implicit def nameFormat[T] = new RootJsonFormat[Name[T]] {
     def write(name: Name[T]) = JsString(name.value)
@@ -58,11 +46,8 @@ object json {
     }
   }
 
-  def TimeInPath: PathMatcher1[Time] =
-    PathMatcher("""[+-]?\d*""".r) flatMap { string =>
-      try Some(Time(string.toLong))
-      catch { case _: IllegalArgumentException => None }
-    }
+  @deprecated("Moved to xyz.driver.core.rest.Directives", "driver-core 1.8.0")
+  def TimeInPath: PathMatcher1[Time] = rest.Directives.TimeInPath
 
   implicit val timeFormat = new RootJsonFormat[Time] {
     def write(time: Time) = JsObject("timestamp" -> JsNumber(time.millis))
@@ -100,10 +85,8 @@ object json {
     }
   }
 
-  def RevisionInPath[T]: PathMatcher1[Revision[T]] =
-    PathMatcher("""[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}""".r) flatMap { string =>
-      Some(Revision[T](string))
-    }
+  @deprecated("Moved to xyz.driver.core.rest.Directives", "driver-core 1.8.0")
+  def RevisionInPath[T]: PathMatcher1[Revision[T]] = rest.Directives.RevisionInPath
 
   implicit def revisionFromStringUnmarshaller[T]: Unmarshaller[String, Revision[T]] =
     Unmarshaller.strict[String, Revision[T]](Revision[T](_))
@@ -248,16 +231,8 @@ object json {
       }
     }
 
-  def NonEmptyNameInPath[T]: PathMatcher1[NonEmptyName[T]] = new PathMatcher1[NonEmptyName[T]] {
-    def apply(path: Path) = path match {
-      case Path.Segment(segment, tail) =>
-        refineV[NonEmpty](segment) match {
-          case Left(_)               => Unmatched
-          case Right(nonEmptyString) => Matched(tail, Tuple1(NonEmptyName[T](nonEmptyString)))
-        }
-      case _ => Unmatched
-    }
-  }
+  @deprecated("Moved to xyz.driver.core.rest.Directives", "driver-core 1.8.0")
+  def NonEmptyNameInPath[T]: PathMatcher1[NonEmptyName[T]] = rest.Directives.NonEmptyNameInPath[T]
 
   implicit def nonEmptyNameFormat[T](implicit nonEmptyStringFormat: JsonFormat[Refined[String, NonEmpty]]) =
     new RootJsonFormat[NonEmptyName[T]] {

@@ -24,7 +24,7 @@ abstract class AuthProvider[U <: User](val authorization: Authorization[U], log:
     * can either need to do a network call to auth server or extract everything from self-contained token
     *
     * @param ctx set of request values which can be relevant to authenticate user
-    * @return authenticated user
+    * @return authenticated userAuthProvider
     */
   def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, U]
 

@@ -79,6 +79,7 @@ object `package` {
       "Content-Length",
       "Accept",
       "X-Trace",
+      "X-Client-Fingerprint",
       "Access-Control-Allow-Methods",
       "Access-Control-Allow-Origin",
       "Access-Control-Allow-Headers",

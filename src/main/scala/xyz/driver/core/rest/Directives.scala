@@ -6,13 +6,14 @@ import java.util.UUID
 import akka.http.scaladsl.model.headers.HttpChallenge
 import akka.http.scaladsl.server.{AuthenticationFailedRejection, Directive0, Directive1, Directives => AkkaDirectives}
 import xyz.driver.core.auth.{Permission, User}
-import xyz.driver.core.rest.auth.AuthProvider
 
 import scala.util.{Failure, Success, Try}
 
 trait Directives extends AkkaDirectives with PathMatchers {
 
   def optionalTrackingId: Directive1[Option[String]] = optionalHeaderValueByName(ContextHeaders.TrackingIdHeader)
+
+  def trackingId: Directive1[String] = optionalTrackingId.map(_.getOrElse(UUID.randomUUID().toString))
 
   // TODO check if the ip we get here is really what we want
   def optionalOriginatingIP: Directive1[Option[InetAddress]] =
@@ -55,7 +56,7 @@ trait Directives extends AkkaDirectives with PathMatchers {
     }
   }
 
-  def authenticate[U <: User](authenticator: AuthProvider[U]): Directive1[U] = {
+  def authenticate[U <: User](authenticator: auth.AuthProvider[U]): Directive1[U] = {
     // TODO consider using akka's authenticateOAuth2 directive to extract a token
     // this would also require changing AuthProvider's user checking method as to
     // work simply with a token, not requiring a service context
@@ -74,7 +75,7 @@ trait Directives extends AkkaDirectives with PathMatchers {
     }
   }
 
-  def authorize[U <: User](user: U, permissions: Permission*): Directive0 = ???
+  def authorize[U <: User](user: U, permissions: Permission*): Directive0 = sys.error("not implemented")
 
 }
 

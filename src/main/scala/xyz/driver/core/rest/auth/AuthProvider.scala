@@ -2,22 +2,20 @@ package xyz.driver.core.rest.auth
 
 import akka.http.scaladsl.model.headers.HttpChallenges
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
+import akka.http.scaladsl.server.{AuthenticationFailedRejection, Directive1, ValidationRejection}
 import com.typesafe.scalalogging.Logger
 import xyz.driver.core._
 import xyz.driver.core.auth.{Permission, User}
-import xyz.driver.core.rest.{AuthorizedServiceRequestContext, ServiceRequestContext, serviceContext}
+import xyz.driver.core.rest.{AuthorizedServiceRequestContext, ServiceRequestContext}
+import xyz.driver.core.rest.Directives._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-
 import scalaz.Scalaz.futureInstance
 import scalaz.OptionT
 
 abstract class AuthProvider[U <: User](val authorization: Authorization[U], log: Logger)(
     implicit execution: ExecutionContext) {
-
-  import akka.http.scaladsl.server._
-  import Directives._
 
   /**
     * Specific implementation on how to extract user from request context,

@@ -1,256 +1,175 @@
 package xyz.driver.core
 
-import java.net.InetAddress
-import java.util.UUID
-
-import akka.http.scaladsl.marshalling.{Marshaller, Marshalling}
+import akka.http.scaladsl.marshalling.Marshaller
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
-import eu.timepit.refined.refineV
 import spray.json._
-import xyz.driver.core.auth.AuthCredentials
-import xyz.driver.core.date.{Date, Month}
-import xyz.driver.core.domain.{Email, PhoneNumber}
+import xyz.driver.core
 import xyz.driver.core.time.Time
 
 import scala.reflect.runtime.universe._
-import scala.util.Try
 
+@deprecated(
+  "Json utilities has been split into different locations. Path matchers have been moved to " +
+    "xyz.driver.core.rest.Directives and formats to xyz.driver.core.CoreJsonFormats. Please extend these traits or " +
+    "import their companion objects instead.",
+  "driver-core 1.8.0"
+)
 object json {
-  import DefaultJsonProtocol._
 
   @deprecated("Moved to xyz.driver.core.rest.Directives", "driver-core 1.8.0")
   def IdInPath[T]: PathMatcher1[Id[T]] = rest.Directives.IdInPath[T]
 
-  implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
-    def write(id: Id[T]) = JsString(id.value)
-
-    def read(value: JsValue) = value match {
-      case JsString(id) if Try(UUID.fromString(id)).isSuccess => Id[T](id.toLowerCase)
-      case JsString(id)                                       => Id[T](id)
-      case _                                                  => throw DeserializationException("Id expects string")
-    }
-  }
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit def idFormat[T] = CoreJsonFormats.idFormat[T]
 
   @deprecated("Moved to xyz.driver.core.rest.Directives", "driver-core 1.8.0")
   def NameInPath[T]: PathMatcher1[Name[T]] = rest.Directives.NameInPath[T]
 
-  implicit def nameFormat[T] = new RootJsonFormat[Name[T]] {
-    def write(name: Name[T]) = JsString(name.value)
-
-    def read(value: JsValue): Name[T] = value match {
-      case JsString(name) => Name[T](name)
-      case _              => throw DeserializationException("Name expects string")
-    }
-  }
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit def nameFormat[T] = CoreJsonFormats.nameFormat[T]
 
   @deprecated("Moved to xyz.driver.core.rest.Directives", "driver-core 1.8.0")
   def TimeInPath: PathMatcher1[Time] = rest.Directives.TimeInPath
 
-  implicit val timeFormat = new RootJsonFormat[Time] {
-    def write(time: Time) = JsObject("timestamp" -> JsNumber(time.millis))
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit val timeFormat = CoreJsonFormats.timeFormat
 
-    def read(value: JsValue): Time = value match {
-      case JsObject(fields) =>
-        fields
-          .get("timestamp")
-          .flatMap {
-            case JsNumber(millis) => Some(Time(millis.toLong))
-            case _                => None
-          }
-          .getOrElse(throw DeserializationException("Time expects number"))
-      case _ => throw DeserializationException("Time expects number")
-    }
-  }
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit val dateFormat = CoreJsonFormats.dateFormat
 
-  implicit val dateFormat = new RootJsonFormat[Date] {
-    def write(date: Date) = JsString(date.toString)
-    def read(value: JsValue): Date = value match {
-      case JsString(dateString) =>
-        Date
-          .fromString(dateString)
-          .getOrElse(
-            throw DeserializationException(s"Misformated ISO 8601 Date. Expected YYYY-MM-DD, but got $dateString."))
-      case _ => throw DeserializationException(s"Date expects a string, but got $value.")
-    }
-  }
-
-  implicit val monthFormat = new RootJsonFormat[Month] {
-    def write(month: Month) = JsNumber(month)
-    def read(value: JsValue): Month = value match {
-      case JsNumber(month) if 0 <= month && month <= 11 => Month(month.toInt)
-      case _                                            => throw DeserializationException("Expected a number from 0 to 11")
-    }
-  }
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit val monthFormat = CoreJsonFormats.monthFormat
 
   @deprecated("Moved to xyz.driver.core.rest.Directives", "driver-core 1.8.0")
   def RevisionInPath[T]: PathMatcher1[Revision[T]] = rest.Directives.RevisionInPath
 
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
   implicit def revisionFromStringUnmarshaller[T]: Unmarshaller[String, Revision[T]] =
-    Unmarshaller.strict[String, Revision[T]](Revision[T](_))
+    CoreJsonFormats.revisionFromStringUnmarshaller[T]
 
-  implicit def revisionFormat[T] = new RootJsonFormat[Revision[T]] {
-    def write(revision: Revision[T]) = JsString(revision.id.toString)
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit def revisionFormat[T] = CoreJsonFormats.revisionFormat[T]
 
-    def read(value: JsValue): Revision[T] = value match {
-      case JsString(revision) => Revision[T](revision)
-      case _                  => throw DeserializationException("Revision expects uuid string")
-    }
-  }
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit val base64Format = CoreJsonFormats.base64Format
 
-  implicit val base64Format = new RootJsonFormat[Base64] {
-    def write(base64Value: Base64) = JsString(base64Value.value)
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit val emailFormat = CoreJsonFormats.emailFormat
 
-    def read(value: JsValue): Base64 = value match {
-      case JsString(base64Value) => Base64(base64Value)
-      case _                     => throw DeserializationException("Base64 format expects string")
-    }
-  }
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit val phoneNumberFormat = CoreJsonFormats.phoneNumberFormat
 
-  implicit val emailFormat = new RootJsonFormat[Email] {
-    def write(email: Email) = JsString(email.username + "@" + email.domain)
-    def read(json: JsValue): Email = json match {
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit val authCredentialsFormat = CoreJsonFormats.authCredentialsFormat
 
-      case JsString(value) =>
-        Email.parse(value).getOrElse {
-          deserializationError("Expected '@' symbol in email string as Email, but got " + json.toString)
-        }
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  type inetAddressFormat = CoreJsonFormats.inetAddressFormat.type
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit val inetAddressFormat = CoreJsonFormats.inetAddressFormat
 
-      case _ =>
-        deserializationError("Expected string as Email, but got " + json.toString)
-    }
-  }
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  type EnumJsonFormat[T] = CoreJsonFormats.EnumJsonFormat[T]
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit def newEnumJsonFormat[T](mapping: (String, T)*) = new core.CoreJsonFormats.EnumJsonFormat[T](mapping: _*)
 
-  implicit val phoneNumberFormat = jsonFormat2(PhoneNumber.apply)
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  type ValueClassFormat[T] = CoreJsonFormats.ValueClassFormat[T]
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit def newValueClassFormat[T: TypeTag](writeValue: T => BigDecimal, create: BigDecimal => T) =
+    new CoreJsonFormats.ValueClassFormat[T](writeValue, create)
 
-  implicit val authCredentialsFormat = jsonFormat2(AuthCredentials)
-
-  implicit object inetAddressFormat extends JsonFormat[InetAddress] {
-    override def read(json: JsValue): InetAddress = json match {
-      case JsString(ipString) =>
-        Try(InetAddress.getByName(ipString))
-          .getOrElse(deserializationError(s"Invalid IP Address: $ipString"))
-      case _ => deserializationError(s"Expected string for IP Address, got $json")
-    }
-
-    override def write(obj: InetAddress): JsValue =
-      JsString(obj.getHostAddress)
-  }
-
-  class EnumJsonFormat[T](mapping: (String, T)*) extends RootJsonFormat[T] {
-    private val map = mapping.toMap
-
-    override def write(value: T): JsValue = {
-      map.find(_._2 == value).map(_._1) match {
-        case Some(name) => JsString(name)
-        case _          => serializationError(s"Value $value is not found in the mapping $map")
-      }
-    }
-
-    override def read(json: JsValue): T = json match {
-      case JsString(name) =>
-        map.getOrElse(name, throw DeserializationException(s"Value $name is not found in the mapping $map"))
-      case _ => deserializationError("Expected string as enumeration value, but got " + json.toString)
-    }
-  }
-
-  class ValueClassFormat[T: TypeTag](writeValue: T => BigDecimal, create: BigDecimal => T) extends JsonFormat[T] {
-    def write(valueClass: T) = JsNumber(writeValue(valueClass))
-    def read(json: JsValue): T = json match {
-      case JsNumber(value) => create(value)
-      case _               => deserializationError(s"Expected number as ${typeOf[T].getClass.getName}, but got " + json.toString)
-    }
-  }
-
-  class GadtJsonFormat[T: TypeTag](
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  type GadtJsonFormat[T] = CoreJsonFormats.GadtJsonFormat[T]
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  implicit def newGadtJsonFormat[T: TypeTag](
       typeField: String,
       typeValue: PartialFunction[T, String],
-      jsonFormat: PartialFunction[String, JsonFormat[_ <: T]])
-      extends RootJsonFormat[T] {
+      jsonFormat: PartialFunction[String, JsonFormat[_ <: T]]) =
+    new CoreJsonFormats.GadtJsonFormat[T](typeField, typeValue, jsonFormat)
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  val GadtJsonFormat = CoreJsonFormats.GadtJsonFormat
 
-    def write(value: T): JsValue = {
-
-      val valueType = typeValue.applyOrElse(value, { v: T =>
-        deserializationError(s"No Value type for this type of ${typeOf[T].getClass.getName}: " + v.toString)
-      })
-
-      val valueFormat =
-        jsonFormat.applyOrElse(valueType, { f: String =>
-          deserializationError(s"No Json format for this type of $valueType")
-        })
-
-      valueFormat.asInstanceOf[JsonFormat[T]].write(value) match {
-        case JsObject(fields) => JsObject(fields ++ Map(typeField -> JsString(valueType)))
-        case _                => serializationError(s"${typeOf[T].getClass.getName} serialized not to a JSON object")
-      }
-    }
-
-    def read(json: JsValue): T = json match {
-      case JsObject(fields) =>
-        val valueJson = JsObject(fields.filterNot(_._1 == typeField))
-        fields(typeField) match {
-          case JsString(valueType) =>
-            val valueFormat = jsonFormat.applyOrElse(valueType, { t: String =>
-              deserializationError(s"Unknown ${typeOf[T].getClass.getName} type ${fields(typeField)}")
-            })
-            valueFormat.read(valueJson)
-          case _ =>
-            deserializationError(s"Unknown ${typeOf[T].getClass.getName} type ${fields(typeField)}")
-        }
-      case _ =>
-        deserializationError(s"Expected Json Object as ${typeOf[T].getClass.getName}, but got " + json.toString)
-    }
-  }
-
-  object GadtJsonFormat {
-
-    def create[T: TypeTag](typeField: String)(typeValue: PartialFunction[T, String])(
-        jsonFormat: PartialFunction[String, JsonFormat[_ <: T]]) = {
-
-      new GadtJsonFormat[T](typeField, typeValue, jsonFormat)
-    }
-  }
-
-  /**
-    * Provides the JsonFormat for the Refined types provided by the Refined library.
-    *
-    * @see https://github.com/fthomas/refined
-    */
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
   implicit def refinedJsonFormat[T, Predicate](
       implicit valueFormat: JsonFormat[T],
       validate: Validate[T, Predicate]): JsonFormat[Refined[T, Predicate]] =
-    new JsonFormat[Refined[T, Predicate]] {
-      def write(x: T Refined Predicate): JsValue = valueFormat.write(x.value)
-      def read(value: JsValue): T Refined Predicate = {
-        refineV[Predicate](valueFormat.read(value))(validate) match {
-          case Right(refinedValue)   => refinedValue
-          case Left(refinementError) => deserializationError(refinementError)
-        }
-      }
-    }
+    CoreJsonFormats.refinedJsonFormat[T, Predicate](valueFormat, validate)
 
   @deprecated("Moved to xyz.driver.core.rest.Directives", "driver-core 1.8.0")
   def NonEmptyNameInPath[T]: PathMatcher1[NonEmptyName[T]] = rest.Directives.NonEmptyNameInPath[T]
 
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
   implicit def nonEmptyNameFormat[T](implicit nonEmptyStringFormat: JsonFormat[Refined[String, NonEmpty]]) =
-    new RootJsonFormat[NonEmptyName[T]] {
-      def write(name: NonEmptyName[T]) = JsString(name.value.value)
+    CoreJsonFormats.nonEmptyNameFormat[T](nonEmptyStringFormat)
 
-      def read(value: JsValue): NonEmptyName[T] =
-        NonEmptyName[T](nonEmptyStringFormat.read(value))
-    }
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
+  val jsValueToStringMarshaller: Marshaller[JsValue, String] = CoreJsonFormats.jsValueToStringMarshaller
 
-  val jsValueToStringMarshaller: Marshaller[JsValue, String] =
-    Marshaller.strict[JsValue, String](value => Marshalling.Opaque[String](() => value.compactPrint))
-
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
   def valueToStringMarshaller[T](implicit jsonFormat: JsonWriter[T]): Marshaller[T, String] =
-    jsValueToStringMarshaller.compose[T](jsonFormat.write)
+    CoreJsonFormats.valueToStringMarshaller[T](jsonFormat)
 
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
   val stringToJsValueUnmarshaller: Unmarshaller[String, JsValue] =
-    Unmarshaller.strict[String, JsValue](value => value.parseJson)
+    CoreJsonFormats.stringToJsValueUnmarshaller
 
+  @deprecated(
+    "Moved to format trait xyz.driver.core.CoreJsonFormats. Extend the trait or import its companion object instead.",
+    "driver-core 1.8.0")
   def stringToValueUnmarshaller[T](implicit jsonFormat: JsonReader[T]): Unmarshaller[String, T] =
-    stringToJsValueUnmarshaller.map[T](jsonFormat.read)
+    CoreJsonFormats.stringToValueUnmarshaller[T](jsonFormat)
+
 }

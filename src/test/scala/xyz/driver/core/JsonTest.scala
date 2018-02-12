@@ -6,23 +6,22 @@ import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.refineMV
 import org.scalatest.{FlatSpec, Matchers}
-import xyz.driver.core.json._
 import xyz.driver.core.time.provider.SystemTimeProvider
 import spray.json._
 import xyz.driver.core.TestTypes.CustomGADT
 import xyz.driver.core.domain.{Email, PhoneNumber}
+import xyz.driver.core.time.Time
 
-class JsonTest extends FlatSpec with Matchers {
-  import DefaultJsonProtocol._
+class JsonTest extends FlatSpec with Matchers with CoreJsonFormats {
 
   "Json format for Id" should "read and write correct JSON" in {
 
     val referenceId = Id[String]("1312-34A")
 
-    val writtenJson = json.idFormat.write(referenceId)
+    val writtenJson = referenceId.toJson
     writtenJson.prettyPrint should be("\"1312-34A\"")
 
-    val parsedId = json.idFormat.read(writtenJson)
+    val parsedId = writtenJson.convertTo[Id[String]]
     parsedId should be(referenceId)
   }
 
@@ -30,16 +29,16 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceName = Name[String]("Homer")
 
-    val writtenJson = json.nameFormat.write(referenceName)
+    val writtenJson = referenceName.toJson
     writtenJson.prettyPrint should be("\"Homer\"")
 
-    val parsedName = json.nameFormat.read(writtenJson)
+    val parsedName = writtenJson.convertTo[Name[String]]
     parsedName should be(referenceName)
   }
 
   "Json format for NonEmptyName" should "read and write correct JSON" in {
 
-    val jsonFormat = json.nonEmptyNameFormat[String]
+    val jsonFormat = nonEmptyNameFormat[String]
 
     val referenceNonEmptyName = NonEmptyName[String](refineMV[NonEmpty]("Homer"))
 
@@ -54,10 +53,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceTime = new SystemTimeProvider().currentTime()
 
-    val writtenJson = json.timeFormat.write(referenceTime)
+    val writtenJson = referenceTime.toJson
     writtenJson.prettyPrint should be("{\n  \"timestamp\": " + referenceTime.millis + "\n}")
 
-    val parsedTime = json.timeFormat.read(writtenJson)
+    val parsedTime = writtenJson.convertTo[Time]
     parsedTime should be(referenceTime)
   }
 
@@ -66,10 +65,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceDate = Date(1941, Month.DECEMBER, 7)
 
-    val writtenJson = json.dateFormat.write(referenceDate)
+    val writtenJson = referenceDate.toJson
     writtenJson.prettyPrint should be("\"1941-12-07\"")
 
-    val parsedDate = json.dateFormat.read(writtenJson)
+    val parsedDate = writtenJson.convertTo[Date]
     parsedDate should be(referenceDate)
   }
 
@@ -77,10 +76,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceRevision = Revision[String]("037e2ec0-8901-44ac-8e53-6d39f6479db4")
 
-    val writtenJson = json.revisionFormat.write(referenceRevision)
+    val writtenJson = referenceRevision.toJson
     writtenJson.prettyPrint should be("\"" + referenceRevision.id + "\"")
 
-    val parsedRevision = json.revisionFormat.read(writtenJson)
+    val parsedRevision = writtenJson.convertTo[Revision[String]]
     parsedRevision should be(referenceRevision)
   }
 
@@ -88,10 +87,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referenceEmail = Email("test", "drivergrp.com")
 
-    val writtenJson = json.emailFormat.write(referenceEmail)
+    val writtenJson = referenceEmail.toJson
     writtenJson should be("\"test@drivergrp.com\"".parseJson)
 
-    val parsedEmail = json.emailFormat.read(writtenJson)
+    val parsedEmail = writtenJson.convertTo[Email]
     parsedEmail should be(referenceEmail)
   }
 
@@ -99,10 +98,10 @@ class JsonTest extends FlatSpec with Matchers {
 
     val referencePhoneNumber = PhoneNumber("1", "4243039608")
 
-    val writtenJson = json.phoneNumberFormat.write(referencePhoneNumber)
+    val writtenJson = referencePhoneNumber.toJson
     writtenJson should be("""{"countryCode":"1","number":"4243039608"}""".parseJson)
 
-    val parsedPhoneNumber = json.phoneNumberFormat.read(writtenJson)
+    val parsedPhoneNumber = writtenJson.convertTo[PhoneNumber]
     parsedPhoneNumber should be(referencePhoneNumber)
   }
 
@@ -157,7 +156,6 @@ class JsonTest extends FlatSpec with Matchers {
   "Json format for classes GADT" should "read and write correct JSON" in {
 
     import CustomGADT._
-    import DefaultJsonProtocol._
     implicit val case1Format = jsonFormat1(GadtCase1)
     implicit val case2Format = jsonFormat1(GadtCase2)
     implicit val case3Format = jsonFormat1(GadtCase3)
@@ -190,7 +188,7 @@ class JsonTest extends FlatSpec with Matchers {
 
   "Json format for a Refined value" should "read and write correct JSON" in {
 
-    val jsonFormat = json.refinedJsonFormat[Int, Positive]
+    val jsonFormat = refinedJsonFormat[Int, Positive]
 
     val referenceRefinedNumber = refineMV[Positive](42)
 

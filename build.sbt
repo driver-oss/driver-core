@@ -11,6 +11,7 @@ lazy val core = (project in file("."))
     "com.typesafe.akka"            %% "akka-http-core"                 % akkaHttpV,
     "com.typesafe.akka"            %% "akka-http-spray-json"           % akkaHttpV,
     "com.typesafe.akka"            %% "akka-http-testkit"              % akkaHttpV,
+    "com.propensive"               %% "magnolia"                       % "0.6.1",
     "com.pauldijou"                %% "jwt-core"                       % "0.14.0",
     "org.scalatest"                %% "scalatest"                      % "3.0.2" % "test",
     "org.scalacheck"               %% "scalacheck"                     % "1.13.4" % "test",

@@ -1,11 +1,12 @@
 package xyz.driver.core.app
 
+import java.util.UUID
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
-import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.{Http, HttpExt}
@@ -16,6 +17,7 @@ import io.swagger.models.Scheme
 import org.slf4j.{LoggerFactory, MDC}
 import xyz.driver.core
 import xyz.driver.core.rest._
+import xyz.driver.core.rest.Directives._
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
@@ -78,10 +80,10 @@ class DriverApp(
     }
     val combinedRoute = modules.map(_.route).foldLeft(basicRoutes.routeWithDefaults)(_ ~ _)
 
-    (extractHost & extractClientIP & trace(tracer)) {
-      case (origin, ip) =>
+    (extractHost & extractClientIP & optionalTrackingId & trace(tracer)) {
+      case (origin, ip, optTrackingId) =>
         ctx =>
-          val trackingId = extractTrackingId(ctx.request)
+          val trackingId = optTrackingId.getOrElse(UUID.randomUUID.toString)
           MDC.put("trackingId", trackingId)
 
           val updatedStacktrace =

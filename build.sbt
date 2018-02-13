@@ -25,3 +25,4 @@ lazy val core = (project in file("."))
     "eu.timepit"                   %% "refined"                        % "0.8.4",
     "ch.qos.logback"               % "logback-classic"                 % "1.1.11"
   ))
+  .settings(version := "1.8.0directives0")

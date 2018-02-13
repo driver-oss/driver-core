@@ -5,16 +5,16 @@ import java.sql.SQLException
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers._
-import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{Directive0, ExceptionHandler, RequestContext, Route}
 import com.typesafe.scalalogging.Logger
 import org.slf4j.MDC
-import xyz.driver.core.rest
+import xyz.driver.core.rest.Directives._
 import xyz.driver.core.rest.errors._
 
 import scala.compat.Platform.ConcurrentModificationException
 
 trait DriverRoute {
+
   def log: Logger
 
   def route: Route
@@ -24,9 +24,9 @@ trait DriverRoute {
   }
 
   protected def defaultResponseHeaders: Directive0 = {
-    (extractRequest & optionalHeaderValueByType[Origin](())) tflatMap {
-      case (request, originHeader) =>
-        val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, rest.extractTrackingId(request))
+    (optionalHeaderValueByType[Origin](()) & trackingId) tflatMap {
+      case (originHeader, tid) =>
+        val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, tid)
         val responseHeaders = List[HttpHeader](
           tracingHeader,
           allowOrigin(originHeader),
@@ -103,8 +103,7 @@ trait DriverRoute {
       ctx: RequestContext,
       statusCode: StatusCode,
       message: String,
-      exception: T): Route = {
-    val trackingId = rest.extractTrackingId(ctx.request)
+      exception: T): Route = Directives.trackingId { (trackingId: String) =>
     MDC.put("trackingId", trackingId)
     complete(HttpResponse(statusCode, entity = message))
   }

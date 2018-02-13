@@ -5,6 +5,8 @@ import spray.json._
 
 import scala.language.experimental.macros
 
+final case class TypeFieldName(name: String) extends scala.annotation.StaticAnnotation
+
 trait JsonFormatDerivation extends DefaultJsonProtocol {
   type Typeclass[T] = JsonFormat[T]
 
@@ -26,21 +28,27 @@ trait JsonFormatDerivation extends DefaultJsonProtocol {
   }
 
   def dispatch[T](ctx: SealedTrait[JsonFormat, T]): JsonFormat[T] = new JsonFormat[T] {
+    private val typeFieldName: String = {
+      ctx.annotations
+        .collectFirst { case TypeFieldName(tpe) => tpe }
+        .getOrElse("type")
+    }
+
     override def write(value: T): JsValue = {
       ctx.dispatch(value) { sub =>
         val obj = sub.typeclass.write(sub.cast(value)).asJsObject
-        JsObject((obj.fields ++ Map("type" -> JsString(sub.label))).toSeq: _*)
+        JsObject((obj.fields ++ Map(typeFieldName -> JsString(sub.typeName.short))).toSeq: _*)
       }
     }
     override def read(value: JsValue): T = value match {
-      case obj: JsObject if obj.fields.contains("type") =>
-        val fieldName = obj.fields("type").convertTo[String]
+      case obj: JsObject if obj.fields.contains(typeFieldName) =>
+        val fieldName = obj.fields(typeFieldName).convertTo[String]
 
-        ctx.subtypes.find(_.label == fieldName) match {
+        ctx.subtypes.find(_.typeName.short == fieldName) match {
           case Some(tpe) => tpe.typeclass.read(obj)
           case None =>
             deserializationError(
-              s"Cannot deserialize JSON to ${ctx.typeName} because type field '${fieldName}' is unknown.")
+              s"Cannot deserialize JSON to ${ctx.typeName} because type field '$fieldName' is unknown.")
         }
 
       case js =>

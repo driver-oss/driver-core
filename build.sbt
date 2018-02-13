@@ -1,6 +1,8 @@
 import sbt._
 import Keys._
 
+updateConfiguration in updateSbtClassifiers := (updateConfiguration in updateSbtClassifiers).value.withMissingOk(true)
+
 lazy val akkaHttpV = "10.0.11"
 
 lazy val core = (project in file("."))

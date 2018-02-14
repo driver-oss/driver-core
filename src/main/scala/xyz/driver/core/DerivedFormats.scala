@@ -48,7 +48,7 @@ trait JsonFormatDerivation extends DefaultJsonProtocol {
           case Some(tpe) => tpe.typeclass.read(obj)
           case None =>
             deserializationError(
-              s"Cannot deserialize JSON to ${ctx.typeName} because type field '$fieldName' is unknown.")
+              s"Cannot deserialize JSON to ${ctx.typeName} because type field '${fieldName}' has an unsupported value.")
         }
 
       case js =>
@@ -62,4 +62,4 @@ trait JsonFormatDerivation extends DefaultJsonProtocol {
 }
 object JsonFormatDerivation extends JsonFormatDerivation
 
-trait MacroProductFormats extends JsonFormatDerivation
+trait DerivedFormats extends JsonFormatDerivation

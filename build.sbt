@@ -1,8 +1,6 @@
 import sbt._
 import Keys._
 
-updateConfiguration in updateSbtClassifiers := (updateConfiguration in updateSbtClassifiers).value.withMissingOk(true)
-
 lazy val akkaHttpV = "10.0.11"
 
 lazy val core = (project in file("."))
@@ -13,7 +11,7 @@ lazy val core = (project in file("."))
     "com.typesafe.akka"            %% "akka-http-core"                 % akkaHttpV,
     "com.typesafe.akka"            %% "akka-http-spray-json"           % akkaHttpV,
     "com.typesafe.akka"            %% "akka-http-testkit"              % akkaHttpV,
-    "com.propensive"               %% "magnolia"                       % "0.6.1",
+    "com.propensive"               %% "magnolia"                       % "0.6.2-SNAPSHOT",
     "com.pauldijou"                %% "jwt-core"                       % "0.14.0",
     "org.scalatest"                %% "scalatest"                      % "3.0.2" % "test",
     "org.scalacheck"               %% "scalacheck"                     % "1.13.4" % "test",

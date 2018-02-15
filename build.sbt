@@ -14,7 +14,7 @@ lazy val core = (project in file("."))
     "com.pauldijou"                %% "jwt-core"                       % "0.14.0",
     "org.scalatest"                %% "scalatest"                      % "3.0.2" % "test",
     "org.scalacheck"               %% "scalacheck"                     % "1.13.4" % "test",
-    "org.scalaz"                   %% "scalaz-core"                    % "7.2.8",
+    "org.scalaz"                   %% "scalaz-core"                    % "7.2.19",
     "org.mockito"                  % "mockito-core"                    % "1.9.5" % "test",
     "com.github.swagger-akka-http" %% "swagger-akka-http"              % "0.11.2",
     "com.amazonaws"                % "aws-java-sdk-s3"                 % "1.11.26",

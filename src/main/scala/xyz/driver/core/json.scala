@@ -32,7 +32,7 @@ object json {
     }
   }
 
-  implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
+  implicit def idFormat[T] = new JsonFormat[Id[T]] {
     def write(id: Id[T]) = JsString(id.value)
 
     def read(value: JsValue) = value match {
@@ -49,7 +49,7 @@ object json {
     }
   }
 
-  implicit def nameFormat[T] = new RootJsonFormat[Name[T]] {
+  implicit def nameFormat[T] = new JsonFormat[Name[T]] {
     def write(name: Name[T]) = JsString(name.value)
 
     def read(value: JsValue): Name[T] = value match {
@@ -80,7 +80,7 @@ object json {
     }
   }
 
-  implicit val dateFormat = new RootJsonFormat[Date] {
+  implicit val dateFormat = new JsonFormat[Date] {
     def write(date: Date) = JsString(date.toString)
     def read(value: JsValue): Date = value match {
       case JsString(dateString) =>
@@ -92,7 +92,7 @@ object json {
     }
   }
 
-  implicit val monthFormat = new RootJsonFormat[Month] {
+  implicit val monthFormat = new JsonFormat[Month] {
     def write(month: Month) = JsNumber(month)
     def read(value: JsValue): Month = value match {
       case JsNumber(month) if 0 <= month && month <= 11 => Month(month.toInt)
@@ -108,7 +108,7 @@ object json {
   implicit def revisionFromStringUnmarshaller[T]: Unmarshaller[String, Revision[T]] =
     Unmarshaller.strict[String, Revision[T]](Revision[T](_))
 
-  implicit def revisionFormat[T] = new RootJsonFormat[Revision[T]] {
+  implicit def revisionFormat[T] = new JsonFormat[Revision[T]] {
     def write(revision: Revision[T]) = JsString(revision.id.toString)
 
     def read(value: JsValue): Revision[T] = value match {
@@ -117,7 +117,7 @@ object json {
     }
   }
 
-  implicit val base64Format = new RootJsonFormat[Base64] {
+  implicit val base64Format = new JsonFormat[Base64] {
     def write(base64Value: Base64) = JsString(base64Value.value)
 
     def read(value: JsValue): Base64 = value match {
@@ -126,7 +126,7 @@ object json {
     }
   }
 
-  implicit val emailFormat = new RootJsonFormat[Email] {
+  implicit val emailFormat = new JsonFormat[Email] {
     def write(email: Email) = JsString(email.username + "@" + email.domain)
     def read(json: JsValue): Email = json match {
 
@@ -156,7 +156,7 @@ object json {
       JsString(obj.getHostAddress)
   }
 
-  class EnumJsonFormat[T](mapping: (String, T)*) extends RootJsonFormat[T] {
+  class EnumJsonFormat[T](mapping: (String, T)*) extends JsonFormat[T] {
     private val map = mapping.toMap
 
     override def write(value: T): JsValue = {
@@ -260,7 +260,7 @@ object json {
   }
 
   implicit def nonEmptyNameFormat[T](implicit nonEmptyStringFormat: JsonFormat[Refined[String, NonEmpty]]) =
-    new RootJsonFormat[NonEmptyName[T]] {
+    new JsonFormat[NonEmptyName[T]] {
       def write(name: NonEmptyName[T]) = JsString(name.value.value)
 
       def read(value: JsValue): NonEmptyName[T] =

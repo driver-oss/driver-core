@@ -72,7 +72,7 @@ class DriverApp(
     val versionRt      = versionRoute(version, gitHash, time.currentTime())
     val basicRoutes = new DriverRoute {
       override def log: Logger    = self.log
-      override def config: Config = xyz.driver.core.config.loadDefaultConfig
+      override def config: Config = self.config
       override def route: Route   = versionRt ~ healthRoute ~ swaggerRoute
     }
     val combinedRoute = modules.map(_.route).foldLeft(basicRoutes.routeWithDefaults)(_ ~ _)

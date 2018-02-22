@@ -90,12 +90,11 @@ trait DriverRoute {
       .handle {
         case rejection =>
           respondWithAllCorsHeaders {
-            RejectionHandler
-              .default(scala.collection.immutable.Seq(rejection))
-              .getOrElse(complete("OK"))
+            RejectionHandler.default(collection.immutable.Seq(rejection)).get
           }
       }
       .result()
+      .seal
 
   /**
     * Override me for custom exception handling

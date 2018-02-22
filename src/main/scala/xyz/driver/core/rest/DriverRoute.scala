@@ -94,7 +94,6 @@ trait DriverRoute {
           }
       }
       .result()
-      .seal
 
   /**
     * Override me for custom exception handling

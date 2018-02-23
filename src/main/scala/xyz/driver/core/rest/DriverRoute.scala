@@ -22,79 +22,17 @@ trait DriverRoute {
   def route: Route
 
   def routeWithDefaults: Route = {
-    (defaultResponseHeaders & handleRejections(rejectionHandler) & handleExceptions(ExceptionHandler(exceptionHandler))) {
-      route ~ defaultOptionsRoute
-    }
-  }
-
-  protected lazy val allowedCorsDomainSuffixes: Set[HttpOrigin] = {
-    import scala.collection.JavaConverters._
-    config
-      .getConfigList("application.cors.allowedOrigins")
-      .asScala
-      .map { c =>
-        HttpOrigin(c.getString("scheme"), Host(c.getString("hostSuffix")))
-      }(scala.collection.breakOut)
-  }
-
-  protected lazy val defaultCorsAllowedMethods: Set[HttpMethod] = {
-    import scala.collection.JavaConverters._
-    config.getStringList("application.cors.allowedMethods").asScala.toSet.flatMap(HttpMethods.getForKey)
-  }
-
-  protected lazy val defaultCorsAllowedOrigin: Origin = {
-    Origin(allowedCorsDomainSuffixes.to[collection.immutable.Seq])
-  }
-
-  protected def corsAllowedOriginHeader(origin: Option[Origin]): HttpHeader = {
-    val allowedOrigin =
-      origin
-        .filter { requestOrigin =>
-          allowedCorsDomainSuffixes.exists { allowedOriginSuffix =>
-            requestOrigin.origins.exists(o =>
-              o.scheme == allowedOriginSuffix.scheme &&
-                o.host.host.address.endsWith(allowedOriginSuffix.host.host.address()))
-          }
-        }
-        .getOrElse(defaultCorsAllowedOrigin)
-
-    `Access-Control-Allow-Origin`(HttpOriginRange(allowedOrigin.origins: _*))
-  }
-
-  protected def respondWithAllCorsHeaders: Directive0 = {
-    respondWithCorsAllowedHeaders tflatMap { _ =>
-      respondWithCorsAllowedMethodHeaders(defaultCorsAllowedMethods) tflatMap { _ =>
-        optionalHeaderValueByType[Origin](()) flatMap { origin =>
-          respondWithHeader(corsAllowedOriginHeader(origin))
-        }
-      }
-    }
-  }
-
-  protected def defaultOptionsRoute: Route = options {
-    respondWithAllCorsHeaders {
-      complete("OK")
+    (defaultResponseHeaders & handleExceptions(ExceptionHandler(exceptionHandler))) {
+      route
     }
   }
 
   protected def defaultResponseHeaders: Directive0 = {
     extractRequest flatMap { request =>
       val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, rest.extractTrackingId(request))
-      respondWithHeader(tracingHeader) & respondWithAllCorsHeaders
+      respondWithHeader(tracingHeader)
     }
   }
-
-  protected def rejectionHandler: RejectionHandler =
-    RejectionHandler
-      .newBuilder()
-      .handle {
-        case rejection =>
-          respondWithAllCorsHeaders {
-            RejectionHandler.default(collection.immutable.Seq(rejection)).get
-          }
-      }
-      .result()
-      .seal
 
   /**
     * Override me for custom exception handling

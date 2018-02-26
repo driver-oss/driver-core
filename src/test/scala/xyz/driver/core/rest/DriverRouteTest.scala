@@ -4,7 +4,6 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete => akkaComplete}
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.Logger
 import org.scalatest.{AsyncFlatSpec, Matchers}
 import xyz.driver.core.logging.NoLogger
@@ -15,15 +14,6 @@ import scala.concurrent.Future
 class DriverRouteTest extends AsyncFlatSpec with ScalatestRouteTest with Matchers with Directives {
   class TestRoute(override val route: Route) extends DriverRoute {
     override def log: Logger = NoLogger
-    override def config: Config =
-      ConfigFactory.parseString("""
-                                  |application {
-                                  |   cors {
-                                  |     allowedMethods: ["GET", "PUT", "POST", "PATCH", "DELETE", "OPTIONS"]
-                                  |     allowedOrigins: [{scheme: https, hostSuffix: example.com}]
-                                  |   }
-                                  |}
-      """.stripMargin)
   }
 
   "DriverRoute" should "respond with 200 OK for a basic route" in {

@@ -30,9 +30,8 @@ class EmptyModule extends Module {
 
 class SimpleModule(override val name: String, theRoute: Route, routeType: Type) extends Module {
   private val driverRoute: DriverRoute = new DriverRoute {
-    override def route: Route   = theRoute
-    override val config: Config = xyz.driver.core.config.loadDefaultConfig
-    override val log: Logger    = xyz.driver.core.logging.NoLogger
+    override def route: Route = theRoute
+    override val log: Logger  = xyz.driver.core.logging.NoLogger
   }
 
   override def route: Route          = driverRoute.routeWithDefaults

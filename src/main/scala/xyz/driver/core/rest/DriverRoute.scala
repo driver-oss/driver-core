@@ -2,12 +2,10 @@ package xyz.driver.core.rest
 
 import java.sql.SQLException
 
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.{StatusCodes, _}
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
-import com.typesafe.config.Config
 import com.typesafe.scalalogging.Logger
 import org.slf4j.MDC
 import xyz.driver.core.rest
@@ -17,7 +15,6 @@ import scala.compat.Platform.ConcurrentModificationException
 
 trait DriverRoute {
   def log: Logger
-  def config: Config
 
   def route: Route
 

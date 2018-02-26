@@ -121,9 +121,8 @@ class DriverApp(
     val swaggerRoute   = swaggerService.routes ~ swaggerService.swaggerUI
     val versionRt      = versionRoute(version, gitHash, time.currentTime())
     val basicRoutes = new DriverRoute {
-      override def log: Logger    = self.log
-      override def config: Config = self.config
-      override def route: Route   = versionRt ~ healthRoute ~ swaggerRoute
+      override def log: Logger  = self.log
+      override def route: Route = versionRt ~ healthRoute ~ swaggerRoute
     }
     val combinedRoute =
       Route.seal(modules.map(_.route).foldLeft(basicRoutes.routeWithDefaults)(_ ~ _) ~ defaultOptionsRoute)

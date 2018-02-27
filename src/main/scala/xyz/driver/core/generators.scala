@@ -20,8 +20,14 @@ object generators {
   private val DefaultMaxLength       = 10
   private val StringLetters          = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ".toSet
   private val NonAmbigiousCharacters = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789".toSet
+  private val Numbers                = "0123456789".toSet
 
-  def nextToken(length: Int): String = List.fill(length)(oneOf(NonAmbigiousCharacters)).mkString
+  private def nextTokenString(length: Int, charSet: Set[Char]): String =
+    List.fill(length)(oneOf(charSet)).mkString
+
+  def nextToken(length: Int): String = nextTokenString(length, NonAmbigiousCharacters)
+
+  def nextNumericToken(length: Int): String = nextTokenString(length, Numbers)
 
   def nextInt(maxValue: Int, minValue: Int = 0): Int = random.nextInt(maxValue - minValue) + minValue
 

@@ -14,7 +14,7 @@ import akka.util.ByteString
 import xyz.driver.tracing.TracingDirectives
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 import scalaz.{Functor, OptionT}
 import scalaz.Scalaz.{intInstance, stringInstance}
 import scalaz.syntax.equal._
@@ -33,28 +33,10 @@ trait ServiceTransport {
       implicit mat: Materializer): Future[Unmarshal[ResponseEntity]]
 }
 
-object Pagination {
-
-  val Default = Pagination(pageSize = 100, pageNumber = 1)
-
-  def parse(query: Seq[(String, String)]): Try[Pagination] = {
-    val IntString = """(\d+)""".r
-    def validate(field: String, default: Int) = query.collectFirst { case (`field`, size) => size } match {
-      case Some(IntString(x)) if x.toInt > 0 => x.toInt
-      case Some(IntString(x))                => throw new Exception(s"$field must greater than zero (found $x)")
-      case Some(str)                         => throw new Exception(s"$field must be an integer (found $str)")
-      case None                              => default
-    }
-
-    Try {
-      Pagination(
-        validate("pageSize", Pagination.Default.pageSize),
-        validate("pageNumber", Pagination.Default.pageNumber))
-    }
-  }
-}
-
 final case class Pagination(pageSize: Int, pageNumber: Int) {
+  require(pageSize > 0, "Page size must be greater than zero")
+  require(pageNumber > 0, "Page number must be greater than zero")
+
   def offset: Int = pageSize * (pageNumber - 1)
 }
 
@@ -234,13 +216,8 @@ object `package` {
     mapRequest(request => request.mapEntity(entity => entity.transformDataBytes(Flow.fromFunction(escapeScriptTags))))
   }
 
-  val paginated: Directive1[Pagination] = parameterSeq.flatMap { params =>
-    Pagination.parse(params) match {
-      case Success(pagination) => provide(pagination)
-      case Failure(ex) =>
-        reject(ValidationRejection("invalid pagination parameter", Some(ex)))
-    }
-  }
+  val paginated: Directive1[Pagination] =
+    parameters(("pageSize".as[Int] ? 100, "pageNumber".as[Int] ? 1)).as(Pagination)
 
   def paginationQuery(pagination: Pagination) =
     Seq("pageNumber" -> pagination.pageNumber.toString, "pageSize" -> pagination.pageSize.toString)

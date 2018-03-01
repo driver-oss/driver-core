@@ -28,6 +28,11 @@ package object core {
   }
   type @@[+V, +Tag] = V with tagging.Tagged[V, Tag]
 
+  // Intentionally discard a value. For use with -Ywarn-value-discard.
+  implicit class `xyz.core.Discard`[A](private val self: A) extends AnyVal {
+    @inline def discard: Unit = ()
+  }
+
   implicit class OptionTExtensions[H[_]: Monad, T](optionTValue: OptionT[H, T]) {
 
     def returnUnit: H[Unit] = optionTValue.fold[Unit](_ => (), ())

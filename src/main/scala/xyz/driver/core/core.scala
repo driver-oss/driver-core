@@ -35,13 +35,13 @@ package object core {
 
   implicit class OptionTExtensions[H[_]: Monad, T](optionTValue: OptionT[H, T]) {
 
-    def returnUnit: H[Unit] = optionTValue.fold[Unit](_ => (), ())
+    def returnUnit: H[Unit] = optionTValue.fold[Unit](_.discard, ())
 
     def continueIgnoringNone: OptionT[H, Unit] =
-      optionTValue.map(_ => ()).orElse(OptionT.some[H, Unit](()))
+      optionTValue.map(_.discard).orElse(OptionT.some[H, Unit](()))
 
     def subflatMap[B](f: T => Option[B]): OptionT[H, B] =
-      OptionT.optionT[H](implicitly[Monad[H]].map(optionTValue.run)(_.flatMap(f)))
+      optionTValue.mapT(implicitly[Monad[H]].map(_)(_.flatMap(f)))
   }
 
   implicit class MonadicExtensions[H[_]: Monad, T](monadicValue: H[T]) {

@@ -34,7 +34,6 @@ package object core {
   }
 
   implicit class OptionTExtensions[H[_]: Monad, T](optionTValue: OptionT[H, T]) {
-
     def returnUnit: H[Unit] = optionTValue.fold[Unit](_.discard, ())
 
     def continueIgnoringNone: OptionT[H, Unit] =
@@ -45,15 +44,20 @@ package object core {
   }
 
   implicit class MonadicExtensions[H[_]: Monad, T](monadicValue: H[T]) {
-    private implicit val monadT = implicitly[Monad[H]]
+    private val monadT = implicitly[Monad[H]]
 
-    def returnUnit: H[Unit] = monadT(monadicValue)(_ => ())
+    @annotation.deprecated("Use `discardValue` instead.", "driver-core x.x.x")
+    def returnUnit: H[Unit] = monadT(monadicValue)(_.discard)
 
+    def discardValue: H[Unit] = monadT(monadicValue)(_.discard)
+
+    @annotation.deprecated("Replace `.toOptionT` with `.liftM[OptionT]` from scalaz monad syntax.", "driver-core x.x.x")
     def toOptionT: OptionT[H, T] =
-      OptionT.optionT[H](monadT(monadicValue)(value => Option(value)))
+      OptionT.optionTMonadTrans.liftM(monadicValue)
 
+    @annotation.deprecated("Use `discardValue.liftM` instead.", "driver-core x.x.x")
     def toUnitOptionT: OptionT[H, Unit] =
-      OptionT.optionT[H](monadT(monadicValue)(_ => Option(())))
+      OptionT.optionTMonadTrans.liftM(discardValue)
   }
 }
 

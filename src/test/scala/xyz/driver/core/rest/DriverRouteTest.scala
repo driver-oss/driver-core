@@ -2,7 +2,7 @@ package xyz.driver.core.rest
 
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete => akkaComplete}
-import akka.http.scaladsl.server.{Directives, Route}
+import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.scalalogging.Logger
 import org.scalatest.{AsyncFlatSpec, Matchers}

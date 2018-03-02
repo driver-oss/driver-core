@@ -4,7 +4,6 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
-import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.RouteResult._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.{Http, HttpExt}
@@ -15,6 +14,7 @@ import io.swagger.models.Scheme
 import org.slf4j.{LoggerFactory, MDC}
 import xyz.driver.core
 import xyz.driver.core.rest._
+import xyz.driver.core.rest.Directives._
 import xyz.driver.core.stats.SystemStats
 import xyz.driver.core.time.Time
 import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
@@ -127,11 +127,10 @@ class DriverApp(
     val combinedRoute =
       Route.seal(modules.map(_.route).foldLeft(basicRoutes.routeWithDefaults)(_ ~ _) ~ defaultOptionsRoute)
 
-    (extractHost & extractClientIP & trace(tracer)) {
-      case (origin, ip) =>
+    (extractHost & extractClientIP & trackingId & trace(tracer)) {
+      case (origin, ip, tid) =>
         ctx =>
-          val trackingId = extractTrackingId(ctx.request)
-          MDC.put("trackingId", trackingId)
+          MDC.put("trackingId", tid)
 
           val updatedStacktrace =
             (extractStacktrace(ctx.request) ++ Array(appName)).mkString("->")
@@ -144,7 +143,7 @@ class DriverApp(
           val contextWithTrackingId =
             ctx.withRequest(
               ctx.request
-                .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
+                .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, tid))
                 .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
 
           respondWithAllCorsHeaders {

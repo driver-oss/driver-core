@@ -219,6 +219,16 @@ object `package` {
   val paginated: Directive1[Pagination] =
     parameters(("pageSize".as[Int] ? 100, "pageNumber".as[Int] ? 1)).as(Pagination)
 
+  private def extractPagination(pageSizeOpt: Option[Int], pageNumberOpt: Option[Int]): Option[Pagination] =
+    (pageSizeOpt, pageNumberOpt) match {
+      case (Some(size), Some(number)) => Option(Pagination(size, number))
+      case (None, None)               => Option.empty[Pagination]
+      case (_, _)                     => throw new IllegalArgumentException("Pagination's parameters are incorrect")
+    }
+
+  val optionalPaginated: Directive1[Option[Pagination]] =
+    parameters(("pageSize".as[Int].?, "pageNumber".as[Int].?)).as(extractPagination)
+
   def paginationQuery(pagination: Pagination) =
     Seq("pageNumber" -> pagination.pageNumber.toString, "pageSize" -> pagination.pageSize.toString)
 }

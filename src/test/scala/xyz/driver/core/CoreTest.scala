@@ -7,6 +7,9 @@ import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{FlatSpec, Matchers}
 
 class CoreTest extends FlatSpec with Matchers with MockitoSugar {
+  // === is already in scope from org.scalactic.TripleEquals
+  def `====`[T: scalaz.Equal](a: T, b: T): Boolean =
+    implicitly[scalaz.Equal[T]].equal(a, b)
 
   "'make' function" should "allow initialization for objects" in {
 
@@ -29,10 +32,10 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
   }
 
   "Id" should "have equality and ordering working correctly" in {
-
-    (Id[String]("1234213") === Id[String]("1234213")) should be(true)
-    (Id[String]("1234213") === Id[String]("213414")) should be(false)
-    (Id[String]("213414") === Id[String]("1234213")) should be(false)
+    ====(Id[String]("1234213"), Id[String]("1234213")) should be(true)
+    ====(Id[String]("1234213"), Id[String]("213414")) should be(false)
+    ====(Id[String]("213414"), Id[String]("1234213")) should be(false)
+    ====[Id[String]](StringId[String]("1"), LongId[String](1L)) should be(false)
 
     Seq(Id[String]("4"), Id[String]("3"), Id[String]("2"), Id[String]("1")).sorted should contain
     theSameElementsInOrderAs(Seq(Id[String]("1"), Id[String]("2"), Id[String]("3"), Id[String]("4")))
@@ -43,8 +46,11 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     final case class Y(id: Id[Y])
     final case class Z(id: Id[Z])
 
-    implicit val xy = Id.Mapper[X, Y]
-    implicit val yz = Id.Mapper[Y, Z]
+    implicit val equalX = scalaz.Equal.equalA[X]
+    implicit val equalY = scalaz.Equal.equalA[Y]
+
+    implicit val xy = Id.Mapper[X, Y, Id]
+    implicit val yz = Id.Mapper[Y, Z, Id]
 
     // Test that implicit conversions work correctly
     val x  = X(Id("0"))
@@ -52,8 +58,8 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     val z  = Z(y.id)
     val y2 = Y(z.id)
     val x2 = X(y2.id)
-    (x2 === x) should be(true)
-    (y2 === y) should be(true)
+    ====(x2, x) should be(true)
+    ====(y2, y) should be(true)
 
     // Test that type inferrence for explicit conversions work correctly
     val yid = y.id
@@ -64,9 +70,9 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
 
   "Name" should "have equality and ordering working correctly" in {
 
-    (Name[String]("foo") === Name[String]("foo")) should be(true)
-    (Name[String]("foo") === Name[String]("bar")) should be(false)
-    (Name[String]("bar") === Name[String]("foo")) should be(false)
+    ====(Name[String]("foo"), Name[String]("foo")) should be(true)
+    ====(Name[String]("foo"), Name[String]("bar")) should be(false)
+    ====(Name[String]("bar"), Name[String]("foo")) should be(false)
 
     Seq(Name[String]("d"), Name[String]("cc"), Name[String]("a"), Name[String]("bbb")).sorted should contain
     theSameElementsInOrderAs(Seq(Name[String]("a"), Name[String]("bbb"), Name[String]("cc"), Name[String]("d")))
@@ -77,8 +83,8 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     val bla = Revision[String]("85569dab-a3dc-401b-9f95-d6fb4162674b")
     val foo = Revision[String]("f54b3558-bdcd-4646-a14b-8beb11f6b7c4")
 
-    (bla === bla) should be(true)
-    (bla === foo) should be(false)
-    (foo === bla) should be(false)
+    ====(bla, bla) should be(true)
+    ====(bla, foo) should be(false)
+    ====(foo, bla) should be(false)
   }
 }

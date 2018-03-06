@@ -7,6 +7,7 @@ import java.security.spec.X509EncodedKeySpec
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth.{Permission, User}
 import xyz.driver.core.rest.ServiceRequestContext
+import xyz.driver.core.json.idFormat
 
 import scala.concurrent.Future
 import scalaz.syntax.std.boolean._
@@ -30,7 +31,7 @@ class CachedTokenAuthorization[U <: User](publicKey: => PublicKey, issuer: Strin
       jwtJson = jwt.parseJson.asJsObject
 
       // Ensure jwt is for the currently authenticated user and the correct issuer, otherwise return None
-      _ <- jwtJson.fields.get("sub").contains(JsString(user.id.value)).option(())
+      _ <- jwtJson.fields.get("sub").contains(user.id.toJson).option(())
       _ <- jwtJson.fields.get("iss").contains(JsString(issuer)).option(())
 
       permissionsMap <- extractPermissionsFromTokenJSON(jwtJson)

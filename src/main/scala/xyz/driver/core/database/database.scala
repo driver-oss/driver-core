@@ -93,30 +93,30 @@ package database {
     }
   }
 
-  trait IdColumnTypes extends ColumnTypes {
+  trait IdColumnTypes[I[_] <: Id[_]] extends ColumnTypes {
     import profile.api._
-    implicit def `xyz.driver.core.Id.columnType`[T]: BaseColumnType[Id[T]]
+    implicit def `xyz.driver.core.Id.columnType`[T]: BaseColumnType[I[T]]
   }
 
   object IdColumnTypes {
-    trait UUID extends IdColumnTypes {
+    trait UUID extends IdColumnTypes[UuidId] {
       import profile.api._
 
       override implicit def `xyz.driver.core.Id.columnType`[T] =
         MappedColumnType
-          .base[Id[T], java.util.UUID](id => java.util.UUID.fromString(id.value), uuid => Id[T](uuid.toString))
+          .base[UuidId[T], java.util.UUID](_.value, UuidId[T])
     }
-    trait SerialId extends IdColumnTypes {
+    trait SerialId extends IdColumnTypes[LongId] {
       import profile.api._
 
       override implicit def `xyz.driver.core.Id.columnType`[T] =
-        MappedColumnType.base[Id[T], Long](_.value.toLong, serialId => Id[T](serialId.toString))
+        MappedColumnType.base[LongId[T], Long](_.value, LongId[T])
     }
-    trait NaturalId extends IdColumnTypes {
+    trait NaturalId extends IdColumnTypes[StringId] {
       import profile.api._
 
       override implicit def `xyz.driver.core.Id.columnType`[T] =
-        MappedColumnType.base[Id[T], String](_.value, Id[T])
+        MappedColumnType.base[StringId[T], String](_.value, StringId[T])
     }
   }
 
@@ -146,11 +146,9 @@ package database {
   trait KeyMappers extends ColumnTypes {
     import profile.api._
 
-    def uuidKeyMapper[T] =
-      MappedColumnType
-        .base[Id[T], java.util.UUID](id => java.util.UUID.fromString(id.value), uuid => Id[T](uuid.toString))
-    def serialKeyMapper[T]  = MappedColumnType.base[Id[T], Long](_.value.toLong, serialId => Id[T](serialId.toString))
-    def naturalKeyMapper[T] = MappedColumnType.base[Id[T], String](_.value, Id[T])
+    def uuidKeyMapper[T]    = MappedColumnType.base[UuidId[T], java.util.UUID](_.value, UuidId[T])
+    def serialKeyMapper[T]  = MappedColumnType.base[LongId[T], Long](_.value, LongId[T])
+    def naturalKeyMapper[T] = MappedColumnType.base[StringId[T], String](_.value, StringId[T])
   }
 
   trait DatabaseObject extends ColumnTypes {

@@ -54,25 +54,34 @@ package object core {
 
 package core {
 
-  final case class Id[+Tag](value: String) extends AnyVal {
-    @inline def length: Int       = value.length
-    override def toString: String = value
+  sealed trait Id[+Tag] {
+    type Value
+    val value: Value
+    @inline def length: Int       = toString.length
+    override def toString: String = value.toString
   }
+
+  final case class StringId[+Tag](value: String)       extends Id[Tag] { type Value = String         }
+  final case class LongId[+Tag](value: Long)           extends Id[Tag] { type Value = Long           }
+  final case class UuidId[+Tag](value: java.util.UUID) extends Id[Tag] { type Value = java.util.UUID }
 
   @SuppressWarnings(Array("org.wartremover.warts.ImplicitConversion"))
   object Id {
-    implicit def idEqual[T]: Equal[Id[T]]       = Equal.equal[Id[T]](_ == _)
-    implicit def idOrdering[T]: Ordering[Id[T]] = Ordering.by[Id[T], String](_.value)
+    def apply[T](value: String): StringId[T] = StringId[T](value)
 
-    sealed class Mapper[E, R] {
-      def apply[T >: E](id: Id[R]): Id[T]                                = Id[E](id.value)
-      def apply[T >: R](id: Id[E])(implicit dummy: DummyImplicit): Id[T] = Id[R](id.value)
+    implicit def idEqual[T, I[_] <: Id[_]]: Equal[I[T]] = Equal.equalA[I[T]]
+    implicit def idOrdering[T, I[_] <: Id[_]](implicit ord: Ordering[I[T]#Value]): Ordering[I[T]] =
+      Ordering.by[I[T], I[T]#Value](_.value)
+
+    sealed class Mapper[E, R, I[_] <: Id[_]] {
+      def apply[T >: E](id: I[R]): I[T]                                = id.asInstanceOf[I[T]]
+      def apply[T >: R](id: I[E])(implicit dummy: DummyImplicit): I[T] = id.asInstanceOf[I[T]]
     }
     object Mapper {
-      def apply[E, R] = new Mapper[E, R]
+      def apply[E, R, I[_] <: Id[_]] = new Mapper[E, R, I]
     }
-    implicit def convertRE[R, E](id: Id[R])(implicit mapper: Mapper[E, R]): Id[E] = mapper[E](id)
-    implicit def convertER[E, R](id: Id[E])(implicit mapper: Mapper[E, R]): Id[R] = mapper[R](id)
+    implicit def convertRE[R, E, I[_] <: Id[_]](id: I[R])(implicit mapper: Mapper[E, R, I]): I[E] = mapper[E](id)
+    implicit def convertER[E, R, I[_] <: Id[_]](id: I[E])(implicit mapper: Mapper[E, R, I]): I[R] = mapper[R](id)
   }
 
   final case class Name[+Tag](value: String) extends AnyVal {

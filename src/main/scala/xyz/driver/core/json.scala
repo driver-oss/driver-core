@@ -22,18 +22,38 @@ import eu.timepit.refined.collection.NonEmpty
 object json {
   import DefaultJsonProtocol._
 
-  private def UuidInPath[T]: PathMatcher1[Id[T]] =
-    PathMatchers.JavaUUID.map((id: UUID) => Id[T](id.toString.toLowerCase))
+  def UuidInPath[T]: PathMatcher1[UuidId[T]]       = PathMatchers.JavaUUID.map(UuidId[T])
+  def LongIdInPath[T]: PathMatcher1[LongId[T]]     = PathMatchers.LongNumber.map(LongId[T])
+  def StringIdInPath[T]: PathMatcher1[StringId[T]] = PathMatchers.Segment.map(StringId[T])
 
-  def IdInPath[T]: PathMatcher1[Id[T]] = UuidInPath[T] | new PathMatcher1[Id[T]] {
-    def apply(path: Path) = path match {
-      case Path.Segment(segment, tail) => Matched(tail, Tuple1(Id[T](segment)))
-      case _                           => Unmatched
+  def IdInPath[T]: PathMatcher1[Id[T]] = UuidInPath[T] | LongIdInPath[T] | StringIdInPath[T]
+
+  implicit def stringIdFormat[T]: JsonFormat[StringId[T]] = new JsonFormat[StringId[T]] {
+    override def read(json: JsValue): StringId[T] = json match {
+      case JsString(s) => StringId[T](s)
+      case _           => deserializationError(s"Expected string for ID, got $json")
     }
+    override def write(obj: StringId[T]): JsValue = JsString(obj.value)
+  }
+
+  implicit def uuidIdFormat[T]: JsonFormat[UuidId[T]] = new JsonFormat[UuidId[T]] {
+    override def read(json: JsValue): UuidId[T] = json match {
+      case JsString(s) => UuidId[T](Try(UUID.fromString(s)).getOrElse(deserializationError(s"Invalid UUID format: $s")))
+      case _           => deserializationError(s"Expected UUID string for ID, got $json")
+    }
+    override def write(obj: UuidId[T]): JsValue = JsString(obj.toString)
+  }
+
+  implicit def longIdFormat[T]: JsonFormat[LongId[T]] = new JsonFormat[LongId[T]] {
+    override def read(json: JsValue): LongId[T] = json match {
+      case JsNumber(n) => LongId[T](n.toLong)
+      case _           => deserializationError(s"Expected number for ID, got $json")
+    }
+    override def write(obj: LongId[T]): JsValue = JsNumber(obj.value)
   }
 
   implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
-    def write(id: Id[T]) = JsString(id.value)
+    def write(id: Id[T]) = JsString(id.toString)
 
     def read(value: JsValue) = value match {
       case JsString(id) if Try(UUID.fromString(id)).isSuccess => Id[T](id.toLowerCase)

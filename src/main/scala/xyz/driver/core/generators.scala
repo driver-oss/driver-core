@@ -4,7 +4,7 @@ import java.math.MathContext
 import java.util.UUID
 
 import xyz.driver.core.time.{Time, TimeRange}
-import xyz.driver.core.date.Date
+import xyz.driver.core.date.{Date, DayOfWeek}
 
 import scala.reflect.ClassTag
 import scala.util.Random
@@ -79,6 +79,8 @@ object generators {
   }
 
   def nextDate(): Date = nextTime().toDate(java.util.TimeZone.getTimeZone("UTC"))
+
+  def nextDayOfWeek(): DayOfWeek = oneOf(DayOfWeek.All)
 
   def nextBigDecimal(multiplier: Double = 1000000.00, precision: Int = 2): BigDecimal =
     BigDecimal(multiplier * nextDouble, new MathContext(precision))

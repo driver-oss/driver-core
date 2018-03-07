@@ -226,7 +226,7 @@ object `package` {
       case (_, _)                     => throw new IllegalArgumentException("Pagination's parameters are incorrect")
     }
 
-  val optionalPaginated: Directive1[Option[Pagination]] =
+  val optionalPagination: Directive1[Option[Pagination]] =
     parameters(("pageSize".as[Int].?, "pageNumber".as[Int].?)).as(extractPagination)
 
   def paginationQuery(pagination: Pagination) =

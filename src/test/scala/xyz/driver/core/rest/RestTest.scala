@@ -49,7 +49,7 @@ class RestTest extends WordSpec with Matchers with ScalatestRouteTest with Direc
   }
 
   "optional paginated directive" should {
-    val route: Route = rest.optionalPaginated { paginated =>
+    val route: Route = rest.optionalPagination { paginated =>
       complete(StatusCodes.OK -> paginated.map(p => s"${p.pageNumber},${p.pageSize}").getOrElse("no pagination"))
     }
     "accept a pagination" in {

@@ -12,7 +12,7 @@ import akka.http.scaladsl.marshalling.{Marshaller, Marshalling}
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import spray.json._
 import xyz.driver.core.auth.AuthCredentials
-import xyz.driver.core.date.{Date, Month}
+import xyz.driver.core.date.{Date, DayOfWeek, Month}
 import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.time.Time
 import eu.timepit.refined.refineV
@@ -79,6 +79,9 @@ object json {
       case _ => throw DeserializationException("Time expects number")
     }
   }
+
+  implicit val dayOfWeekFormat: JsonFormat[DayOfWeek] =
+    new EnumJsonFormat[DayOfWeek](DayOfWeek.All.map(w => w.toString -> w)(collection.breakOut): _*)
 
   implicit val dateFormat = new RootJsonFormat[Date] {
     def write(date: Date) = JsString(date.toString)

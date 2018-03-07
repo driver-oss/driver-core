@@ -5,6 +5,7 @@ import java.util.Calendar
 import scala.util.Try
 
 import scalaz.std.anyVal._
+import scalaz.Scalaz.stringInstance
 import scalaz.syntax.equal._
 
 /**
@@ -13,6 +14,21 @@ import scalaz.syntax.equal._
   * TODO: Decouple extractors from ISO 8601, as we might want to parse other formats.
   */
 object date {
+
+  sealed trait DayOfWeek
+  object DayOfWeek {
+    case object Monday    extends DayOfWeek
+    case object Tuesday   extends DayOfWeek
+    case object Wednesday extends DayOfWeek
+    case object Thursday  extends DayOfWeek
+    case object Friday    extends DayOfWeek
+    case object Saturday  extends DayOfWeek
+    case object Sunday    extends DayOfWeek
+
+    val All: Set[DayOfWeek] = Set(Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)
+
+    def fromString(day: String): Option[DayOfWeek] = All.find(_.toString === day)
+  }
 
   type Day = Int @@ Day.type
 

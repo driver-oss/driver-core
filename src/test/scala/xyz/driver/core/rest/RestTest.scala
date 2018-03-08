@@ -1,6 +1,5 @@
 package xyz.driver.core.rest
 
-import akka.http.javadsl.server.MalformedRequestContentRejection
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route, ValidationRejection}
 import akka.http.scaladsl.testkit.ScalatestRouteTest

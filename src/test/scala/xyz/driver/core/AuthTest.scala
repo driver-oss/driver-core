@@ -1,7 +1,11 @@
 package xyz.driver.core
 
-import akka.http.scaladsl.model.headers.{HttpChallenges, RawHeader}
-import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
+import akka.http.scaladsl.model.headers.{
+  HttpChallenges,
+  OAuth2BearerToken,
+  RawHeader,
+  Authorization => AkkaAuthorization
+}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
@@ -79,36 +83,51 @@ class AuthTest extends FlatSpec with Matchers with ScalatestRouteTest {
       } ~>
       check {
         // handled shouldBe false
-        val challenge = HttpChallenges.basic("Failed to authenticate user")
-        rejections should contain(AuthenticationFailedRejection(CredentialsRejected, challenge))
+        rejections should contain(
+          AuthenticationFailedRejection(
+            AuthenticationFailedRejection.CredentialsMissing,
+            HttpChallenges.oAuth2(authStatusService.OAuthRealm)))
       }
   }
 
   it should "throw error if authorized user does not have the requested permission" in {
 
-    val referenceAuthToken = AuthToken("I am a test role's token")
+    val referenceAuthToken  = AuthToken("I am a test role's token")
+    val referenceAuthHeader = AkkaAuthorization(OAuth2BearerToken(referenceAuthToken.value))
 
     Post("/administration/attempt").addHeader(
-      RawHeader(AuthProvider.AuthenticationTokenHeader, referenceAuthToken.value)
+      referenceAuthHeader
     ) ~>
       authorize(TestRoleNotAllowedPermission) { user =>
         complete("Never going to get here")
       } ~>
       check {
         handled shouldBe false
-        rejections should contain(
-          AuthenticationFailedRejection(
-            CredentialsRejected,
-            HttpChallenges.basic("User does not have the required permissions: TestRoleNotAllowedPermission")))
+        rejections should contain(AuthorizationFailedRejection)
       }
   }
 
   it should "pass and retrieve the token to client code, if token is in request and user has permission" in {
-
-    val referenceAuthToken = AuthToken("I am token")
+    val referenceAuthToken  = AuthToken("I am token")
+    val referenceAuthHeader = AkkaAuthorization(OAuth2BearerToken(referenceAuthToken.value))
 
     Get("/valid/attempt/?a=2&b=5").addHeader(
-      RawHeader(AuthProvider.AuthenticationTokenHeader, referenceAuthToken.value)
+      referenceAuthHeader
+    ) ~>
+      authorize(TestRoleAllowedPermission) { ctx =>
+        complete(s"Alright, user ${ctx.authenticatedUser.id} is authorized")
+      } ~>
+      check {
+        handled shouldBe true
+        responseAs[String] shouldBe "Alright, user 1 is authorized"
+      }
+  }
+
+  it should "authenticate correctly even without the 'Bearer' prefix on the Authorization header" in {
+    val referenceAuthToken = AuthToken("unprefixed_token")
+
+    Get("/valid/attempt/?a=2&b=5").addHeader(
+      RawHeader(ContextHeaders.AuthenticationTokenHeader, referenceAuthToken.value)
     ) ~>
       authorize(TestRoleAllowedPermission) { ctx =>
         complete(s"Alright, user ${ctx.authenticatedUser.id} is authorized")
@@ -128,11 +147,12 @@ class AuthTest extends FlatSpec with Matchers with ScalatestRouteTest {
         "sub"         -> JsString("1"),
         "permissions" -> JsObject(Map(TestRoleAllowedByTokenPermission.toString -> JsBoolean(true)))
       )).prettyPrint
-    val permissionsToken   = PermissionsToken(Jwt.encode(claim, privateKey, JwtAlgorithm.RS256))
-    val referenceAuthToken = AuthToken("I am token")
+    val permissionsToken    = PermissionsToken(Jwt.encode(claim, privateKey, JwtAlgorithm.RS256))
+    val referenceAuthToken  = AuthToken("I am token")
+    val referenceAuthHeader = AkkaAuthorization(OAuth2BearerToken(referenceAuthToken.value))
 
     Get("/alic/attempt/?a=2&b=5")
-      .addHeader(RawHeader(AuthProvider.AuthenticationTokenHeader, referenceAuthToken.value))
+      .addHeader(referenceAuthHeader)
       .addHeader(RawHeader(AuthProvider.PermissionsTokenHeader, permissionsToken.value)) ~>
       authorize(TestRoleAllowedByTokenPermission) { ctx =>
         complete(s"Alright, user ${ctx.authenticatedUser.id} is authorized by permissions token")

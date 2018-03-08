@@ -131,8 +131,18 @@ object `package` {
       originHeader.fold[HttpOriginRange](HttpOriginRange.*)(h => HttpOriginRange(h.origins: _*)))
 
   def serviceContext: Directive1[ServiceRequestContext] = {
+    def fixAuthorizationHeader(headers: Seq[HttpHeader]): collection.immutable.Seq[HttpHeader] = {
+      headers.map({ header =>
+        if (header.name === ContextHeaders.AuthenticationTokenHeader && !header.value.startsWith(
+              ContextHeaders.AuthenticationHeaderPrefix)) {
+          Authorization(OAuth2BearerToken(header.value))
+        } else header
+      })(collection.breakOut)
+    }
     extractClientIP flatMap { remoteAddress =>
-      extract(ctx => extractServiceContext(ctx.request, remoteAddress))
+      mapRequest(req => req.withHeaders(fixAuthorizationHeader(req.headers))) tflatMap { _ =>
+        extract(ctx => extractServiceContext(ctx.request, remoteAddress))
+      }
     }
   }
 

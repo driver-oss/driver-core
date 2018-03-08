@@ -1,23 +1,21 @@
 package xyz.driver.core.rest.auth
 
-import akka.http.scaladsl.model.headers.HttpChallenges
-import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
+import akka.http.scaladsl.server.directives.Credentials
 import com.typesafe.scalalogging.Logger
-import xyz.driver.core._
-import xyz.driver.core.auth.{Permission, User}
+import scalaz.OptionT
+import xyz.driver.core.auth.{AuthToken, Permission, User}
 import xyz.driver.core.rest.{AuthorizedServiceRequestContext, ServiceRequestContext, serviceContext}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
-
-import scalaz.Scalaz.futureInstance
-import scalaz.OptionT
 
 abstract class AuthProvider[U <: User](val authorization: Authorization[U], log: Logger)(
     implicit execution: ExecutionContext) {
 
   import akka.http.scaladsl.server._
-  import Directives._
+  import Directives.{authorize => akkaAuthorize, _}
+
+  // TODO(zsmith) look up what this should be
+  val OAuthRealm = "driver.xyz"
 
   /**
     * Specific implementation on how to extract user from request context,
@@ -28,37 +26,30 @@ abstract class AuthProvider[U <: User](val authorization: Authorization[U], log:
     */
   def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, U]
 
+  protected def authenticator(context: ServiceRequestContext): AsyncAuthenticator[U] = {
+    case Credentials.Missing =>
+      log.info(s"Request (${context.trackingId}) missing authentication credentials")
+      Future.successful(None)
+    case Credentials.Provided(authToken) =>
+      authenticatedUser(context.withAuthToken(AuthToken(authToken))).run
+  }
+
   /**
-    * Verifies if a service context is authenticated and authorized to have `permissions`
+    * Verifies that a user agent is properly authenticated, and (optionally) authorized with the specified permissions
     */
   def authorize(
       context: ServiceRequestContext,
       permissions: Permission*): Directive1[AuthorizedServiceRequestContext[U]] = {
-    onComplete {
-      (for {
-        authToken <- OptionT.optionT(Future.successful(context.authToken))
-        user      <- authenticatedUser(context)
-        authCtx = context.withAuthenticatedUser(authToken, user)
-        authorizationResult <- authorization.userHasPermissions(user, permissions)(authCtx).toOptionT
-
-        cachedPermissionsAuthCtx = authorizationResult.token.fold(authCtx)(authCtx.withPermissionsToken)
-        allAuthorized            = permissions.forall(authorizationResult.authorized.getOrElse(_, false))
-      } yield (cachedPermissionsAuthCtx, allAuthorized)).run
-    } flatMap {
-      case Success(Some((authCtx, true))) => provide(authCtx)
-      case Success(Some((authCtx, false))) =>
-        val challenge =
-          HttpChallenges.basic(s"User does not have the required permissions: ${permissions.mkString(", ")}")
-        log.warn(
-          s"User ${authCtx.authenticatedUser} does not have the required permissions: ${permissions.mkString(", ")}")
-        reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
-      case Success(None) =>
-        val challenge = HttpChallenges.basic("Failed to authenticate user")
-        log.warn(s"Failed to authenticate user to verify ${permissions.mkString(", ")}")
-        reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
-      case Failure(t) =>
-        log.warn(s"Wasn't able to verify token for authenticated user to verify ${permissions.mkString(", ")}", t)
-        reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))
+    authenticateOAuth2Async[U](OAuthRealm, authenticator(context)) flatMap { authenticatedUser =>
+      val authCtx = context.withAuthenticatedUser(context.authToken.get, authenticatedUser)
+      onSuccess(authorization.userHasPermissions(authenticatedUser, permissions)(authCtx)) flatMap {
+        case AuthorizationResult(authorized, token) =>
+          val allAuthorized = permissions.forall(authorized.getOrElse(_, false))
+          akkaAuthorize(allAuthorized) tflatMap { _ =>
+            val cachedPermissionsCtx = token.fold(authCtx)(authCtx.withPermissionsToken)
+            provide(cachedPermissionsCtx)
+          }
+      }
     }
   }
 
@@ -66,8 +57,6 @@ abstract class AuthProvider[U <: User](val authorization: Authorization[U], log:
     * Verifies if request is authenticated and authorized to have `permissions`
     */
   def authorize(permissions: Permission*): Directive1[AuthorizedServiceRequestContext[U]] = {
-    serviceContext flatMap { ctx =>
-      authorize(ctx, permissions: _*)
-    }
+    serviceContext flatMap (authorize(_, permissions: _*))
   }
 }

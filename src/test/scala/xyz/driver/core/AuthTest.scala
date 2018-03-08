@@ -86,7 +86,7 @@ class AuthTest extends FlatSpec with Matchers with ScalatestRouteTest {
         rejections should contain(
           AuthenticationFailedRejection(
             AuthenticationFailedRejection.CredentialsMissing,
-            HttpChallenges.oAuth2(authStatusService.OAuthRealm)))
+            HttpChallenges.oAuth2(authStatusService.realm)))
       }
   }
 

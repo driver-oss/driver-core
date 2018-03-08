@@ -4,18 +4,18 @@ import akka.http.scaladsl.server.directives.Credentials
 import com.typesafe.scalalogging.Logger
 import scalaz.OptionT
 import xyz.driver.core.auth.{AuthToken, Permission, User}
-import xyz.driver.core.rest.{AuthorizedServiceRequestContext, ServiceRequestContext, serviceContext}
+import xyz.driver.core.rest.{AuthorizedServiceRequestContext, ContextHeaders, ServiceRequestContext, serviceContext}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-abstract class AuthProvider[U <: User](val authorization: Authorization[U], log: Logger)(
-    implicit execution: ExecutionContext) {
+abstract class AuthProvider[U <: User](
+    val authorization: Authorization[U],
+    log: Logger,
+    val realm: String = "driver.xyz"
+)(implicit execution: ExecutionContext) {
 
   import akka.http.scaladsl.server._
   import Directives.{authorize => akkaAuthorize, _}
-
-  // TODO(zsmith) look up what this should be
-  val OAuthRealm = "driver.xyz"
 
   /**
     * Specific implementation on how to extract user from request context,
@@ -40,7 +40,7 @@ abstract class AuthProvider[U <: User](val authorization: Authorization[U], log:
   def authorize(
       context: ServiceRequestContext,
       permissions: Permission*): Directive1[AuthorizedServiceRequestContext[U]] = {
-    authenticateOAuth2Async[U](OAuthRealm, authenticator(context)) flatMap { authenticatedUser =>
+    authenticateOAuth2Async[U](realm, authenticator(context)) flatMap { authenticatedUser =>
       val authCtx = context.withAuthenticatedUser(context.authToken.get, authenticatedUser)
       onSuccess(authorization.userHasPermissions(authenticatedUser, permissions)(authCtx)) flatMap {
         case AuthorizationResult(authorized, token) =>
@@ -59,4 +59,11 @@ abstract class AuthProvider[U <: User](val authorization: Authorization[U], log:
   def authorize(permissions: Permission*): Directive1[AuthorizedServiceRequestContext[U]] = {
     serviceContext flatMap (authorize(_, permissions: _*))
   }
+}
+
+object AuthProvider {
+  val AuthenticationTokenHeader: String    = ContextHeaders.AuthenticationTokenHeader
+  val PermissionsTokenHeader: String       = ContextHeaders.PermissionsTokenHeader
+  val SetAuthenticationTokenHeader: String = "set-authorization"
+  val SetPermissionsTokenHeader: String    = "set-permissions"
 }

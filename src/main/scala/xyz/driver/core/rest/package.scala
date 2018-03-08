@@ -14,6 +14,7 @@ import akka.util.ByteString
 import scalaz.Scalaz.{intInstance, stringInstance}
 import scalaz.syntax.equal._
 import scalaz.{Functor, OptionT}
+import xyz.driver.core.rest.auth.AuthProvider
 import xyz.driver.tracing.TracingDirectives
 
 import scala.concurrent.Future
@@ -88,13 +89,6 @@ object `package` {
     val PageCount: String                  = "X-Page-Count"
     val TraceHeaderName: String            = TracingDirectives.TraceHeaderName
     val SpanHeaderName: String             = TracingDirectives.SpanHeaderName
-  }
-
-  object AuthProvider {
-    val AuthenticationTokenHeader: String    = ContextHeaders.AuthenticationTokenHeader
-    val PermissionsTokenHeader: String       = ContextHeaders.PermissionsTokenHeader
-    val SetAuthenticationTokenHeader: String = "set-authorization"
-    val SetPermissionsTokenHeader: String    = "set-permissions"
   }
 
   val AllowedHeaders: Seq[String] =

@@ -6,11 +6,13 @@ import xyz.driver.core.auth.{AuthToken, PermissionsToken, User}
 import xyz.driver.core.generators
 
 import scalaz.Scalaz.{mapEqual, stringInstance}
+import scalaz.Scalaz.optionEqual
 import scalaz.syntax.equal._
 
 class ServiceRequestContext(
     val trackingId: String = generators.nextUuid().toString,
     val originatingIp: Option[InetAddress] = None,
+    val fingerprintHash: Option[String] = None,
     val contextHeaders: Map[String, String] = Map.empty[String, String]) {
   def authToken: Option[AuthToken] =
     contextHeaders.get(AuthProvider.AuthenticationTokenHeader).map(AuthToken.apply)
@@ -22,6 +24,7 @@ class ServiceRequestContext(
     new ServiceRequestContext(
       trackingId,
       originatingIp,
+      fingerprintHash,
       contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value)
     )
 
@@ -29,16 +32,21 @@ class ServiceRequestContext(
     new AuthorizedServiceRequestContext(
       trackingId,
       originatingIp,
+      fingerprintHash,
       contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value),
       user
     )
 
   override def hashCode(): Int =
-    Seq[Any](trackingId, originatingIp, contextHeaders).foldLeft(31)((result, obj) => 31 * result + obj.hashCode())
+    Seq[Any](trackingId, originatingIp, fingerprintHash, contextHeaders)
+      .foldLeft(31)((result, obj) => 31 * result + obj.hashCode())
 
   override def equals(obj: Any): Boolean = obj match {
     case ctx: ServiceRequestContext =>
-      trackingId === ctx.trackingId && originatingIp == originatingIp && contextHeaders === ctx.contextHeaders
+      trackingId === ctx.trackingId &&
+        originatingIp == originatingIp &&
+        fingerprintHash === ctx.fingerprintHash &&
+        contextHeaders === ctx.contextHeaders
     case _ => false
   }
 
@@ -48,6 +56,7 @@ class ServiceRequestContext(
 class AuthorizedServiceRequestContext[U <: User](
     override val trackingId: String = generators.nextUuid().toString,
     override val originatingIp: Option[InetAddress] = None,
+    override val fingerprintHash: Option[String] = None,
     override val contextHeaders: Map[String, String] = Map.empty[String, String],
     val authenticatedUser: U)
     extends ServiceRequestContext {
@@ -56,6 +65,7 @@ class AuthorizedServiceRequestContext[U <: User](
     new AuthorizedServiceRequestContext[U](
       trackingId,
       originatingIp,
+      fingerprintHash,
       contextHeaders.updated(AuthProvider.PermissionsTokenHeader, permissionsToken.value),
       authenticatedUser)
 

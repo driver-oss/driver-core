@@ -91,12 +91,12 @@ object `package` {
       "Content-Length",
       "Accept",
       "X-Trace",
-      ContextHeaders.ClientFingerprintHeader,
       "Access-Control-Allow-Methods",
       "Access-Control-Allow-Origin",
       "Access-Control-Allow-Headers",
       "Server",
       "Date",
+      ContextHeaders.ClientFingerprintHeader,
       ContextHeaders.TrackingIdHeader,
       ContextHeaders.TraceHeaderName,
       ContextHeaders.SpanHeaderName,
@@ -148,12 +148,19 @@ object `package` {
     new ServiceRequestContext(
       extractTrackingId(request),
       extractOriginatingIP(request, remoteAddress),
+      extractFingerprintHash(request),
       extractContextHeaders(request))
 
   def extractTrackingId(request: HttpRequest): String = {
     request.headers
       .find(_.name === ContextHeaders.TrackingIdHeader)
       .fold(java.util.UUID.randomUUID.toString)(_.value())
+  }
+
+  def extractFingerprintHash(request: HttpRequest): Option[String] = {
+    request.headers
+      .find(_.name === ContextHeaders.ClientFingerprintHeader)
+      .map(_.value())
   }
 
   def extractOriginatingIP(request: HttpRequest, remoteAddress: RemoteAddress): Option[InetAddress] = {

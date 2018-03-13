@@ -12,6 +12,9 @@ import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
+import kamon.Kamon
+import kamon.prometheus.PrometheusReporter
+import kamon.system.SystemMetrics
 import org.slf4j.{LoggerFactory, MDC}
 import xyz.driver.core
 import xyz.driver.core.rest._
@@ -41,25 +44,36 @@ class DriverApp(
     port: Int = 8080,
     tracer: Tracer = NoTracer)(implicit actorSystem: ActorSystem, executionContext: ExecutionContext) {
   self =>
+  import DriverApp._
 
   implicit private lazy val materializer: ActorMaterializer = ActorMaterializer()(actorSystem)
   private lazy val http: HttpExt                            = Http()(actorSystem)
   val appEnvironment: String                                = config.getString("application.environment")
 
   def run(): Unit = {
+    earlyLog("Starting metrics collection ...")
+    Kamon.addReporter(new PrometheusReporter())
+    SystemMetrics.startCollecting()
+    earlyLog(" Done\n")
     activateServices(modules)
     scheduleServicesDeactivation(modules)
     bindHttp(modules)
-    Console.print(s"${this.getClass.getName} App is started\n")
+    earlyLog("App is started\n")
   }
 
   def stop(): Unit = {
+    sys.addShutdownHook(earlyLog("Bye"))
+    earlyLog("Initiating shutdown\n")
     http.shutdownAllConnectionPools().onComplete { _ =>
       Await.result(tracer.close(), 15.seconds) // flush out any remaining traces from the buffer
       val terminated        = Await.result(actorSystem.terminate(), 30.seconds)
       val addressTerminated = if (terminated.addressTerminated) "is" else "is not"
-      Console.print(s"${this.getClass.getName} App $addressTerminated stopped ")
+      earlyLog(s"App $addressTerminated stopped\n")
     }
+
+    earlyLog("Stopping metrics collection ...")
+    SystemMetrics.stopCollecting()
+    earlyLog("Done\n")
   }
 
   protected lazy val allowedCorsDomainSuffixes: Set[HttpOrigin] = {
@@ -239,36 +253,40 @@ class DriverApp(
     */
   protected def activateServices(services: Seq[Module]): Unit = {
     services.foreach { service =>
-      Console.print(s"Service ${service.name} starts ...")
+      earlyLog(s"Service ${service.name} starts ...")
       try {
         service.activate()
       } catch {
         case t: Throwable =>
           log.error(s"Service ${service.name} failed to activate", t)
-          Console.print(" Failed! (check log)")
+          earlyLog(" Failed! (check log)\n")
       }
-      Console.print(" Done\n")
+      earlyLog(" Done\n")
     }
   }
 
   /**
     * Schedules services to be deactivated on the app shutdown
     */
-  protected def scheduleServicesDeactivation(services: Seq[Module]): Unit = {
-    Runtime.getRuntime.addShutdownHook(new Thread() {
-      override def run(): Unit = {
-        services.foreach { service =>
-          Console.print(s"Service ${service.name} shutting down ...\n")
-          try {
-            service.deactivate()
-          } catch {
-            case t: Throwable =>
-              log.error(s"Service ${service.name} failed to deactivate", t)
-              Console.print(" Failed! (check log)")
-          }
-          Console.print(s"Service ${service.name} is shut down\n")
-        }
+  protected def scheduleServicesDeactivation(services: Seq[Module]): Unit = sys.addShutdownHook {
+    services.foreach { service =>
+      earlyLog(s"Service ${service.name} shutting down ...\n")
+      try {
+        service.deactivate()
+      } catch {
+        case t: Throwable =>
+          log.error(s"Service ${service.name} failed to deactivate", t)
+          earlyLog(" Failed! (check log)")
       }
-    })
+      earlyLog(s"Service ${service.name} is shut down\n")
+    }
+  }
+}
+
+object DriverApp {
+  // logging for startup and shutdown
+  private def earlyLog(message: String) = synchronized {
+    System.err.print(message)
+    System.err.flush()
   }
 }

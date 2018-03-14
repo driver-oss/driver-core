@@ -11,11 +11,14 @@ import scala.concurrent.{ExecutionContext, Future}
 abstract class AuthProvider[U <: User](
     val authorization: Authorization[U],
     log: Logger,
-    val realm: String = "driver.xyz"
+    val realm: String
 )(implicit execution: ExecutionContext) {
 
   import akka.http.scaladsl.server._
   import Directives.{authorize => akkaAuthorize, _}
+
+  def this(authorization: Authorization[U], log: Logger)(implicit executionContext: ExecutionContext) =
+    this(authorization, log, "driver.xyz")
 
   /**
     * Specific implementation on how to extract user from request context,

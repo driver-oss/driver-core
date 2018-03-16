@@ -31,7 +31,7 @@ class PatchSupportTest
   def jsonEntity(json: String): RequestEntity = HttpEntity(ContentTypes.`application/json`, json)
 
   "PatchSupport" should "allow partial updates to an existing object" in {
-    implicit val fooPatchable: PatchRetrievable[Foo] = id => Future.successful(Some(testFoo.copy(id = id)))
+    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
 
     Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")) ~> route ~> check {
       handled shouldBe true
@@ -40,7 +40,7 @@ class PatchSupportTest
   }
 
   it should "merge deeply nested objects" in {
-    implicit val fooPatchable: PatchRetrievable[Foo] = id => Future.successful(Some(testFoo.copy(id = id)))
+    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
 
     Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4, "bar": {"name": "My Bar"}}""")) ~> route ~> check {
       handled shouldBe true
@@ -49,7 +49,7 @@ class PatchSupportTest
   }
 
   it should "return a 404 if the object is not found" in {
-    implicit val fooPatchable: PatchRetrievable[Foo] = _ => Future.successful(Option.empty[Foo])
+    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(None))
 
     Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")) ~> route ~> check {
       handled shouldBe true
@@ -58,7 +58,7 @@ class PatchSupportTest
   }
 
   it should "handle nulls on optional values correctly" in {
-    implicit val fooPatchable: PatchRetrievable[Foo] = id => Future.successful(Some(testFoo.copy(id = id)))
+    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
 
     Patch("/api/v1/foos/1", jsonEntity("""{"bar": null}""")) ~> route ~> check {
       handled shouldBe true
@@ -67,7 +67,7 @@ class PatchSupportTest
   }
 
   it should "return a 400 for nulls on non-optional values" in {
-    implicit val fooPatchable: PatchRetrievable[Foo] = id => Future.successful(Some(testFoo.copy(id = id)))
+    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
 
     Patch("/api/v1/foos/1", jsonEntity("""{"rank": null}""")) ~> route ~> check {
       handled shouldBe true

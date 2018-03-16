@@ -11,7 +11,14 @@ import scala.concurrent.Future
 trait PatchSupport extends Directives with SprayJsonSupport {
 
   trait PatchRetrievable[T] {
-    def apply(id: Id[T]): Future[Option[T]]
+    def apply(id: Id[T])(implicit ctx: ServiceRequestContext): Future[Option[T]]
+  }
+
+  object PatchRetrievable {
+    def apply[T](retriever: ((Id[T], ServiceRequestContext) => Future[Option[T]])): PatchRetrievable[T] =
+      new PatchRetrievable[T] {
+        override def apply(id: Id[T])(implicit ctx: ServiceRequestContext): Future[Option[T]] = retriever(id, ctx)
+      }
   }
 
   protected def mergeObjects(oldObj: JsObject, newObj: JsObject, maxLevels: Option[Int] = None): JsObject = {
@@ -57,21 +64,24 @@ trait PatchSupport extends Directives with SprayJsonSupport {
       implicit val jsonFormat: RootJsonFormat[T] = patchable._2
       Directives.patch {
         entity(as[JsValue]) { newValue =>
-          onSuccess(retriever(id).map(_.map(_.toJson))) {
-            case Some(oldValue) =>
-              val mergedObj = mergeJsValues(oldValue, newValue)
-              util
-                .Try(mergedObj.convertTo[T])
-                .transform[Route](
-                  mergedT => util.Success(inner(Tuple1(mergedT))), {
-                    case jsonException: DeserializationException =>
-                      util.Success(reject(Rejections.malformedRequestContent(jsonException.getMessage, jsonException)))
-                    case t => util.Failure(t)
-                  }
-                )
-                .get // intentionally re-throw all other errors
-            case None =>
-              reject()
+          serviceContext { implicit ctx =>
+            onSuccess(retriever(id).map(_.map(_.toJson))) {
+              case Some(oldValue) =>
+                val mergedObj = mergeJsValues(oldValue, newValue)
+                util
+                  .Try(mergedObj.convertTo[T])
+                  .transform[Route](
+                    mergedT => util.Success(inner(Tuple1(mergedT))), {
+                      case jsonException: DeserializationException =>
+                        util.Success(
+                          reject(Rejections.malformedRequestContent(jsonException.getMessage, jsonException)))
+                      case t => util.Failure(t)
+                    }
+                  )
+                  .get // intentionally re-throw all other errors
+              case None =>
+                reject()
+            }
           }
         }
       }(requestCtx)

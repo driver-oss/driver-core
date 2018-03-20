@@ -2,13 +2,17 @@ package xyz.driver.core.rest
 
 import akka.http.javadsl.server.Rejections
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.server.{Directive, Directive1, Directives, Route}
+import akka.http.scaladsl.server._
 import spray.json._
 import xyz.driver.core.Id
 
 import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
+import scalaz.syntax.equal._
+import scalaz.Scalaz.stringInstance
 
 trait PatchSupport extends Directives with SprayJsonSupport {
+  protected val MergePatchPlusJson: String = "merge-patch+json"
 
   trait PatchRetrievable[T] {
     def apply(id: Id[T])(implicit ctx: ServiceRequestContext): Future[Option[T]]
@@ -52,6 +56,18 @@ trait PatchSupport extends Directives with SprayJsonSupport {
     }
   }
 
+  def rejectNonMergePatchContentType: Directive0 = Directive { inner => requestCtx =>
+    val contentType = requestCtx.request.header[akka.http.scaladsl.model.headers.`Content-Type`]
+    val isCorrectContentType =
+      contentType.map(_.contentType.mediaType).exists(mt => mt.isApplication && mt.subType === MergePatchPlusJson)
+    if (!isCorrectContentType) {
+      reject(
+        Rejections.malformedRequestContent(
+          s"Request Content-Type must be application/$MergePatchPlusJson for PATCH requests",
+          new RuntimeException))(requestCtx)
+    } else inner(())(requestCtx)
+  }
+
   def as[T](
       implicit patchable: PatchRetrievable[T],
       jsonFormat: RootJsonFormat[T]): (PatchRetrievable[T], RootJsonFormat[T]) =
@@ -63,24 +79,24 @@ trait PatchSupport extends Directives with SprayJsonSupport {
       val retriever                              = patchable._1
       implicit val jsonFormat: RootJsonFormat[T] = patchable._2
       Directives.patch {
-        entity(as[JsValue]) { newValue =>
-          serviceContext { implicit ctx =>
-            onSuccess(retriever(id).map(_.map(_.toJson))) {
-              case Some(oldValue) =>
-                val mergedObj = mergeJsValues(oldValue, newValue)
-                util
-                  .Try(mergedObj.convertTo[T])
-                  .transform[Route](
-                    mergedT => util.Success(inner(Tuple1(mergedT))), {
-                      case jsonException: DeserializationException =>
-                        util.Success(
-                          reject(Rejections.malformedRequestContent(jsonException.getMessage, jsonException)))
-                      case t => util.Failure(t)
-                    }
-                  )
-                  .get // intentionally re-throw all other errors
-              case None =>
-                reject()
+        rejectNonMergePatchContentType {
+          entity(as[JsValue]) { newValue =>
+            serviceContext { implicit ctx =>
+              onSuccess(retriever(id).map(_.map(_.toJson))) {
+                case Some(oldValue) =>
+                  val mergedObj = mergeJsValues(oldValue, newValue)
+                  Try(mergedObj.convertTo[T])
+                    .transform[Route](
+                      mergedT => scala.util.Success(inner(Tuple1(mergedT))), {
+                        case jsonException: DeserializationException =>
+                          Success(reject(Rejections.malformedRequestContent(jsonException.getMessage, jsonException)))
+                        case t => Failure(t)
+                      }
+                    )
+                    .get // intentionally re-throw all other errors
+                case None =>
+                  reject()
+              }
             }
           }
         }

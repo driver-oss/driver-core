@@ -1,7 +1,8 @@
 package xyz.driver.core.rest
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity, RequestEntity, StatusCodes}
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.`Content-Type`
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import org.scalatest.{FlatSpec, Matchers}
@@ -30,10 +31,12 @@ class PatchSupportTest
 
   def jsonEntity(json: String): RequestEntity = HttpEntity(ContentTypes.`application/json`, json)
 
+  val ContentTypeHeader = `Content-Type`(ContentType.parse("application/merge-patch+json").right.get)
+
   "PatchSupport" should "allow partial updates to an existing object" in {
     implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
 
-    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")) ~> route ~> check {
+    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
       handled shouldBe true
       responseAs[Foo] shouldBe testFoo.copy(rank = 4)
     }
@@ -42,7 +45,8 @@ class PatchSupportTest
   it should "merge deeply nested objects" in {
     implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
 
-    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4, "bar": {"name": "My Bar"}}""")) ~> route ~> check {
+    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4, "bar": {"name": "My Bar"}}"""))
+      .withHeaders(ContentTypeHeader) ~> route ~> check {
       handled shouldBe true
       responseAs[Foo] shouldBe testFoo.copy(rank = 4, bar = Some(Bar(Name("My Bar"), 10)))
     }
@@ -51,7 +55,7 @@ class PatchSupportTest
   it should "return a 404 if the object is not found" in {
     implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(None))
 
-    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")) ~> route ~> check {
+    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
       handled shouldBe true
       status shouldBe StatusCodes.NotFound
     }
@@ -60,7 +64,7 @@ class PatchSupportTest
   it should "handle nulls on optional values correctly" in {
     implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
 
-    Patch("/api/v1/foos/1", jsonEntity("""{"bar": null}""")) ~> route ~> check {
+    Patch("/api/v1/foos/1", jsonEntity("""{"bar": null}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
       handled shouldBe true
       responseAs[Foo] shouldBe testFoo.copy(bar = None)
     }
@@ -69,9 +73,18 @@ class PatchSupportTest
   it should "return a 400 for nulls on non-optional values" in {
     implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
 
-    Patch("/api/v1/foos/1", jsonEntity("""{"rank": null}""")) ~> route ~> check {
+    Patch("/api/v1/foos/1", jsonEntity("""{"rank": null}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
       handled shouldBe true
       status shouldBe StatusCodes.BadRequest
+    }
+  }
+
+  it should "return a 400 for incorrect Content-Type" in {
+    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
+
+    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")) ~> route ~> check {
+      status shouldBe StatusCodes.BadRequest
+      responseAs[String] should include("application/merge-patch+json")
     }
   }
 }

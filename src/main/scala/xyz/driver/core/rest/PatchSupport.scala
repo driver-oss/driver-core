@@ -19,9 +19,9 @@ trait PatchSupport extends Directives with SprayJsonSupport {
   }
 
   object PatchRetrievable {
-    def apply[T](retriever: ((Id[T], ServiceRequestContext) => Future[Option[T]])): PatchRetrievable[T] =
+    def apply[T](retriever: (Id[T] => (ServiceRequestContext => Future[Option[T]]))): PatchRetrievable[T] =
       new PatchRetrievable[T] {
-        override def apply(id: Id[T])(implicit ctx: ServiceRequestContext): Future[Option[T]] = retriever(id, ctx)
+        override def apply(id: Id[T])(implicit ctx: ServiceRequestContext): Future[Option[T]] = retriever(id)(ctx)
       }
   }
 

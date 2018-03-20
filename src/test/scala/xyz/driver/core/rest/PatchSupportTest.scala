@@ -34,7 +34,7 @@ class PatchSupportTest
   val ContentTypeHeader = `Content-Type`(ContentType.parse("application/merge-patch+json").right.get)
 
   "PatchSupport" should "allow partial updates to an existing object" in {
-    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
+    implicit val fooPatchable = PatchRetrievable[Foo](id => _ => Future.successful(Some(testFoo.copy(id = id))))
 
     Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
       handled shouldBe true
@@ -43,7 +43,7 @@ class PatchSupportTest
   }
 
   it should "merge deeply nested objects" in {
-    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
+    implicit val fooPatchable = PatchRetrievable[Foo](id => _ => Future.successful(Some(testFoo.copy(id = id))))
 
     Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4, "bar": {"name": "My Bar"}}"""))
       .withHeaders(ContentTypeHeader) ~> route ~> check {
@@ -53,7 +53,7 @@ class PatchSupportTest
   }
 
   it should "return a 404 if the object is not found" in {
-    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(None))
+    implicit val fooPatchable = PatchRetrievable[Foo](_ => _ => Future.successful(None))
 
     Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
       handled shouldBe true
@@ -62,7 +62,7 @@ class PatchSupportTest
   }
 
   it should "handle nulls on optional values correctly" in {
-    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
+    implicit val fooPatchable = PatchRetrievable[Foo](id => _ => Future.successful(Some(testFoo.copy(id = id))))
 
     Patch("/api/v1/foos/1", jsonEntity("""{"bar": null}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
       handled shouldBe true
@@ -71,7 +71,7 @@ class PatchSupportTest
   }
 
   it should "return a 400 for nulls on non-optional values" in {
-    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
+    implicit val fooPatchable = PatchRetrievable[Foo](id => _ => Future.successful(Some(testFoo.copy(id = id))))
 
     Patch("/api/v1/foos/1", jsonEntity("""{"rank": null}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
       handled shouldBe true
@@ -80,7 +80,7 @@ class PatchSupportTest
   }
 
   it should "return a 400 for incorrect Content-Type" in {
-    implicit val fooPatchable = PatchRetrievable[Foo]((id, _) => Future.successful(Some(testFoo.copy(id = id))))
+    implicit val fooPatchable = PatchRetrievable[Foo](id => _ => Future.successful(Some(testFoo.copy(id = id))))
 
     Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")) ~> route ~> check {
       status shouldBe StatusCodes.BadRequest

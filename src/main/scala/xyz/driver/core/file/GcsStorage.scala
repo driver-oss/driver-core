@@ -20,6 +20,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, OptionT}
 
+@deprecated("Consider using xyz.driver.core.storage.GcsBlobStorage instead", "driver-core 1.8.14")
 class GcsStorage(
     storageClient: Storage,
     bucketName: Name[Bucket],

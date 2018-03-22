@@ -12,6 +12,7 @@ import xyz.driver.core.time.Time
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, OptionT}
 
+@deprecated("Consider using xyz.driver.core.storage.FileSystemBlobStorage instead", "driver-core 1.8.14")
 class FileSystemStorage(executionContext: ExecutionContext) extends FileStorage {
   implicit private val execution = executionContext
 

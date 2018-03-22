@@ -14,7 +14,7 @@ import spray.json._
 import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.date.{Date, DayOfWeek, Month}
 import xyz.driver.core.domain.{Email, PhoneNumber}
-import xyz.driver.core.time.Time
+import xyz.driver.core.time.{Time, TimeOfDay}
 import eu.timepit.refined.refineV
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
@@ -77,6 +77,30 @@ object json {
           }
           .getOrElse(throw DeserializationException("Time expects number"))
       case _ => throw DeserializationException("Time expects number")
+    }
+  }
+
+  implicit val timeOfDayFormat = new RootJsonFormat[TimeOfDay] {
+    def write(tod: TimeOfDay) = {
+      val fields: Map[String, JsString] =
+        Map("localtime" -> JsString(tod.timeString), "timezone" -> JsString(tod.timeZoneString))
+      JsObject(fields)
+    }
+
+    def read(value:JsValue): TimeOfDay = value match {
+      case JsObject(fields) =>
+        val lt: String = fields.get("localtime")
+          .flatMap {
+            case JsString(localtime) => Some(localtime)
+            case _ => None
+          }.getOrElse(throw DeserializationException(""))
+        val tz = fields.get("timezone")
+          .flatMap {
+            case JsString(timezone) => Some(timezone)
+            case _ => None
+          }.getOrElse(throw DeserializationException(""))
+        TimeOfDay(lt)(java.util.TimeZone.getTimeZone(tz))
+      case _ => throw DeserializationException("")
     }
   }
 

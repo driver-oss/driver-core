@@ -5,6 +5,7 @@ import java.util._
 import java.util.concurrent.TimeUnit
 
 import scala.concurrent.duration._
+import scala.util.Try
 
 object time {
 
@@ -39,12 +40,46 @@ object time {
     }
   }
 
+  final case class TimeOfDay(localTime: java.time.LocalTime, timeZone: TimeZone)
+
+  object TimeOfDay {
+    def now(): TimeOfDay = {
+      TimeOfDay(java.time.LocalTime.now(), TimeZone.getDefault)
+    }
+
+    def apply(s: String)(tz: TimeZone = TimeZone.getDefault): TimeOfDay = {
+      TimeOfDay(java.time.LocalTime.parse(s), tz)
+    }
+
+    def fromString(s: String)(tz: TimeZone): Option[TimeOfDay] = {
+      val op = Try(java.time.LocalTime.parse(s)).toOption
+      op.map(lt => TimeOfDay(lt, tz))
+    }
+  }
+
+  implicit class TimeOfDayOps(tod: TimeOfDay) {
+    val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
+
+    def timeString: String = {
+      tod.localTime.format(formatter)
+    }
+
+    def timeZoneString: String = {
+      tod.timeZone.getID
+    }
+
+    def toTime: java.sql.Time = {
+      java.sql.Time.valueOf(tod.timeString)
+    }
+  }
+
   object Time {
 
     implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
   }
 
   final case class TimeRange(start: Time, end: Time) {
+    require(end.isAfter(start))
     def duration: Duration = FiniteDuration(end.millis - start.millis, MILLISECONDS)
   }
 

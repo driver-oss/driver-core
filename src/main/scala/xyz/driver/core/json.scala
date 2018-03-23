@@ -87,18 +87,22 @@ object json {
       JsObject(fields)
     }
 
-    def read(value:JsValue): TimeOfDay = value match {
+    def read(value: JsValue): TimeOfDay = value match {
       case JsObject(fields) =>
-        val lt: String = fields.get("localtime")
+        val lt: String = fields
+          .get("localtime")
           .flatMap {
             case JsString(localtime) => Some(localtime)
-            case _ => None
-          }.getOrElse(throw DeserializationException(""))
-        val tz = fields.get("timezone")
+            case _                   => None
+          }
+          .getOrElse(throw DeserializationException(""))
+        val tz = fields
+          .get("timezone")
           .flatMap {
             case JsString(timezone) => Some(timezone)
-            case _ => None
-          }.getOrElse(throw DeserializationException(""))
+            case _                  => None
+          }
+          .getOrElse(throw DeserializationException(""))
         TimeOfDay(lt)(java.util.TimeZone.getTimeZone(tz))
       case _ => throw DeserializationException("")
     }

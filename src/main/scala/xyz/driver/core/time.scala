@@ -79,7 +79,6 @@ object time {
   }
 
   final case class TimeRange(start: Time, end: Time) {
-    require(end.isAfter(start))
     def duration: Duration = FiniteDuration(end.millis - start.millis, MILLISECONDS)
   }
 

@@ -80,7 +80,7 @@ object json {
     }
   }
 
-  implicit def timeOfDayFormat = new RootJsonFormat[TimeOfDay] {
+  implicit val timeOfDayFormat = new RootJsonFormat[TimeOfDay] {
     def write(tod: TimeOfDay) = {
       val fields: Map[String, JsString] =
         Map("localtime" -> JsString(tod.timeString), "timezone" -> JsString(tod.timeZoneString))

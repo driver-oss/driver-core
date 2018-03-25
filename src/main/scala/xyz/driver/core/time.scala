@@ -75,9 +75,14 @@ object time {
       TimeOfDay(java.time.LocalTime.parse(s), tz)
     }
 
-    def fromString(s: String)(tz: TimeZone): Option[TimeOfDay] = {
+    def fromString(tz: TimeZone)(s: String): Option[TimeOfDay] = {
       val op = Try(java.time.LocalTime.parse(s)).toOption
       op.map(lt => TimeOfDay(lt, tz))
+    }
+
+    def fromStrings(zoneId: String)(s: String): Option[TimeOfDay] = {
+      val op = Try(TimeZone.getTimeZone(zoneId)).toOption
+      op.map(tz => TimeOfDay(tz)(s))
     }
   }
 

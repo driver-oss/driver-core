@@ -12,9 +12,9 @@ import xyz.driver.core.json._
 
 import scala.concurrent.Future
 
-class PatchSupportTest
+class PatchDirectivesTest
     extends FlatSpec with Matchers with ScalatestRouteTest with SprayJsonSupport with DefaultJsonProtocol
-    with Directives with PatchSupport {
+    with Directives with PatchDirectives {
   case class Bar(name: Name[Bar], size: Int)
   case class Foo(id: Id[Foo], name: Name[Foo], rank: Int, bar: Option[Bar])
   implicit val barFormat: RootJsonFormat[Bar] = jsonFormat2(Bar)
@@ -22,68 +22,70 @@ class PatchSupportTest
 
   val testFoo: Foo = Foo(Id("1"), Name(s"Foo"), 1, Some(Bar(Name("Bar"), 10)))
 
-  def route(implicit patchRetrievable: PatchRetrievable[Foo]): Route =
+  def route(retrieve: => Future[Option[Foo]]): Route =
     Route.seal(path("api" / "v1" / "foos" / IdInPath[Foo]) { fooId =>
-      patch(as[Foo], fooId) { patchedFoo =>
-        complete(patchedFoo)
+      entity(as[Patchable[Foo]]) { fooPatchable =>
+        mergePatch(fooPatchable, retrieve) { updatedFoo =>
+          complete(updatedFoo)
+        }
       }
     })
 
-  def jsonEntity(json: String): RequestEntity = HttpEntity(ContentTypes.`application/json`, json)
-
-  val ContentTypeHeader = `Content-Type`(ContentType.parse("application/merge-patch+json").right.get)
+  val MergePatchContentType = ContentType(`application/merge-patch+json`)
+  val ContentTypeHeader     = `Content-Type`(MergePatchContentType)
+  def jsonEntity(json: String, contentType: ContentType.NonBinary = MergePatchContentType): RequestEntity =
+    HttpEntity(contentType, json)
 
   "PatchSupport" should "allow partial updates to an existing object" in {
-    implicit val fooPatchable = PatchRetrievable[Foo](id => _ => Future.successful(Some(testFoo.copy(id = id))))
+    val fooRetrieve = Future.successful(Some(testFoo))
 
-    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
+    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")) ~> route(fooRetrieve) ~> check {
       handled shouldBe true
       responseAs[Foo] shouldBe testFoo.copy(rank = 4)
     }
   }
 
   it should "merge deeply nested objects" in {
-    implicit val fooPatchable = PatchRetrievable[Foo](id => _ => Future.successful(Some(testFoo.copy(id = id))))
+    val fooRetrieve = Future.successful(Some(testFoo))
 
-    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4, "bar": {"name": "My Bar"}}"""))
-      .withHeaders(ContentTypeHeader) ~> route ~> check {
+    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4, "bar": {"name": "My Bar"}}""")) ~> route(fooRetrieve) ~> check {
       handled shouldBe true
       responseAs[Foo] shouldBe testFoo.copy(rank = 4, bar = Some(Bar(Name("My Bar"), 10)))
     }
   }
 
   it should "return a 404 if the object is not found" in {
-    implicit val fooPatchable = PatchRetrievable[Foo](_ => _ => Future.successful(None))
+    val fooRetrieve = Future.successful(None)
 
-    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
+    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")) ~> route(fooRetrieve) ~> check {
       handled shouldBe true
       status shouldBe StatusCodes.NotFound
     }
   }
 
   it should "handle nulls on optional values correctly" in {
-    implicit val fooPatchable = PatchRetrievable[Foo](id => _ => Future.successful(Some(testFoo.copy(id = id))))
+    val fooRetrieve = Future.successful(Some(testFoo))
 
-    Patch("/api/v1/foos/1", jsonEntity("""{"bar": null}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
+    Patch("/api/v1/foos/1", jsonEntity("""{"bar": null}""")) ~> route(fooRetrieve) ~> check {
       handled shouldBe true
       responseAs[Foo] shouldBe testFoo.copy(bar = None)
     }
   }
 
   it should "return a 400 for nulls on non-optional values" in {
-    implicit val fooPatchable = PatchRetrievable[Foo](id => _ => Future.successful(Some(testFoo.copy(id = id))))
+    val fooRetrieve = Future.successful(Some(testFoo))
 
-    Patch("/api/v1/foos/1", jsonEntity("""{"rank": null}""")).withHeaders(ContentTypeHeader) ~> route ~> check {
+    Patch("/api/v1/foos/1", jsonEntity("""{"rank": null}""")) ~> route(fooRetrieve) ~> check {
       handled shouldBe true
       status shouldBe StatusCodes.BadRequest
     }
   }
 
-  it should "return a 400 for incorrect Content-Type" in {
-    implicit val fooPatchable = PatchRetrievable[Foo](id => _ => Future.successful(Some(testFoo.copy(id = id))))
+  it should "return a 415 for incorrect Content-Type" in {
+    val fooRetrieve = Future.successful(Some(testFoo))
 
-    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""")) ~> route ~> check {
-      status shouldBe StatusCodes.BadRequest
+    Patch("/api/v1/foos/1", jsonEntity("""{"rank": 4}""", ContentTypes.`application/json`)) ~> route(fooRetrieve) ~> check {
+      status shouldBe StatusCodes.UnsupportedMediaType
       responseAs[String] should include("application/merge-patch+json")
     }
   }

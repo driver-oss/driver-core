@@ -103,7 +103,7 @@ object json {
             case _                  => None
           }
           .getOrElse(throw DeserializationException(""))
-        TimeOfDay(lt)(java.util.TimeZone.getTimeZone(tz))
+        TimeOfDay(java.util.TimeZone.getTimeZone(tz))(lt)
       case _ => throw DeserializationException("")
     }
   }

@@ -24,7 +24,7 @@ class DatabaseTest extends FlatSpec with Matchers with Checkers {
 
     TestConverter.fromStringOrThrow(valid, mapper, valid) should be(valid)
 
-    TestConverter.expectValid(mapper, valid) should be(valid)
+    TestConverter.expectValid(mapper(_), valid) should be(valid)
 
     TestConverter.expectExistsAndValid(mapper, validOp) should be(valid)
 
@@ -33,11 +33,10 @@ class DatabaseTest extends FlatSpec with Matchers with Checkers {
 
     an[DatabaseException] should be thrownBy TestConverter.fromStringOrThrow(invalid, mapper, invalid)
 
-    an[DatabaseException] should be thrownBy TestConverter.expectValid(mapper, invalid)
+    an[DatabaseException] should be thrownBy TestConverter.expectValid(mapper(_), invalid)
 
     an[DatabaseException] should be thrownBy TestConverter.expectExistsAndValid(mapper, invalidOp)
 
     an[DatabaseException] should be thrownBy TestConverter.expectValidOrEmpty(mapper, invalidOp)
   }
-
 }

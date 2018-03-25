@@ -40,14 +40,38 @@ object time {
     }
   }
 
-  final case class TimeOfDay(localTime: java.time.LocalTime, timeZone: TimeZone)
+  /**
+    * Encapsulates a time and timezone without a specific date.
+    */
+  final case class TimeOfDay(localTime: java.time.LocalTime, timeZone: TimeZone) {
+    def isBefore(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
+      getInstance(day, month, year).before(other.getInstance(day, month, year))
+    }
+
+    def isAfter(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
+      getInstance(day, month, year).after(other.getInstance(day, month, year))
+    }
+
+    def sameTimeAs(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
+      getInstance(day, month, year).equals(other.getInstance(day, month, year))
+    }
+
+    private def getInstance(day: Int, month: Int, year: Int): Calendar = {
+      val cal = Calendar.getInstance(timeZone)
+      cal.set(year, month, day, localTime.getHour, localTime.getMinute, localTime.getSecond)
+      cal
+    }
+  }
 
   object TimeOfDay {
     def now(): TimeOfDay = {
       TimeOfDay(java.time.LocalTime.now(), TimeZone.getDefault)
     }
 
-    def apply(s: String)(tz: TimeZone = TimeZone.getDefault): TimeOfDay = {
+    /**
+      * Throws when [s] is not parsable by [[java.time.LocalTime.parse]], uses default [[java.util.TimeZone]]
+      */
+    def apply(tz: TimeZone = TimeZone.getDefault)(s: String): TimeOfDay = {
       TimeOfDay(java.time.LocalTime.parse(s), tz)
     }
 
@@ -58,16 +82,27 @@ object time {
   }
 
   implicit class TimeOfDayOps(tod: TimeOfDay) {
-    val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
+    private val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
 
+    /**
+      * Enforces the same formatting as expected by [[java.sql.Time]]
+      * @return string formatted for `java.sql.Time`
+      */
     def timeString: String = {
       tod.localTime.format(formatter)
     }
 
+    /**
+      * @return a string parsable by [[java.util.TimeZone]]
+      */
     def timeZoneString: String = {
       tod.timeZone.getID
     }
 
+    /**
+      * @return this [[TimeOfDay]] as [[java.sql.Time]] object, [[java.sql.Time.valueOf]] will
+      *         throw when the string is not valid, but this is protected by [[timeString]] method.
+      */
     def toTime: java.sql.Time = {
       java.sql.Time.valueOf(tod.timeString)
     }

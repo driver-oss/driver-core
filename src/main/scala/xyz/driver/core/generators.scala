@@ -3,7 +3,7 @@ package xyz.driver.core
 import java.math.MathContext
 import java.util.UUID
 
-import xyz.driver.core.time.{Time, TimeRange}
+import xyz.driver.core.time.{Time, TimeOfDay, TimeRange}
 import xyz.driver.core.date.{Date, DayOfWeek}
 
 import scala.reflect.ClassTag
@@ -68,6 +68,8 @@ object generators {
   def nextTriad[F, S, T](first: => F, second: => S, third: => T): (F, S, T) = (first, second, third)
 
   def nextTime(): Time = Time(math.abs(nextLong() % System.currentTimeMillis))
+
+  def nextTimeOfDay: TimeOfDay = TimeOfDay(java.time.LocalTime.MIN.plusSeconds(nextLong), java.util.TimeZone.getDefault)
 
   def nextTimeRange(): TimeRange = {
     val oneTime     = nextTime()

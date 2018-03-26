@@ -63,9 +63,10 @@ class JsonTest extends FlatSpec with Matchers {
   }
 
   "Json format for TimeOfDay" should "read and write correct JSON" in {
+    val defaultTimeZoneId  = java.util.TimeZone.getDefault().getID()
     val referenceTimeOfDay = TimeOfDay.apply(java.util.TimeZone.getDefault)("08:00:00")
     val writtenJson        = json.timeOfDayFormat.write(referenceTimeOfDay)
-    writtenJson should be("""{"localTime":"08:00:00","timeZone":"America/Los_Angeles"}""".parseJson)
+    writtenJson should be(s"""{"localTime":"08:00:00","timeZone":"$defaultTimeZoneId"}""".parseJson)
     val parsed = json.timeOfDayFormat.read(writtenJson)
     parsed should be(referenceTimeOfDay)
   }

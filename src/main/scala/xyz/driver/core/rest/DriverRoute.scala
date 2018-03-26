@@ -26,10 +26,9 @@ trait DriverRoute {
 
   protected def defaultResponseHeaders: Directive0 = {
     extractRequest flatMap { request =>
-
       // Needs to happen before any request processing, so all the log messages
       // associated with processing of this request are having this `trackingId`
-      val trackingId = rest.extractTrackingId(request)
+      val trackingId    = rest.extractTrackingId(request)
       val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
       MDC.put("trackingId", trackingId)
 
@@ -54,10 +53,8 @@ trait DriverRoute {
     case cm: ConcurrentModificationException =>
       ctx =>
         log.warn(s"Concurrent modification of the resource ${ctx.request.method} ${ctx.request.uri}", cm)
-        errorResponse(
-          StatusCodes.Conflict,
-          "Resource was changed concurrently, try requesting a newer version",
-          cm)(ctx)
+        errorResponse(StatusCodes.Conflict, "Resource was changed concurrently, try requesting a newer version", cm)(
+          ctx)
 
     case se: SQLException =>
       ctx =>
@@ -97,10 +94,7 @@ trait DriverRoute {
     }
   }
 
-  protected def errorResponse[T <: Exception](
-      statusCode: StatusCode,
-      message: String,
-      exception: T): Route = {
+  protected def errorResponse[T <: Exception](statusCode: StatusCode, message: String, exception: T): Route = {
     complete(HttpResponse(statusCode, entity = message))
   }
 }

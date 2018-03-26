@@ -1,7 +1,7 @@
 package xyz.driver.core
 
 import java.net.InetAddress
-import java.util.UUID
+import java.util.{TimeZone, UUID}
 
 import scala.reflect.runtime.universe._
 import scala.util.Try
@@ -80,33 +80,32 @@ object json {
     }
   }
 
-  implicit val timeOfDayFormat = new RootJsonFormat[TimeOfDay] {
-    def write(tod: TimeOfDay) = {
-      val fields: Map[String, JsString] =
-        Map("localtime" -> JsString(tod.timeString), "timezone" -> JsString(tod.timeZoneString))
-      JsObject(fields)
+  implicit object localTimeFormat extends JsonFormat[java.time.LocalTime] {
+    private val formatter = TimeOfDay.getFormatter
+    def read(json: JsValue): java.time.LocalTime = json match {
+      case JsString(chars) =>
+        java.time.LocalTime.parse(chars)
+      case _ => deserializationError(s"Expected time string got ${json.toString}")
     }
 
-    def read(value: JsValue): TimeOfDay = value match {
-      case JsObject(fields) =>
-        val lt: String = fields
-          .get("localtime")
-          .flatMap {
-            case JsString(localtime) => Some(localtime)
-            case _                   => None
-          }
-          .getOrElse(throw DeserializationException(""))
-        val tz = fields
-          .get("timezone")
-          .flatMap {
-            case JsString(timezone) => Some(timezone)
-            case _                  => None
-          }
-          .getOrElse(throw DeserializationException(""))
-        TimeOfDay(java.util.TimeZone.getTimeZone(tz))(lt)
-      case _ => throw DeserializationException("")
+    def write(obj: java.time.LocalTime): JsValue = {
+      JsString(obj.format(formatter))
     }
   }
+
+  implicit object timeZoneFormat extends JsonFormat[java.util.TimeZone] {
+    override def write(obj: TimeZone): JsValue = {
+      JsString(obj.getID())
+    }
+
+    override def read(json: JsValue): TimeZone = json match {
+      case JsString(chars) =>
+        java.util.TimeZone.getTimeZone(chars)
+      case _ => deserializationError(s"Expected time zone string got ${json.toString}")
+    }
+  }
+
+  implicit val timeOfDayFormat: RootJsonFormat[TimeOfDay] = jsonFormat2(TimeOfDay.apply)
 
   implicit val dayOfWeekFormat: JsonFormat[DayOfWeek] =
     new EnumJsonFormat[DayOfWeek](DayOfWeek.All.map(w => w.toString -> w)(collection.breakOut): _*)

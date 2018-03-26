@@ -44,16 +44,46 @@ object time {
     * Encapsulates a time and timezone without a specific date.
     */
   final case class TimeOfDay(localTime: java.time.LocalTime, timeZone: TimeZone) {
+
+    /**
+      * Is this time before another time on a specific day. Day light savings safe.
+      */
     def isBefore(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
       getInstance(day, month, year).before(other.getInstance(day, month, year))
     }
 
+    /**
+      * Is this time after another time on a specific day. Day light savings safe.
+      */
     def isAfter(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
       getInstance(day, month, year).after(other.getInstance(day, month, year))
     }
 
     def sameTimeAs(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
       getInstance(day, month, year).equals(other.getInstance(day, month, year))
+    }
+
+    /**
+      * Enforces the same formatting as expected by [[java.sql.Time]]
+      * @return string formatted for `java.sql.Time`
+      */
+    def timeString: String = {
+      localTime.format(TimeOfDay.getFormatter)
+    }
+
+    /**
+      * @return a string parsable by [[java.util.TimeZone]]
+      */
+    def timeZoneString: String = {
+      timeZone.getID
+    }
+
+    /**
+      * @return this [[TimeOfDay]] as [[java.sql.Time]] object, [[java.sql.Time.valueOf]] will
+      *         throw when the string is not valid, but this is protected by [[timeString]] method.
+      */
+    def toTime: java.sql.Time = {
+      java.sql.Time.valueOf(timeString)
     }
 
     private def getInstance(day: Int, month: Int, year: Int): Calendar = {
@@ -84,32 +114,12 @@ object time {
       val op = Try(TimeZone.getTimeZone(zoneId)).toOption
       op.map(tz => TimeOfDay(tz)(s))
     }
-  }
-
-  implicit class TimeOfDayOps(tod: TimeOfDay) {
-    private val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
 
     /**
-      * Enforces the same formatting as expected by [[java.sql.Time]]
-      * @return string formatted for `java.sql.Time`
+      * Formatter that enforces `HH:mm:ss` which is expected by [[java.sql.Time]]
       */
-    def timeString: String = {
-      tod.localTime.format(formatter)
-    }
-
-    /**
-      * @return a string parsable by [[java.util.TimeZone]]
-      */
-    def timeZoneString: String = {
-      tod.timeZone.getID
-    }
-
-    /**
-      * @return this [[TimeOfDay]] as [[java.sql.Time]] object, [[java.sql.Time.valueOf]] will
-      *         throw when the string is not valid, but this is protected by [[timeString]] method.
-      */
-    def toTime: java.sql.Time = {
-      java.sql.Time.valueOf(tod.timeString)
+    def getFormatter: java.time.format.DateTimeFormatter = {
+      java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
     }
   }
 

@@ -11,6 +11,7 @@ import xyz.driver.core.time.provider.SystemTimeProvider
 import spray.json._
 import xyz.driver.core.TestTypes.CustomGADT
 import xyz.driver.core.domain.{Email, PhoneNumber}
+import xyz.driver.core.time.TimeOfDay
 
 class JsonTest extends FlatSpec with Matchers {
   import DefaultJsonProtocol._
@@ -59,6 +60,14 @@ class JsonTest extends FlatSpec with Matchers {
 
     val parsedTime = json.timeFormat.read(writtenJson)
     parsedTime should be(referenceTime)
+  }
+
+  "Json format for TimeOfDay" should "read and write correct JSON" in {
+    val referenceTimeOfDay = TimeOfDay.apply(java.util.TimeZone.getDefault)("08:00:00")
+    val writtenJson        = json.timeOfDayFormat.write(referenceTimeOfDay)
+    writtenJson should be("""{"localTime":"08:00:00","timeZone":"America/Los_Angeles"}""".parseJson)
+    val parsed = json.timeOfDayFormat.read(writtenJson)
+    parsed should be(referenceTimeOfDay)
   }
 
   "Json format for Date" should "read and write correct JSON" in {

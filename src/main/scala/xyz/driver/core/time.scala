@@ -49,18 +49,18 @@ object time {
       * Is this time before another time on a specific day. Day light savings safe.
       */
     def isBefore(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
-      getInstance(day, month, year).before(other.getInstance(day, month, year))
+      toCalendar(day, month, year).before(other.toCalendar(day, month, year))
     }
 
     /**
       * Is this time after another time on a specific day. Day light savings safe.
       */
     def isAfter(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
-      getInstance(day, month, year).after(other.getInstance(day, month, year))
+      toCalendar(day, month, year).after(other.toCalendar(day, month, year))
     }
 
     def sameTimeAs(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
-      getInstance(day, month, year).equals(other.getInstance(day, month, year))
+      toCalendar(day, month, year).equals(other.toCalendar(day, month, year))
     }
 
     /**
@@ -86,7 +86,7 @@ object time {
       java.sql.Time.valueOf(timeString)
     }
 
-    private def getInstance(day: Int, month: Int, year: Int): Calendar = {
+    private def toCalendar(day: Int, month: Int, year: Int): Calendar = {
       val cal = Calendar.getInstance(timeZone)
       cal.set(year, month, day, localTime.getHour, localTime.getMinute, localTime.getSecond)
       cal

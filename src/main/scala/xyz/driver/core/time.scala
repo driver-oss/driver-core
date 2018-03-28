@@ -4,6 +4,8 @@ import java.text.SimpleDateFormat
 import java.util._
 import java.util.concurrent.TimeUnit
 
+import xyz.driver.core.date.Month
+
 import scala.concurrent.duration._
 import scala.util.Try
 
@@ -46,20 +48,21 @@ object time {
   final case class TimeOfDay(localTime: java.time.LocalTime, timeZone: TimeZone) {
 
     /**
-      * Is this time before another time on a specific day. Day light savings safe.
+      * Is this time before another time on a specific day. Day light savings safe. These are zero-indexed
+      * for month/day.
       */
-    def isBefore(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
+    def isBefore(other: TimeOfDay, day: Int, month: Month, year: Int): Boolean = {
       toCalendar(day, month, year).before(other.toCalendar(day, month, year))
     }
 
     /**
       * Is this time after another time on a specific day. Day light savings safe.
       */
-    def isAfter(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
+    def isAfter(other: TimeOfDay, day: Int, month: Month, year: Int): Boolean = {
       toCalendar(day, month, year).after(other.toCalendar(day, month, year))
     }
 
-    def sameTimeAs(other: TimeOfDay, day: Int, month: Int, year: Int): Boolean = {
+    def sameTimeAs(other: TimeOfDay, day: Int, month: Month, year: Int): Boolean = {
       toCalendar(day, month, year).equals(other.toCalendar(day, month, year))
     }
 
@@ -101,7 +104,7 @@ object time {
     /**
       * Throws when [s] is not parsable by [[java.time.LocalTime.parse]], uses default [[java.util.TimeZone]]
       */
-    def apply(tz: TimeZone = TimeZone.getDefault)(s: String): TimeOfDay = {
+    def parseTimeString(tz: TimeZone = TimeZone.getDefault)(s: String): TimeOfDay = {
       TimeOfDay(java.time.LocalTime.parse(s), tz)
     }
 
@@ -112,7 +115,7 @@ object time {
 
     def fromStrings(zoneId: String)(s: String): Option[TimeOfDay] = {
       val op = Try(TimeZone.getTimeZone(zoneId)).toOption
-      op.map(tz => TimeOfDay(tz)(s))
+      op.map(tz => TimeOfDay.parseTimeString(tz)(s))
     }
 
     /**

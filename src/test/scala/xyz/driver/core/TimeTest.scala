@@ -104,7 +104,7 @@ class TimeTest extends FlatSpec with Matchers with Checkers {
   "TimeOfDay" should "be created from valid strings and convert to java.sql.Time" in {
     val s               = "07:30:45"
     val defaultTimeZone = TimeZone.getDefault()
-    val todFactory      = TimeOfDay.apply(defaultTimeZone)(_)
+    val todFactory      = TimeOfDay.parseTimeString(defaultTimeZone)(_)
     val tod             = todFactory(s)
     tod.timeString shouldBe s
     tod.timeZoneString shouldBe defaultTimeZone.getID
@@ -121,8 +121,8 @@ class TimeTest extends FlatSpec with Matchers with Checkers {
     val t             = "09:30:45"
     val pst           = TimeZone.getTimeZone("America/Los_Angeles")
     val est           = TimeZone.getTimeZone("America/New_York")
-    val pstTodFactory = TimeOfDay.apply(pst)(_)
-    val estTodFactory = TimeOfDay.apply(est)(_)
+    val pstTodFactory = TimeOfDay.parseTimeString(pst)(_)
+    val estTodFactory = TimeOfDay.parseTimeString(est)(_)
     val day           = 1
     val month         = 1
     val year          = 2018

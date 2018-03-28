@@ -7,6 +7,7 @@ import org.scalacheck.Prop.BooleanOperators
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.prop.Checkers
 import org.scalatest.{FlatSpec, Matchers}
+import xyz.driver.core.date.Month
 import xyz.driver.core.time.{Time, _}
 
 import scala.concurrent.duration._
@@ -99,5 +100,40 @@ class TimeTest extends FlatSpec with Matchers with Checkers {
 
     textualDate(EST)(timestamp) should not be textualDate(PST)(timestamp)
     timestamp.toDate(EST) should not be timestamp.toDate(PST)
+  }
+
+  "TimeOfDay" should "be created from valid strings and convert to java.sql.Time" in {
+    val s               = "07:30:45"
+    val defaultTimeZone = TimeZone.getDefault()
+    val todFactory      = TimeOfDay.parseTimeString(defaultTimeZone)(_)
+    val tod             = todFactory(s)
+    tod.timeString shouldBe s
+    tod.timeZoneString shouldBe defaultTimeZone.getID
+    val sqlTime = tod.toTime
+    sqlTime.toLocalTime shouldBe tod.localTime
+    a[java.time.format.DateTimeParseException] should be thrownBy {
+      val illegal = "7:15"
+      todFactory(illegal)
+    }
+  }
+
+  "TimeOfDay" should "have correct temporal relationships" in {
+    val s             = "07:30:45"
+    val t             = "09:30:45"
+    val pst           = TimeZone.getTimeZone("America/Los_Angeles")
+    val est           = TimeZone.getTimeZone("America/New_York")
+    val pstTodFactory = TimeOfDay.parseTimeString(pst)(_)
+    val estTodFactory = TimeOfDay.parseTimeString(est)(_)
+    val day           = 1
+    val month         = Month.JANUARY
+    val year          = 2018
+    val sTodPst       = pstTodFactory(s)
+    val sTodPst2      = pstTodFactory(s)
+    val tTodPst       = pstTodFactory(t)
+    val tTodEst       = estTodFactory(t)
+    sTodPst.isBefore(tTodPst, day, month, year) shouldBe true
+    tTodPst.isAfter(sTodPst, day, month, year) shouldBe true
+    tTodEst.isBefore(sTodPst, day, month, year) shouldBe true
+    sTodPst.sameTimeAs(sTodPst2, day, month, year) shouldBe true
   }
 }

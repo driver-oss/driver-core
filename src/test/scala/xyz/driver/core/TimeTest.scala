@@ -7,6 +7,7 @@ import org.scalacheck.Prop.BooleanOperators
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.prop.Checkers
 import org.scalatest.{FlatSpec, Matchers}
+import xyz.driver.core.date.Month
 import xyz.driver.core.time.{Time, _}
 
 import scala.concurrent.duration._
@@ -124,7 +125,7 @@ class TimeTest extends FlatSpec with Matchers with Checkers {
     val pstTodFactory = TimeOfDay.parseTimeString(pst)(_)
     val estTodFactory = TimeOfDay.parseTimeString(est)(_)
     val day           = 1
-    val month         = 1
+    val month         = Month.JANUARY
     val year          = 2018
     val sTodPst       = pstTodFactory(s)
     val sTodPst2      = pstTodFactory(s)

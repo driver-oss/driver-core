@@ -26,8 +26,9 @@ object date {
     case object Saturday  extends DayOfWeek
     case object Sunday    extends DayOfWeek
 
-    val All: Set[DayOfWeek] = Set(Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)
     val values: IndexedSeq[DayOfWeek] = findValues
+
+    val All: Set[DayOfWeek] = values.toSet
 
     def fromString(day: String): Option[DayOfWeek] = withNameInsensitiveOption(day)
   }

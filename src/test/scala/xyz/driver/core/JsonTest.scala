@@ -148,7 +148,7 @@ class JsonTest extends FlatSpec with Matchers {
 
     sealed trait EnumVal extends EnumEntry
     object MyEnum extends Enum[EnumVal] {
-      case object Val1 extends EnumVal
+      case object Val1    extends EnumVal
       case object `Val 2` extends EnumVal
       case object `Val/3` extends EnumVal
 

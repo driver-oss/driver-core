@@ -188,8 +188,12 @@ object json {
 
   class EnumeratumJsonFormat[T <: EnumEntry](enum: Enum[T]) extends RootJsonFormat[T] {
     override def read(json: JsValue): T = json match {
-      case JsString(name) => enum.withNameOption(name).getOrElse(
-        throw DeserializationException(s"Value $name is not one of the possible values ${enum.values.mkString("[", ", ", "]")}"))
+      case JsString(name) =>
+        enum
+          .withNameOption(name)
+          .getOrElse(
+            throw DeserializationException(
+              s"Value $name is not one of the possible values ${enum.values.mkString("[", ", ", "]")}"))
       case _ => deserializationError("Expected string as enumeration value, but got " + json.toString)
     }
 

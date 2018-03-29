@@ -1,5 +1,6 @@
 package xyz.driver.core
 
+import enumeratum._
 import java.math.MathContext
 import java.util.UUID
 
@@ -90,6 +91,8 @@ object generators {
   def oneOf[T](items: T*): T = oneOf(items.toSet)
 
   def oneOf[T](items: Set[T]): T = items.toSeq(nextInt(items.size))
+
+  def oneOf[T <: EnumEntry](enum: Enum[T]): T = oneOf(enum.values: _*)
 
   def arrayOf[T: ClassTag](generator: => T, maxLength: Int = DefaultMaxLength, minLength: Int = 0): Array[T] =
     Array.fill(nextInt(maxLength, minLength))(generator)

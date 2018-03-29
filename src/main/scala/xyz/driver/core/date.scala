@@ -2,11 +2,12 @@ package xyz.driver.core
 
 import java.util.Calendar
 
-import scala.util.Try
-
+import enumeratum._
 import scalaz.std.anyVal._
-import scalaz.Scalaz.stringInstance
 import scalaz.syntax.equal._
+
+import scala.collection.immutable.IndexedSeq
+import scala.util.Try
 
 /**
   * Driver Date type and related validators/extractors.
@@ -15,8 +16,8 @@ import scalaz.syntax.equal._
   */
 object date {
 
-  sealed trait DayOfWeek
-  object DayOfWeek {
+  sealed trait DayOfWeek extends EnumEntry
+  object DayOfWeek extends Enum[DayOfWeek] {
     case object Monday    extends DayOfWeek
     case object Tuesday   extends DayOfWeek
     case object Wednesday extends DayOfWeek
@@ -26,8 +27,9 @@ object date {
     case object Sunday    extends DayOfWeek
 
     val All: Set[DayOfWeek] = Set(Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday)
+    val values: IndexedSeq[DayOfWeek] = findValues
 
-    def fromString(day: String): Option[DayOfWeek] = All.find(_.toString === day)
+    def fromString(day: String): Option[DayOfWeek] = withNameInsensitiveOption(day)
   }
 
   type Day = Int @@ Day.type

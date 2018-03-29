@@ -2,6 +2,7 @@ package xyz.driver.core
 
 import java.net.InetAddress
 
+import enumeratum._
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.refineMV
@@ -12,6 +13,8 @@ import spray.json._
 import xyz.driver.core.TestTypes.CustomGADT
 import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.time.TimeOfDay
+
+import scala.collection.immutable.IndexedSeq
 
 class JsonTest extends FlatSpec with Matchers {
   import DefaultJsonProtocol._
@@ -139,6 +142,39 @@ class JsonTest extends FlatSpec with Matchers {
 
     parsedEnumValue1 should be(referenceEnumValue1)
     parsedEnumValue2 should be(referenceEnumValue2)
+  }
+
+  "Json format for enumeratum.Enums" should "read and write correct JSON" in {
+
+    sealed trait EnumVal extends EnumEntry
+    object MyEnum extends Enum[EnumVal] {
+      case object Val1 extends EnumVal
+      case object `Val 2` extends EnumVal
+      case object `Val/3` extends EnumVal
+
+      val values: IndexedSeq[EnumVal] = findValues
+    }
+
+    val format = new EnumeratumJsonFormat(MyEnum)
+
+    val referenceEnumValue1 = MyEnum.`Val 2`
+    val referenceEnumValue2 = MyEnum.`Val/3`
+
+    val writtenJson1 = format.write(referenceEnumValue1)
+    writtenJson1.prettyPrint should be("\"Val 2\"")
+
+    val writtenJson2 = format.write(referenceEnumValue2)
+    writtenJson2.prettyPrint should be("\"Val/3\"")
+
+    val parsedEnumValue1 = format.read(writtenJson1)
+    val parsedEnumValue2 = format.read(writtenJson2)
+
+    parsedEnumValue1 should be(referenceEnumValue1)
+    parsedEnumValue2 should be(referenceEnumValue2)
+
+    intercept[DeserializationException] {
+      format.read(JsString("Val4"))
+    }.getMessage shouldBe "Value Val4 is not one of the possible values [Val1, Val 2, Val/3]"
   }
 
   // Should be defined outside of case to have a TypeTag

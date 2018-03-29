@@ -10,6 +10,7 @@ import akka.http.scaladsl.server._
 import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
 import akka.http.scaladsl.marshalling.{Marshaller, Marshalling}
 import akka.http.scaladsl.unmarshalling.Unmarshaller
+import enumeratum._
 import spray.json._
 import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.date.{Date, DayOfWeek, Month}
@@ -107,8 +108,7 @@ object json {
 
   implicit val timeOfDayFormat: RootJsonFormat[TimeOfDay] = jsonFormat2(TimeOfDay.apply)
 
-  implicit val dayOfWeekFormat: JsonFormat[DayOfWeek] =
-    new EnumJsonFormat[DayOfWeek](DayOfWeek.All.map(w => w.toString -> w)(collection.breakOut): _*)
+  implicit val dayOfWeekFormat: JsonFormat[DayOfWeek] = new EnumeratumJsonFormat(DayOfWeek)
 
   implicit val dateFormat = new RootJsonFormat[Date] {
     def write(date: Date) = JsString(date.toString)
@@ -184,6 +184,16 @@ object json {
 
     override def write(obj: InetAddress): JsValue =
       JsString(obj.getHostAddress)
+  }
+
+  class EnumeratumJsonFormat[T <: EnumEntry](enum: Enum[T]) extends RootJsonFormat[T] {
+    override def read(json: JsValue): T = json match {
+      case JsString(name) => enum.withNameOption(name).getOrElse(
+        throw DeserializationException(s"Value $name is not one of the possible values ${enum.values.mkString("[", ", ", "]")}"))
+      case _ => deserializationError("Expected string as enumeration value, but got " + json.toString)
+    }
+
+    override def write(obj: T): JsValue = JsString(obj.entryName)
   }
 
   class EnumJsonFormat[T](mapping: (String, T)*) extends RootJsonFormat[T] {

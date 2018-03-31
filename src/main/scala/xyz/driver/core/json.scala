@@ -108,7 +108,7 @@ object json {
 
   implicit val timeOfDayFormat: RootJsonFormat[TimeOfDay] = jsonFormat2(TimeOfDay.apply)
 
-  implicit val dayOfWeekFormat: JsonFormat[DayOfWeek] = new EnumeratumJsonFormat(DayOfWeek)
+  implicit val dayOfWeekFormat: JsonFormat[DayOfWeek] = new enumeratum.EnumJsonFormat(DayOfWeek)
 
   implicit val dateFormat = new RootJsonFormat[Date] {
     def write(date: Date) = JsString(date.toString)
@@ -136,9 +136,9 @@ object json {
     }
 
   implicit def revisionFromStringUnmarshaller[T]: Unmarshaller[String, Revision[T]] =
-    Unmarshaller.strict[String, Revision[T]](Revision[T](_))
+    Unmarshaller.strict[String, Revision[T]](Revision[T])
 
-  implicit def revisionFormat[T] = new RootJsonFormat[Revision[T]] {
+  implicit def revisionFormat[T]: RootJsonFormat[Revision[T]] = new RootJsonFormat[Revision[T]] {
     def write(revision: Revision[T]) = JsString(revision.id.toString)
 
     def read(value: JsValue): Revision[T] = value match {
@@ -186,18 +186,47 @@ object json {
       JsString(obj.getHostAddress)
   }
 
-  class EnumeratumJsonFormat[T <: EnumEntry](enum: Enum[T]) extends RootJsonFormat[T] {
-    override def read(json: JsValue): T = json match {
-      case JsString(name) =>
-        enum
-          .withNameOption(name)
-          .getOrElse(
-            throw DeserializationException(
-              s"Value $name is not one of the possible values ${enum.values.mkString("[", ", ", "]")}"))
-      case _ => deserializationError("Expected string as enumeration value, but got " + json.toString)
+  object enumeratum {
+
+    def enumUnmarshaller[T <: EnumEntry](enum: Enum[T]): Unmarshaller[String, T] =
+      Unmarshaller.strict { value =>
+        enum.withNameOption(value).getOrElse(unrecognizedValue(value, enum.values))
+      }
+
+    abstract class MarshallableEnumEntry(val serialized: String) extends EnumEntry
+
+    trait HasJsonFormat[T <: MarshallableEnumEntry] { enum: Enum[T] =>
+
+      private lazy val mapping = enum.values.map(v => v.serialized -> v).toMap
+
+      def withSerializedValue(value: String): Option[T] = mapping.get(value)
+
+      implicit val format: JsonFormat[T] = new JsonFormat[T] {
+        def read(json: JsValue): T = json match {
+          case JsString(name) => mapping.getOrElse(name, unrecognizedValue(name, enum.values.map(_.serialized)))
+          case _              => deserializationError("Expected string as enumeration value, but got " + json.toString)
+        }
+
+        def write(obj: T): JsValue = JsString(obj.serialized)
+      }
+
+      implicit val unmarshaller: Unmarshaller[String, T] =
+        Unmarshaller.strict { value =>
+          enum.withSerializedValue(value).getOrElse(unrecognizedValue(value, enum.values.map(_.serialized)))
+        }
     }
 
-    override def write(obj: T): JsValue = JsString(obj.entryName)
+    class EnumJsonFormat[T <: EnumEntry](enum: Enum[T]) extends JsonFormat[T] {
+      override def read(json: JsValue): T = json match {
+        case JsString(name) => enum.withNameOption(name).getOrElse(unrecognizedValue(name, enum.values))
+        case _              => deserializationError("Expected string as enumeration value, but got " + json.toString)
+      }
+
+      override def write(obj: T): JsValue = JsString(obj.entryName)
+    }
+
+    private def unrecognizedValue(value: String, possibleValues: Seq[Any]): Nothing =
+      deserializationError(s"Unexpected value $value. Expected one of: ${possibleValues.mkString("[", ", ", "]")}")
   }
 
   class EnumJsonFormat[T](mapping: (String, T)*) extends RootJsonFormat[T] {

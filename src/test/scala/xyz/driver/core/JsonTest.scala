@@ -12,6 +12,7 @@ import xyz.driver.core.time.provider.SystemTimeProvider
 import spray.json._
 import xyz.driver.core.TestTypes.CustomGADT
 import xyz.driver.core.domain.{Email, PhoneNumber}
+import xyz.driver.core.json.enumeratum.{HasJsonFormat, MarshallableEnumEntry}
 import xyz.driver.core.time.TimeOfDay
 
 import scala.collection.immutable.IndexedSeq
@@ -119,7 +120,7 @@ class JsonTest extends FlatSpec with Matchers {
     parsedPhoneNumber should be(referencePhoneNumber)
   }
 
-  "Json format for Enums" should "read and write correct JSON" in {
+  "Json format for ADT mappings" should "read and write correct JSON" in {
 
     sealed trait EnumVal
     case object Val1 extends EnumVal
@@ -144,37 +145,70 @@ class JsonTest extends FlatSpec with Matchers {
     parsedEnumValue2 should be(referenceEnumValue2)
   }
 
-  "Json format for enumeratum.Enums" should "read and write correct JSON" in {
+  "Json format for plain Enums" should "read and write correct JSON" in {
 
-    sealed trait EnumVal extends EnumEntry
-    object MyEnum extends Enum[EnumVal] {
-      case object Val1    extends EnumVal
-      case object `Val 2` extends EnumVal
-      case object `Val/3` extends EnumVal
+    sealed trait MyEnum extends EnumEntry
+    object MyEnum extends Enum[MyEnum] {
+      case object Val1    extends MyEnum
+      case object `Val 2` extends MyEnum
+      case object `Val/3` extends MyEnum
 
-      val values: IndexedSeq[EnumVal] = findValues
+      val values: IndexedSeq[MyEnum] = findValues
     }
 
-    val format = new EnumeratumJsonFormat(MyEnum)
+    val format = new enumeratum.EnumJsonFormat(MyEnum)
 
     val referenceEnumValue1 = MyEnum.`Val 2`
     val referenceEnumValue2 = MyEnum.`Val/3`
 
     val writtenJson1 = format.write(referenceEnumValue1)
-    writtenJson1.prettyPrint should be("\"Val 2\"")
+    writtenJson1 shouldBe JsString("Val 2")
 
     val writtenJson2 = format.write(referenceEnumValue2)
-    writtenJson2.prettyPrint should be("\"Val/3\"")
+    writtenJson2 shouldBe JsString("Val/3")
 
     val parsedEnumValue1 = format.read(writtenJson1)
     val parsedEnumValue2 = format.read(writtenJson2)
+
+    parsedEnumValue1 shouldBe referenceEnumValue1
+    parsedEnumValue2 shouldBe referenceEnumValue2
+
+    intercept[DeserializationException] {
+      format.read(JsString("Val4"))
+    }.getMessage shouldBe "Unexpected value Val4. Expected one of: [Val1, Val 2, Val/3]"
+  }
+
+  "Json format for enriched Enums" should "use `serialized` to read and write correct JSON and not require import" in {
+
+    sealed abstract class MyEnum(serialized: String) extends MarshallableEnumEntry(serialized)
+    object MyEnum extends Enum[MyEnum] with HasJsonFormat[MyEnum] {
+      case object Val1    extends MyEnum("val1")
+      case object `Val 2` extends MyEnum("val2")
+      case object `Val/3` extends MyEnum("val!3")
+
+      val values: IndexedSeq[MyEnum] = findValues
+    }
+
+    val referenceEnumValue1: MyEnum = MyEnum.`Val 2`
+    val referenceEnumValue2: MyEnum = MyEnum.`Val/3`
+
+    val writtenJson1 = referenceEnumValue1.toJson
+    writtenJson1 shouldBe JsString("val2")
+
+    val writtenJson2 = referenceEnumValue2.toJson
+    writtenJson2 shouldBe JsString("val!3")
+
+    import spray.json._
+
+    val parsedEnumValue1 = writtenJson1.prettyPrint.parseJson.convertTo[MyEnum]
+    val parsedEnumValue2 = writtenJson2.prettyPrint.parseJson.convertTo[MyEnum]
 
     parsedEnumValue1 should be(referenceEnumValue1)
     parsedEnumValue2 should be(referenceEnumValue2)
 
     intercept[DeserializationException] {
-      format.read(JsString("Val4"))
-    }.getMessage shouldBe "Value Val4 is not one of the possible values [Val1, Val 2, Val/3]"
+      JsString("Val4").convertTo[MyEnum]
+    }.getMessage shouldBe "Unexpected value Val4. Expected one of: [val1, val2, val!3]"
   }
 
   // Should be defined outside of case to have a TypeTag

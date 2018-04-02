@@ -3,22 +3,23 @@ package xyz.driver.core
 import java.net.InetAddress
 import java.util.{TimeZone, UUID}
 
-import scala.reflect.runtime.universe._
-import scala.util.Try
-import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.server._
-import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
 import akka.http.scaladsl.marshalling.{Marshaller, Marshalling}
+import akka.http.scaladsl.model.Uri.Path
+import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
+import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import enumeratum._
+import eu.timepit.refined.api.{Refined, Validate}
+import eu.timepit.refined.collection.NonEmpty
+import eu.timepit.refined.refineV
 import spray.json._
 import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.date.{Date, DayOfWeek, Month}
 import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.time.{Time, TimeOfDay}
-import eu.timepit.refined.refineV
-import eu.timepit.refined.api.{Refined, Validate}
-import eu.timepit.refined.collection.NonEmpty
+
+import scala.reflect.runtime.universe._
+import scala.util.Try
 
 object json {
   import DefaultJsonProtocol._
@@ -193,26 +194,13 @@ object json {
         enum.withNameOption(value).getOrElse(unrecognizedValue(value, enum.values))
       }
 
-    abstract class MarshallableEnumEntry(val serialized: String) extends EnumEntry
+    trait HasJsonFormat[T <: EnumEntry] { enum: Enum[T] =>
 
-    trait HasJsonFormat[T <: MarshallableEnumEntry] { enum: Enum[T] =>
-
-      private lazy val mapping = enum.values.map(v => v.serialized -> v).toMap
-
-      def withSerializedValue(value: String): Option[T] = mapping.get(value)
-
-      implicit val format: JsonFormat[T] = new JsonFormat[T] {
-        def read(json: JsValue): T = json match {
-          case JsString(name) => mapping.getOrElse(name, unrecognizedValue(name, enum.values.map(_.serialized)))
-          case _              => deserializationError("Expected string as enumeration value, but got " + json.toString)
-        }
-
-        def write(obj: T): JsValue = JsString(obj.serialized)
-      }
+      implicit val format: JsonFormat[T] = new EnumJsonFormat(enum)
 
       implicit val unmarshaller: Unmarshaller[String, T] =
         Unmarshaller.strict { value =>
-          enum.withSerializedValue(value).getOrElse(unrecognizedValue(value, enum.values.map(_.serialized)))
+          enum.withNameOption(value).getOrElse(unrecognizedValue(value, enum.values))
         }
     }
 

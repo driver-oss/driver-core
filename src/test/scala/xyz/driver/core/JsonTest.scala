@@ -12,7 +12,7 @@ import xyz.driver.core.time.provider.SystemTimeProvider
 import spray.json._
 import xyz.driver.core.TestTypes.CustomGADT
 import xyz.driver.core.domain.{Email, PhoneNumber}
-import xyz.driver.core.json.enumeratum.{HasJsonFormat, MarshallableEnumEntry}
+import xyz.driver.core.json.enumeratum.HasJsonFormat
 import xyz.driver.core.time.TimeOfDay
 
 import scala.collection.immutable.IndexedSeq
@@ -145,7 +145,7 @@ class JsonTest extends FlatSpec with Matchers {
     parsedEnumValue2 should be(referenceEnumValue2)
   }
 
-  "Json format for plain Enums" should "read and write correct JSON" in {
+  "Json format for Enums (external)" should "read and write correct JSON" in {
 
     sealed trait MyEnum extends EnumEntry
     object MyEnum extends Enum[MyEnum] {
@@ -178,13 +178,13 @@ class JsonTest extends FlatSpec with Matchers {
     }.getMessage shouldBe "Unexpected value Val4. Expected one of: [Val1, Val 2, Val/3]"
   }
 
-  "Json format for enriched Enums" should "use `serialized` to read and write correct JSON and not require import" in {
+  "Json format for Enums (automatic)" should "read and write correct JSON and not require import" in {
 
-    sealed abstract class MyEnum(serialized: String) extends MarshallableEnumEntry(serialized)
+    sealed trait MyEnum extends EnumEntry
     object MyEnum extends Enum[MyEnum] with HasJsonFormat[MyEnum] {
-      case object Val1    extends MyEnum("val1")
-      case object `Val 2` extends MyEnum("val2")
-      case object `Val/3` extends MyEnum("val!3")
+      case object Val1    extends MyEnum
+      case object `Val 2` extends MyEnum
+      case object `Val/3` extends MyEnum
 
       val values: IndexedSeq[MyEnum] = findValues
     }
@@ -193,10 +193,10 @@ class JsonTest extends FlatSpec with Matchers {
     val referenceEnumValue2: MyEnum = MyEnum.`Val/3`
 
     val writtenJson1 = referenceEnumValue1.toJson
-    writtenJson1 shouldBe JsString("val2")
+    writtenJson1 shouldBe JsString("Val 2")
 
     val writtenJson2 = referenceEnumValue2.toJson
-    writtenJson2 shouldBe JsString("val!3")
+    writtenJson2 shouldBe JsString("Val/3")
 
     import spray.json._
 
@@ -208,7 +208,7 @@ class JsonTest extends FlatSpec with Matchers {
 
     intercept[DeserializationException] {
       JsString("Val4").convertTo[MyEnum]
-    }.getMessage shouldBe "Unexpected value Val4. Expected one of: [val1, val2, val!3]"
+    }.getMessage shouldBe "Unexpected value Val4. Expected one of: [Val1, Val 2, Val/3]"
   }
 
   // Should be defined outside of case to have a TypeTag

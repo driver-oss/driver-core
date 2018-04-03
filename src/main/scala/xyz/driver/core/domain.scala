@@ -1,13 +1,14 @@
 package xyz.driver.core
 
+import com.google.i18n.phonenumbers.PhoneNumberUtil
 import scalaz.Equal
-import scalaz.syntax.equal._
 import scalaz.std.string._
+import scalaz.syntax.equal._
 
 object domain {
 
   final case class Email(username: String, domain: String) {
-    override def toString = username + "@" + domain
+    override def toString: String = username + "@" + domain
   }
 
   object Email {
@@ -27,16 +28,13 @@ object domain {
   }
 
   object PhoneNumber {
-    def parse(phoneNumberString: String): Option[PhoneNumber] = {
-      val onlyDigits = phoneNumberString.replaceAll("[^\\d.]", "")
 
-      if (onlyDigits.length < 10) None
-      else {
-        val tenDigitNumber = onlyDigits.takeRight(10)
-        val countryCode    = Option(onlyDigits.dropRight(10)).filter(_.nonEmpty).getOrElse("1")
+    private val phoneUtil = PhoneNumberUtil.getInstance()
 
-        Some(PhoneNumber(countryCode, tenDigitNumber))
-      }
+    def parse(phoneNumber: String): Option[PhoneNumber] = {
+      val phone = phoneUtil.parseAndKeepRawInput(phoneNumber, "US")
+      if (!phoneUtil.isValidNumber(phone)) None
+      else Some(PhoneNumber(phone.getCountryCode.toString, phone.getNationalNumber.toString))
     }
   }
 }

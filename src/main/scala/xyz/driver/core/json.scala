@@ -1,7 +1,7 @@
 package xyz.driver.core
 
 import java.net.InetAddress
-import java.util.UUID
+import java.util.{TimeZone, UUID}
 
 import scala.reflect.runtime.universe._
 import scala.util.Try
@@ -14,7 +14,7 @@ import spray.json._
 import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.date.{Date, DayOfWeek, Month}
 import xyz.driver.core.domain.{Email, PhoneNumber}
-import xyz.driver.core.time.Time
+import xyz.driver.core.time.{Time, TimeOfDay}
 import eu.timepit.refined.refineV
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
@@ -79,6 +79,33 @@ object json {
       case _ => throw DeserializationException("Time expects number")
     }
   }
+
+  implicit object localTimeFormat extends JsonFormat[java.time.LocalTime] {
+    private val formatter = TimeOfDay.getFormatter
+    def read(json: JsValue): java.time.LocalTime = json match {
+      case JsString(chars) =>
+        java.time.LocalTime.parse(chars)
+      case _ => deserializationError(s"Expected time string got ${json.toString}")
+    }
+
+    def write(obj: java.time.LocalTime): JsValue = {
+      JsString(obj.format(formatter))
+    }
+  }
+
+  implicit object timeZoneFormat extends JsonFormat[java.util.TimeZone] {
+    override def write(obj: TimeZone): JsValue = {
+      JsString(obj.getID())
+    }
+
+    override def read(json: JsValue): TimeZone = json match {
+      case JsString(chars) =>
+        java.util.TimeZone.getTimeZone(chars)
+      case _ => deserializationError(s"Expected time zone string got ${json.toString}")
+    }
+  }
+
+  implicit val timeOfDayFormat: RootJsonFormat[TimeOfDay] = jsonFormat2(TimeOfDay.apply)
 
   implicit val dayOfWeekFormat: JsonFormat[DayOfWeek] =
     new EnumJsonFormat[DayOfWeek](DayOfWeek.All.map(w => w.toString -> w)(collection.breakOut): _*)

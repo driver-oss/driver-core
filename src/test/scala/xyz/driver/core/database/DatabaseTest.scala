@@ -39,5 +39,4 @@ class DatabaseTest extends FlatSpec with Matchers with Checkers {
 
     an[DatabaseException] should be thrownBy TestConverter.expectValidOrEmpty(mapper, invalidOp)
   }
-
 }

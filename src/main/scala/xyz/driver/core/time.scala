@@ -4,7 +4,10 @@ import java.text.SimpleDateFormat
 import java.util._
 import java.util.concurrent.TimeUnit
 
+import xyz.driver.core.date.Month
+
 import scala.concurrent.duration._
+import scala.util.Try
 
 object time {
 
@@ -36,6 +39,90 @@ object time {
       val cal = Calendar.getInstance(timezone)
       cal.setTimeInMillis(millis)
       date.Date(cal.get(Calendar.YEAR), date.Month(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
+    }
+  }
+
+  /**
+    * Encapsulates a time and timezone without a specific date.
+    */
+  final case class TimeOfDay(localTime: java.time.LocalTime, timeZone: TimeZone) {
+
+    /**
+      * Is this time before another time on a specific day. Day light savings safe. These are zero-indexed
+      * for month/day.
+      */
+    def isBefore(other: TimeOfDay, day: Int, month: Month, year: Int): Boolean = {
+      toCalendar(day, month, year).before(other.toCalendar(day, month, year))
+    }
+
+    /**
+      * Is this time after another time on a specific day. Day light savings safe.
+      */
+    def isAfter(other: TimeOfDay, day: Int, month: Month, year: Int): Boolean = {
+      toCalendar(day, month, year).after(other.toCalendar(day, month, year))
+    }
+
+    def sameTimeAs(other: TimeOfDay, day: Int, month: Month, year: Int): Boolean = {
+      toCalendar(day, month, year).equals(other.toCalendar(day, month, year))
+    }
+
+    /**
+      * Enforces the same formatting as expected by [[java.sql.Time]]
+      * @return string formatted for `java.sql.Time`
+      */
+    def timeString: String = {
+      localTime.format(TimeOfDay.getFormatter)
+    }
+
+    /**
+      * @return a string parsable by [[java.util.TimeZone]]
+      */
+    def timeZoneString: String = {
+      timeZone.getID
+    }
+
+    /**
+      * @return this [[TimeOfDay]] as [[java.sql.Time]] object, [[java.sql.Time.valueOf]] will
+      *         throw when the string is not valid, but this is protected by [[timeString]] method.
+      */
+    def toTime: java.sql.Time = {
+      java.sql.Time.valueOf(timeString)
+    }
+
+    private def toCalendar(day: Int, month: Int, year: Int): Calendar = {
+      val cal = Calendar.getInstance(timeZone)
+      cal.set(year, month, day, localTime.getHour, localTime.getMinute, localTime.getSecond)
+      cal
+    }
+  }
+
+  object TimeOfDay {
+    def now(): TimeOfDay = {
+      TimeOfDay(java.time.LocalTime.now(), TimeZone.getDefault)
+    }
+
+    /**
+      * Throws when [s] is not parsable by [[java.time.LocalTime.parse]], uses default [[java.util.TimeZone]]
+      */
+    def parseTimeString(tz: TimeZone = TimeZone.getDefault)(s: String): TimeOfDay = {
+      TimeOfDay(java.time.LocalTime.parse(s), tz)
+    }
+
+    def fromString(tz: TimeZone)(s: String): Option[TimeOfDay] = {
+      val op = Try(java.time.LocalTime.parse(s)).toOption
+      op.map(lt => TimeOfDay(lt, tz))
+    }
+
+    def fromStrings(zoneId: String)(s: String): Option[TimeOfDay] = {
+      val op = Try(TimeZone.getTimeZone(zoneId)).toOption
+      op.map(tz => TimeOfDay.parseTimeString(tz)(s))
+    }
+
+    /**
+      * Formatter that enforces `HH:mm:ss` which is expected by [[java.sql.Time]]
+      */
+    def getFormatter: java.time.format.DateTimeFormatter = {
+      java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss")
     }
   }
 

@@ -34,14 +34,22 @@ object json {
     }
   }
 
-  implicit def idFormat[T] = new RootJsonFormat[Id[T]] {
+  implicit def idFormat[T]: JsonFormat[Id[T]] = new JsonFormat[Id[T]] {
     def write(id: Id[T]) = JsString(id.value)
 
-    def read(value: JsValue) = value match {
+    def read(value: JsValue): Id[T] = value match {
       case JsString(id) if Try(UUID.fromString(id)).isSuccess => Id[T](id.toLowerCase)
       case JsString(id)                                       => Id[T](id)
       case _                                                  => throw DeserializationException("Id expects string")
     }
+  }
+
+  implicit def taggedFormat[F, T](implicit underlying: JsonFormat[F]): JsonFormat[F @@ T] = new JsonFormat[F @@ T] {
+    import tagging._
+
+    override def write(obj: F @@ T): JsValue = underlying.write(obj)
+
+    override def read(json: JsValue): F @@ T = underlying.read(json).taggedWith[T]
   }
 
   def NameInPath[T]: PathMatcher1[Name[T]] = new PathMatcher1[Name[T]] {

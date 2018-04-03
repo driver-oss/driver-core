@@ -13,6 +13,7 @@ import spray.json._
 import xyz.driver.core.TestTypes.CustomGADT
 import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.json.enumeratum.HasJsonFormat
+import xyz.driver.core.tagging.Taggable
 import xyz.driver.core.time.TimeOfDay
 
 import scala.collection.immutable.IndexedSeq
@@ -29,6 +30,19 @@ class JsonTest extends FlatSpec with Matchers {
 
     val parsedId = json.idFormat.read(writtenJson)
     parsedId should be(referenceId)
+  }
+
+  "Json format for @@" should "read and write correct JSON" in {
+    trait Irrelevant
+    val reference = Id[JsonTest]("SomeID").taggedWith[Irrelevant]
+
+    val format = json.taggedFormat[Id[JsonTest], Irrelevant]
+
+    val writtenJson = format.write(reference)
+    writtenJson shouldBe JsString("SomeID")
+
+    val parsedId: Id[JsonTest] @@ Irrelevant = format.read(writtenJson)
+    parsedId shouldBe reference
   }
 
   "Json format for Name" should "read and write correct JSON" in {

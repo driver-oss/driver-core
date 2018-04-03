@@ -1,10 +1,11 @@
 package xyz.driver.core.database
 
-import slick.lifted.AbstractTable
+import scalaz.std.scalaFuture._
+import scalaz.{ListT, Monad, OptionT}
+import slick.lifted.{AbstractTable, CanBeQueryCondition, RunnableCompiled}
+import slick.{lifted => sl}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scalaz.{ListT, Monad, OptionT}
-import scalaz.std.scalaFuture._
 
 trait Dal {
   type T[D]
@@ -34,16 +35,20 @@ class SlickDal(database: Database, executionContext: ExecutionContext) extends D
 
   override type T[D] = slick.dbio.DBIO[D]
 
-  implicit protected class QueryOps[U](query: Query[_, U, Seq]) {
+  implicit protected class QueryOps[+E, U](query: Query[E, U, Seq]) {
     def resultT: ListT[T, U] = ListT[T, U](query.result.map(_.toList))
+
+    def maybeFilter[V, R: CanBeQueryCondition](data: Option[V])(f: V => E => R): sl.Query[E, U, Seq] =
+      data.map(v => query.withFilter(f(v))).getOrElse(query)
   }
 
-  implicit protected class CompiledQueryOps[U](compiledQuery: slick.lifted.RunnableCompiled[_, Seq[U]]) {
+  implicit protected class CompiledQueryOps[U](compiledQuery: RunnableCompiled[_, Seq[U]]) {
     def resultT: ListT[T, U] = ListT.listT[T](compiledQuery.result.map(_.toList))
   }
 
   private val dbioMonad = new Monad[T] {
-    override def point[A](a: => A): T[A]                  = DBIO.successful(a)
+    override def point[A](a: => A): T[A] = DBIO.successful(a)
+
     override def bind[A, B](fa: T[A])(f: A => T[B]): T[B] = fa.flatMap(f)
   }
 
@@ -53,7 +58,8 @@ class SlickDal(database: Database, executionContext: ExecutionContext) extends D
     database.database.run(readOperations.transactionally)
   }
 
-  override def noAction[V](v: V): T[V]                     = DBIO.successful(v)
+  override def noAction[V](v: V): T[V] = DBIO.successful(v)
+
   override def customAction[R](action: => Future[R]): T[R] = DBIO.from(action)
 
   def affectsRows(updatesCount: Int): Option[Unit] = {

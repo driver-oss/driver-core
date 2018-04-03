@@ -49,7 +49,7 @@ object json {
 
     override def write(obj: F @@ T): JsValue = underlying.write(obj)
 
-    override def read(json: JsValue): F @@ T = underlying.read(json).taggedWith[T]
+    override def read(json: JsValue): F @@ T = underlying.read(json).tagged[T]
   }
 
   def NameInPath[T]: PathMatcher1[Name[T]] = new PathMatcher1[Name[T]] {

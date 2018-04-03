@@ -34,7 +34,7 @@ class JsonTest extends FlatSpec with Matchers {
 
   "Json format for @@" should "read and write correct JSON" in {
     trait Irrelevant
-    val reference = Id[JsonTest]("SomeID").taggedWith[Irrelevant]
+    val reference = Id[JsonTest]("SomeID").tagged[Irrelevant]
 
     val format = json.taggedFormat[Id[JsonTest], Irrelevant]
 

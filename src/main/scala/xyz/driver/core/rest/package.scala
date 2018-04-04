@@ -148,7 +148,6 @@ object `package` {
     new ServiceRequestContext(
       extractTrackingId(request),
       extractOriginatingIP(request, remoteAddress),
-      extractFingerprintHash(request),
       extractContextHeaders(request))
 
   def extractTrackingId(request: HttpRequest): String = {

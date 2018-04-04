@@ -3,21 +3,23 @@ package xyz.driver.core
 import java.net.InetAddress
 import java.util.{TimeZone, UUID}
 
-import scala.reflect.runtime.universe._
-import scala.util.Try
-import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.server._
-import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
 import akka.http.scaladsl.marshalling.{Marshaller, Marshalling}
+import akka.http.scaladsl.model.Uri.Path
+import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
+import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
+import enumeratum._
+import eu.timepit.refined.api.{Refined, Validate}
+import eu.timepit.refined.collection.NonEmpty
+import eu.timepit.refined.refineV
 import spray.json._
 import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.date.{Date, DayOfWeek, Month}
 import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.time.{Time, TimeOfDay}
-import eu.timepit.refined.refineV
-import eu.timepit.refined.api.{Refined, Validate}
-import eu.timepit.refined.collection.NonEmpty
+
+import scala.reflect.runtime.universe._
+import scala.util.Try
 
 object json {
   import DefaultJsonProtocol._
@@ -107,8 +109,7 @@ object json {
 
   implicit val timeOfDayFormat: RootJsonFormat[TimeOfDay] = jsonFormat2(TimeOfDay.apply)
 
-  implicit val dayOfWeekFormat: JsonFormat[DayOfWeek] =
-    new EnumJsonFormat[DayOfWeek](DayOfWeek.All.map(w => w.toString -> w)(collection.breakOut): _*)
+  implicit val dayOfWeekFormat: JsonFormat[DayOfWeek] = new enumeratum.EnumJsonFormat(DayOfWeek)
 
   implicit val dateFormat = new RootJsonFormat[Date] {
     def write(date: Date) = JsString(date.toString)
@@ -136,9 +137,9 @@ object json {
     }
 
   implicit def revisionFromStringUnmarshaller[T]: Unmarshaller[String, Revision[T]] =
-    Unmarshaller.strict[String, Revision[T]](Revision[T](_))
+    Unmarshaller.strict[String, Revision[T]](Revision[T])
 
-  implicit def revisionFormat[T] = new RootJsonFormat[Revision[T]] {
+  implicit def revisionFormat[T]: RootJsonFormat[Revision[T]] = new RootJsonFormat[Revision[T]] {
     def write(revision: Revision[T]) = JsString(revision.id.toString)
 
     def read(value: JsValue): Revision[T] = value match {
@@ -184,6 +185,36 @@ object json {
 
     override def write(obj: InetAddress): JsValue =
       JsString(obj.getHostAddress)
+  }
+
+  object enumeratum {
+
+    def enumUnmarshaller[T <: EnumEntry](enum: Enum[T]): Unmarshaller[String, T] =
+      Unmarshaller.strict { value =>
+        enum.withNameOption(value).getOrElse(unrecognizedValue(value, enum.values))
+      }
+
+    trait HasJsonFormat[T <: EnumEntry] { enum: Enum[T] =>
+
+      implicit val format: JsonFormat[T] = new EnumJsonFormat(enum)
+
+      implicit val unmarshaller: Unmarshaller[String, T] =
+        Unmarshaller.strict { value =>
+          enum.withNameOption(value).getOrElse(unrecognizedValue(value, enum.values))
+        }
+    }
+
+    class EnumJsonFormat[T <: EnumEntry](enum: Enum[T]) extends JsonFormat[T] {
+      override def read(json: JsValue): T = json match {
+        case JsString(name) => enum.withNameOption(name).getOrElse(unrecognizedValue(name, enum.values))
+        case _              => deserializationError("Expected string as enumeration value, but got " + json.toString)
+      }
+
+      override def write(obj: T): JsValue = JsString(obj.entryName)
+    }
+
+    private def unrecognizedValue(value: String, possibleValues: Seq[Any]): Nothing =
+      deserializationError(s"Unexpected value $value. Expected one of: ${possibleValues.mkString("[", ", ", "]")}")
   }
 
   class EnumJsonFormat[T](mapping: (String, T)*) extends RootJsonFormat[T] {

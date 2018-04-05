@@ -26,7 +26,12 @@ trait DriverRoute {
 
   protected def defaultResponseHeaders: Directive0 = {
     extractRequest flatMap { request =>
-      val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, rest.extractTrackingId(request))
+      // Needs to happen before any request processing, so all the log messages
+      // associated with processing of this request are having this `trackingId`
+      val trackingId    = rest.extractTrackingId(request)
+      val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
+      MDC.put("trackingId", trackingId)
+
       respondWithHeader(tracingHeader)
     }
   }
@@ -43,26 +48,23 @@ trait DriverRoute {
     case is: IllegalStateException =>
       ctx =>
         log.warn(s"Request is not allowed to ${ctx.request.method} ${ctx.request.uri}", is)
-        errorResponse(ctx, StatusCodes.BadRequest, message = is.getMessage, is)(ctx)
+        errorResponse(StatusCodes.BadRequest, message = is.getMessage, is)(ctx)
 
     case cm: ConcurrentModificationException =>
       ctx =>
         log.warn(s"Concurrent modification of the resource ${ctx.request.method} ${ctx.request.uri}", cm)
-        errorResponse(
-          ctx,
-          StatusCodes.Conflict,
-          "Resource was changed concurrently, try requesting a newer version",
-          cm)(ctx)
+        errorResponse(StatusCodes.Conflict, "Resource was changed concurrently, try requesting a newer version", cm)(
+          ctx)
 
     case se: SQLException =>
       ctx =>
         log.warn(s"Database exception for the resource ${ctx.request.method} ${ctx.request.uri}", se)
-        errorResponse(ctx, StatusCodes.InternalServerError, "Data access error", se)(ctx)
+        errorResponse(StatusCodes.InternalServerError, "Data access error", se)(ctx)
 
     case t: Exception =>
       ctx =>
         log.warn(s"Request to ${ctx.request.method} ${ctx.request.uri} could not be handled normally", t)
-        errorResponse(ctx, StatusCodes.InternalServerError, t.getMessage, t)(ctx)
+        errorResponse(StatusCodes.InternalServerError, t.getMessage, t)(ctx)
   }
 
   protected def serviceExceptionHandler(serviceException: ServiceException): Route = {
@@ -88,17 +90,11 @@ trait DriverRoute {
     }
 
     { (ctx: RequestContext) =>
-      errorResponse(ctx, statusCode, serviceException.message, serviceException)(ctx)
+      errorResponse(statusCode, serviceException.message, serviceException)(ctx)
     }
   }
 
-  protected def errorResponse[T <: Exception](
-      ctx: RequestContext,
-      statusCode: StatusCode,
-      message: String,
-      exception: T): Route = {
-    val trackingId = rest.extractTrackingId(ctx.request)
-    MDC.put("trackingId", trackingId)
+  protected def errorResponse[T <: Exception](statusCode: StatusCode, message: String, exception: T): Route = {
     complete(HttpResponse(statusCode, entity = message))
   }
 }

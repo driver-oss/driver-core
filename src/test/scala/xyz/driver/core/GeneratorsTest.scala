@@ -38,7 +38,7 @@ class GeneratorsTest extends FlatSpec with Matchers with Assertions {
 
   it should "be able to generate com.drivergrp.core.Name names" in {
 
-    nextName[String]() should not be nextName[String]()
+    Seq.fill(10)(nextName[String]()).distinct.size should be > 1
     nextName[String]().value.length should be >= 0
 
     val fixedLengthName = nextName[String](10)

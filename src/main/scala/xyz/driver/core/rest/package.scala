@@ -66,7 +66,7 @@ object `package` {
     val AuthenticationTokenHeader: String  = "Authorization"
     val PermissionsTokenHeader: String     = "Permissions"
     val AuthenticationHeaderPrefix: String = "Bearer"
-    val ClientFingerprintHeader: String    = "X-CLIENT-FINGERPRINT"
+    val ClientFingerprintHeader: String    = "X-Client-Fingerprint"
     val TrackingIdHeader: String           = "X-Trace"
     val StacktraceHeader: String           = "X-Stacktrace"
     val OriginatingIpHeader: String        = "X-Forwarded-For"

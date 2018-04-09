@@ -25,6 +25,10 @@ package object core {
 
   object tagging {
     private[core] trait Tagged[+V, +Tag]
+
+    implicit class Taggable[V <: Any](val v: V) extends AnyVal {
+      def tagged[Tag]: V @@ Tag = v.asInstanceOf[V @@ Tag]
+    }
   }
   type @@[+V, +Tag] = V with tagging.Tagged[V, Tag]
 

@@ -92,6 +92,7 @@ object time {
     private def toCalendar(day: Int, month: Int, year: Int): Calendar = {
       val cal = Calendar.getInstance(timeZone)
       cal.set(year, month, day, localTime.getHour, localTime.getMinute, localTime.getSecond)
+      cal.clear(Calendar.MILLISECOND)
       cal
     }
   }

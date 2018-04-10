@@ -34,6 +34,9 @@ trait RestService extends Service {
   protected def jsonEntity(json: JsValue): RequestEntity =
     HttpEntity(ContentTypes.`application/json`, json.compactPrint)
 
+  protected def mergePatchJsonEntity(json: JsValue): RequestEntity =
+    HttpEntity(PatchDirectives.`application/merge-patch+json`, json.compactPrint)
+
   protected def get(baseUri: Uri, path: String, query: Seq[(String, String)] = Seq.empty) =
     HttpRequest(HttpMethods.GET, endpointUri(baseUri, path, query))
 
@@ -54,6 +57,9 @@ trait RestService extends Service {
 
   protected def patchJson(baseUri: Uri, path: String, json: JsValue) =
     HttpRequest(HttpMethods.PATCH, endpointUri(baseUri, path), entity = jsonEntity(json))
+
+  protected def mergePatchJson(baseUri: Uri, path: String, json: JsValue) =
+    HttpRequest(HttpMethods.PATCH, endpointUri(baseUri, path), entity = mergePatchJsonEntity(json))
 
   protected def delete(baseUri: Uri, path: String, query: Seq[(String, String)] = Seq.empty) =
     HttpRequest(HttpMethods.DELETE, endpointUri(baseUri, path, query))

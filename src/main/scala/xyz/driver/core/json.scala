@@ -34,7 +34,7 @@ object json {
     }
   }
 
-  implicit def idFormat[T]: JsonFormat[Id[T]] = new JsonFormat[Id[T]] {
+  implicit def idFormat[T]: RootJsonFormat[Id[T]] = new RootJsonFormat[Id[T]] {
     def write(id: Id[T]) = JsString(id.value)
 
     def read(value: JsValue): Id[T] = value match {

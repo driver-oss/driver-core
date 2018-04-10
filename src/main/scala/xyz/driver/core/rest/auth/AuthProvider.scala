@@ -53,9 +53,9 @@ abstract class AuthProvider[U <: User](val authorization: Authorization[U], log:
           s"User ${authCtx.authenticatedUser} does not have the required permissions: ${permissions.mkString(", ")}")
         reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
       case Success(None) =>
-        log.warn(
-          s"Wasn't able to find authenticated user for the token provided to verify ${permissions.mkString(", ")}")
-        reject(ValidationRejection(s"Wasn't able to find authenticated user for the token provided"))
+        val challenge = HttpChallenges.basic("Failed to authenticate user")
+        log.warn(s"Failed to authenticate user to verify ${permissions.mkString(", ")}")
+        reject(AuthenticationFailedRejection(CredentialsRejected, challenge))
       case Failure(t) =>
         log.warn(s"Wasn't able to verify token for authenticated user to verify ${permissions.mkString(", ")}", t)
         reject(ValidationRejection(s"Wasn't able to verify token for authenticated user", Some(t)))

@@ -79,7 +79,8 @@ class AuthTest extends FlatSpec with Matchers with ScalatestRouteTest {
       } ~>
       check {
         // handled shouldBe false
-        rejections should contain(ValidationRejection("Wasn't able to find authenticated user for the token provided"))
+        val challenge = HttpChallenges.basic("Failed to authenticate user")
+        rejections should contain(AuthenticationFailedRejection(CredentialsRejected, challenge))
       }
   }
 

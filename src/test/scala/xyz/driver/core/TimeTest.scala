@@ -76,7 +76,8 @@ class TimeTest extends FlatSpec with Matchers with Checkers {
   it should "have correct textual representations" in {
     import java.util.Locale
     import java.util.Locale._
-    Locale.setDefault(ENGLISH)
+    Locale.setDefault(US)
+
     textualDate(TimeZone.getTimeZone("EDT"))(Time(1468937089834L)) should be("July 19, 2016")
     textualTime(TimeZone.getTimeZone("PDT"))(Time(1468937089834L)) should be("Jul 19, 2016 02:04:49 PM")
   }

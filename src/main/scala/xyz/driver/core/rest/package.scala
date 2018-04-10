@@ -66,6 +66,7 @@ object `package` {
     val AuthenticationTokenHeader: String  = "Authorization"
     val PermissionsTokenHeader: String     = "Permissions"
     val AuthenticationHeaderPrefix: String = "Bearer"
+    val ClientFingerprintHeader: String    = "X-Client-Fingerprint"
     val TrackingIdHeader: String           = "X-Trace"
     val StacktraceHeader: String           = "X-Stacktrace"
     val OriginatingIpHeader: String        = "X-Forwarded-For"
@@ -90,12 +91,12 @@ object `package` {
       "Content-Length",
       "Accept",
       "X-Trace",
-      "X-Client-Fingerprint",
       "Access-Control-Allow-Methods",
       "Access-Control-Allow-Origin",
       "Access-Control-Allow-Headers",
       "Server",
       "Date",
+      ContextHeaders.ClientFingerprintHeader,
       ContextHeaders.TrackingIdHeader,
       ContextHeaders.TraceHeaderName,
       ContextHeaders.SpanHeaderName,
@@ -155,6 +156,12 @@ object `package` {
       .fold(java.util.UUID.randomUUID.toString)(_.value())
   }
 
+  def extractFingerprintHash(request: HttpRequest): Option[String] = {
+    request.headers
+      .find(_.name === ContextHeaders.ClientFingerprintHeader)
+      .map(_.value())
+  }
+
   def extractOriginatingIP(request: HttpRequest, remoteAddress: RemoteAddress): Option[InetAddress] = {
     request.headers
       .find(_.name === ContextHeaders.OriginatingIpHeader)
@@ -170,7 +177,7 @@ object `package` {
       h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader ||
       h.name === ContextHeaders.PermissionsTokenHeader || h.name === ContextHeaders.StacktraceHeader ||
       h.name === ContextHeaders.TraceHeaderName || h.name === ContextHeaders.SpanHeaderName ||
-      h.name === ContextHeaders.OriginatingIpHeader
+      h.name === ContextHeaders.OriginatingIpHeader || h.name === ContextHeaders.ClientFingerprintHeader
     } map { header =>
       if (header.name === ContextHeaders.AuthenticationTokenHeader) {
         header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim

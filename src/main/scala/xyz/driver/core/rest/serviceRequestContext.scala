@@ -34,11 +34,14 @@ class ServiceRequestContext(
     )
 
   override def hashCode(): Int =
-    Seq[Any](trackingId, originatingIp, contextHeaders).foldLeft(31)((result, obj) => 31 * result + obj.hashCode())
+    Seq[Any](trackingId, originatingIp, contextHeaders)
+      .foldLeft(31)((result, obj) => 31 * result + obj.hashCode())
 
   override def equals(obj: Any): Boolean = obj match {
     case ctx: ServiceRequestContext =>
-      trackingId === ctx.trackingId && originatingIp == originatingIp && contextHeaders === ctx.contextHeaders
+      trackingId === ctx.trackingId &&
+        originatingIp == originatingIp &&
+        contextHeaders === ctx.contextHeaders
     case _ => false
   }
 

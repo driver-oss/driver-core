@@ -15,6 +15,11 @@ import xyz.driver.core.time.Time
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, OptionT}
 
+@deprecated(
+  "Blob storage functionality has been reimplemented in xyz.driver.core.storage.BlobStorage. " +
+    "It has not been ported to S3 storage. Please raise an issue if this required for your use-case.",
+  "driver-core 1.8.14"
+)
 class S3Storage(s3: AmazonS3, bucket: Name[Bucket], executionContext: ExecutionContext, chunkSize: Int = 4096)
     extends FileStorage {
   implicit private val execution = executionContext

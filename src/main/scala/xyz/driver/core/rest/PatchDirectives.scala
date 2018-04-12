@@ -53,10 +53,10 @@ trait PatchDirectives extends Directives with SprayJsonSupport {
   }
 
   protected def mergeObjects(oldObj: JsObject, newObj: JsObject, maxLevels: Option[Int] = None): JsObject = {
-    JsObject(oldObj.fields.map({
-      case (key, oldValue) =>
-        val newValue = newObj.fields.get(key).fold(oldValue)(mergeJsValues(oldValue, _, maxLevels.map(_ - 1)))
-        key -> newValue
+    JsObject((oldObj.fields.keys ++ newObj.fields.keys).map({ key =>
+      val oldValue = oldObj.fields.getOrElse(key, JsNull)
+      val newValue = newObj.fields.get(key).fold(oldValue)(mergeJsValues(oldValue, _, maxLevels.map(_ - 1)))
+      key -> newValue
     })(collection.breakOut): _*)
   }
 

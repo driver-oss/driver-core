@@ -72,6 +72,15 @@ class PatchDirectivesTest
     }
   }
 
+  it should "handle optional values correctly when old value is null" in {
+    val fooRetrieve = Future.successful(Some(testFoo.copy(bar = None)))
+
+    Patch("/api/v1/foos/1", jsonEntity("""{"bar": {"name": "My Bar","size":10}}""")) ~> route(fooRetrieve) ~> check {
+      handled shouldBe true
+      responseAs[Foo] shouldBe testFoo.copy(bar = Some(Bar(Name("My Bar"), 10)))
+    }
+  }
+
   it should "return a 400 for nulls on non-optional values" in {
     val fooRetrieve = Future.successful(Some(testFoo))
 

@@ -49,6 +49,9 @@ object ListResponse {
   object Meta {
     def apply(itemsCount: Int, pagination: Pagination): Meta =
       Meta(itemsCount, pagination.pageNumber, pagination.pageSize)
+
+    def apply(itemsCount: Int, pagination: Option[Pagination]): Meta =
+      pagination.map(Meta(itemsCount, _)).getOrElse(Meta(itemsCount, 1, itemsCount))
   }
 
 }

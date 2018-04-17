@@ -1,5 +1,6 @@
 package xyz.driver.core.storage
 
+import java.net.URL
 import java.nio.file.{Files, Path, StandardCopyOption}
 
 import akka.stream.scaladsl.{FileIO, Sink, Source}
@@ -8,6 +9,7 @@ import akka.{Done, NotUsed}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 /** A blob store that is backed by a local filesystem. All objects are stored relative to the given
   * root path. Slashes ('/') in blob names are treated as usual path separators and are converted
@@ -20,6 +22,10 @@ class FileSystemBlobStorage(root: Path)(implicit ec: ExecutionContext) extends B
   }
 
   private def file(name: String) = root.resolve(name)
+
+  override val resourcePath: String = root.toString + "/" // Path doesn't add the trailing slash
+
+  override val protocol: String = "file"
 
   override def uploadContent(name: String, content: Array[Byte]): Future[String] = Future {
     Files.write(ensureParents(file(name)), content)
@@ -72,4 +78,10 @@ class FileSystemBlobStorage(root: Path)(implicit ec: ExecutionContext) extends B
     name
   }
 
+  override def url(name: String): Future[Option[URL]] = exists(name) map {
+    case true =>
+      Try(new URL(protocol, resourcePath, name)).toOption
+    case false =>
+      None
+  }
 }

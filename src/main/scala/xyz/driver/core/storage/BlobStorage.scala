@@ -13,6 +13,10 @@ import scala.concurrent.duration.Duration
 /** Binary key-value store, typically implemented by cloud storage. */
 trait BlobStorage {
 
+  val resourcePath: String
+
+  val protocol: String
+
   /** Upload data by value. */
   def uploadContent(name: String, content: Array[Byte]): Future[String]
 
@@ -38,6 +42,11 @@ trait BlobStorage {
   /** Delete a stored value. */
   def delete(name: String): Future[String]
 
+  /**
+    * Path to specified resource. Checks that the resource exists and returns None of if
+    * it is not found.
+    */
+  def url(name: String): Future[Option[URL]]
 }
 
 trait SignedBlobStorage extends BlobStorage {

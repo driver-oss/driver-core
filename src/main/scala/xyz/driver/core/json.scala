@@ -34,10 +34,11 @@ object json {
     }
   }
 
-  implicit def idUnmarshaller[T]: Unmarshaller[String, Id[T]] = Unmarshaller.strict {
-    case id if Try(UUID.fromString(id)).isSuccess => Id[T](id.toLowerCase)
-    case id                                       => Id[T](id)
-  }
+  implicit def paramUnmarshaller[T](implicit reader: JsonReader[T]): Unmarshaller[String, T] =
+    Unmarshaller.firstOf(
+      Unmarshaller.strict((JsString(_: String)) andThen reader.read),
+      stringToValueUnmarshaller[T]
+    )
 
   implicit def idFormat[T]: RootJsonFormat[Id[T]] = new RootJsonFormat[Id[T]] {
     def write(id: Id[T]) = JsString(id.value)
@@ -63,8 +64,6 @@ object json {
       case _                           => Unmatched
     }
   }
-
-  implicit def nameUnmarshaller[T]: Unmarshaller[String, Name[T]] = Unmarshaller.strict(Name[T])
 
   implicit def nameFormat[T] = new RootJsonFormat[Name[T]] {
     def write(name: Name[T]) = JsString(name.value)

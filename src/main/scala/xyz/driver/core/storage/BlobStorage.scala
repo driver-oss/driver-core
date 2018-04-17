@@ -43,7 +43,7 @@ trait BlobStorage {
   def delete(name: String): Future[String]
 
   /**
-    * Path to specified resource. Checks that the resource exists and returns None of if
+    * Path to specified resource. Checks that the resource exists and returns None if
     * it is not found.
     */
   def url(name: String): Future[Option[URL]]

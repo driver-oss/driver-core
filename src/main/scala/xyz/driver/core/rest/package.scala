@@ -44,6 +44,11 @@ final case class ListResponse[+T](items: Seq[T], meta: ListResponse.Meta)
 
 object ListResponse {
 
+  def apply[T](items: Seq[T], size: Int, pagination: Option[Pagination]): ListResponse[T] =
+    ListResponse(
+      items = items,
+      meta = ListResponse.Meta(size, pagination.fold(1)(_.pageNumber), pagination.fold(size)(_.pageSize)))
+
   final case class Meta(itemsCount: Int, pageNumber: Int, pageSize: Int)
 
   object Meta {

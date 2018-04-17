@@ -34,6 +34,12 @@ object json {
     }
   }
 
+  implicit def paramUnmarshaller[T](implicit reader: JsonReader[T]): Unmarshaller[String, T] =
+    Unmarshaller.firstOf(
+      Unmarshaller.strict((JsString(_: String)) andThen reader.read),
+      stringToValueUnmarshaller[T]
+    )
+
   implicit def idFormat[T]: RootJsonFormat[Id[T]] = new RootJsonFormat[Id[T]] {
     def write(id: Id[T]) = JsString(id.value)
 

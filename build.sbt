@@ -22,7 +22,7 @@ lazy val core = (project in file("."))
     "com.beachape"                  %% "enumeratum"                     % "1.5.13",
     "org.mockito"                   %  "mockito-core"                   % "1.9.5"       % Test,
     "com.amazonaws"                 %  "aws-java-sdk-s3"                % "1.11.26",
-    "com.google.cloud"              %  "google-cloud-pubsub"            % "0.25.0-beta",
+    "com.google.cloud"              %  "google-cloud-pubsub"            % "0.42.1-beta",
     "com.google.cloud"              %  "google-cloud-storage"           % "1.24.1",
     "com.typesafe"                  %  "config"                         % "1.3.1",
     "ch.qos.logback"                %  "logback-classic"                % "1.1.11",

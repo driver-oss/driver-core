@@ -15,7 +15,6 @@ import com.google.cloud.storage.{Blob, BlobId, Bucket, Storage, StorageOptions}
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 class GcsBlobStorage(client: Storage, bucketId: String, chunkSize: Int = GcsBlobStorage.DefaultChunkSize)(
     implicit ec: ExecutionContext)
@@ -23,10 +22,6 @@ class GcsBlobStorage(client: Storage, bucketId: String, chunkSize: Int = GcsBlob
 
   private val bucket: Bucket = client.get(bucketId)
   require(bucket != null, s"Bucket $bucketId does not exist.")
-
-  override val protocol: String = "https"
-
-  override val resourcePath: String = s"storage.googleapis.com/${bucket.getName}/"
 
   override def uploadContent(name: String, content: Array[Byte]): Future[String] = Future {
     bucket.create(name, content).getBlobId.getName
@@ -74,8 +69,10 @@ class GcsBlobStorage(client: Storage, bucketId: String, chunkSize: Int = GcsBlob
   }
 
   override def url(name: String): Future[Option[URL]] = Future {
-    Option(bucket.get(name)).flatMap { blob =>
-      Try(new URL(protocol, resourcePath, blob.getName)).toOption
+    val protocol: String = "https"
+    val resourcePath: String = s"storage.googleapis.com/${bucket.getName}/"
+    Option(bucket.get(name)).map { blob =>
+      new URL(protocol, resourcePath, blob.getName)
     }
   }
 }

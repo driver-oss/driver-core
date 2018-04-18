@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <contextName>${HOSTNAME}</contextName>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+    <appender name="STDOUT_INFO" class="ch.qos.logback.core.ConsoleAppender">
+        <Target>System.out</Target>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}] %msg%n</pattern>
+        </encoder>
+    </appender>
+    <appender name="STDERR_WARN" class="ch.qos.logback.core.ConsoleAppender">
+        <Target>System.err</Target>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>WARN</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <pattern>[%d{MM/dd/yyyy HH:mm:ss.SSS}] [%thread] %msg%n</pattern>
+        </encoder>
+    </appender>
+    <appender name="STDERR_ERROR" class="ch.qos.logback.core.ConsoleAppender">
+        <Target>System.err</Target>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>ERROR</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+        <encoder>
+            <pattern>[%d{MM/dd/yyyy HH:mm:ss.SSS}] [%thread] %msg%n</pattern>
+        </encoder>
+    </appender>
+    <logger name="scala.slick" level="INFO" />
+    <logger name="com.spotify.docker" level="ERROR" />
+    <root level="DEBUG">
+        <appender-ref ref="STDOUT_INFO" />
+        <appender-ref ref="STDERR_WARN" />
+        <appender-ref ref="STDERR_ERROR" />
+    </root>
+</configuration>

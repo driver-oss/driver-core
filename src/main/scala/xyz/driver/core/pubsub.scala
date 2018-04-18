@@ -6,7 +6,7 @@ import akka.stream.Materializer
 import com.google.api.core.{ApiFutureCallback, ApiFutures}
 import com.google.cloud.pubsub.v1._
 import com.google.protobuf.ByteString
-import com.google.pubsub.v1.{PubsubMessage, PushConfig, SubscriptionName, TopicName}
+import com.google.pubsub.v1._
 import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -28,7 +28,7 @@ object pubsub {
 
     type Result = Id[PubsubMessage]
 
-    private val topicName = TopicName.create(projectId, topic)
+    private val topicName = ProjectTopicName.of(projectId, topic)
 
     private val publisher = {
       if (autoCreate) {
@@ -38,7 +38,7 @@ object pubsub {
           adminClient.createTopic(topicName)
         }
       }
-      Publisher.defaultBuilder(topicName).build()
+      Publisher.newBuilder(topicName).build()
     }
 
     override def publish(message: Message): Future[Id[PubsubMessage]] = {
@@ -99,7 +99,7 @@ object pubsub {
   )(implicit messageMarshaller: Unmarshaller[String, Message], mat: Materializer, ex: ExecutionContext)
       extends PubsubSubscriber {
 
-    private val subscriptionName = SubscriptionName.create(projectId, subscriptionId)
+    private val subscriptionName = ProjectSubscriptionName.of(projectId, subscriptionId)
 
     private val messageReceiver = new MessageReceiver() {
       override def receiveMessage(message: PubsubMessage, consumer: AckReplyConsumer): Unit = {
@@ -116,7 +116,7 @@ object pubsub {
         val adminClient        = SubscriptionAdminClient.create()
         val subscriptionExists = Try(adminClient.getSubscription(subscriptionName)).isSuccess
         if (!subscriptionExists) {
-          val topicName = TopicName.create(projectId, subscriptionSettings.topic)
+          val topicName = ProjectTopicName.of(projectId, subscriptionSettings.topic)
           adminClient.createSubscription(
             subscriptionName,
             topicName,
@@ -125,7 +125,7 @@ object pubsub {
         }
       }
 
-      Subscriber.defaultBuilder(subscriptionName, messageReceiver).build()
+      Subscriber.newBuilder(subscriptionName, messageReceiver).build()
     }
 
     subscriber.startAsync()

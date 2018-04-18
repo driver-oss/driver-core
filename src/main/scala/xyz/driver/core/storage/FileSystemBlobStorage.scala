@@ -1,5 +1,6 @@
 package xyz.driver.core.storage
 
+import java.net.URL
 import java.nio.file.{Files, Path, StandardCopyOption}
 
 import akka.stream.scaladsl.{FileIO, Sink, Source}
@@ -72,4 +73,10 @@ class FileSystemBlobStorage(root: Path)(implicit ec: ExecutionContext) extends B
     name
   }
 
+  override def url(name: String): Future[Option[URL]] = exists(name) map {
+    case true =>
+      Some(root.resolve(name).toUri.toURL)
+    case false =>
+      None
+  }
 }

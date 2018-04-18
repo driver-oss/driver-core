@@ -80,6 +80,11 @@ class BlobStorageTest extends FlatSpec with ScalaFutures {
       assert(storage.list("a").futureValue === Set("a/a.txt", "a/b"))
       assert(storage.list("c").futureValue === Set("c/d"))
     }
+    it should "get valid URL" in {
+      assert(storage.exists(key).futureValue === true)
+      val fooUrl = storage.url(key).futureValue
+      assert(fooUrl.isDefined)
+    }
   }
 
   "File system storage" should behave like storageBehaviour(

@@ -12,6 +12,7 @@ import scala.concurrent.duration.Duration
 
 /** Binary key-value store, typically implemented by cloud storage. */
 trait BlobStorage {
+
   /** Upload data by value. */
   def uploadContent(name: String, content: Array[Byte]): Future[String]
 

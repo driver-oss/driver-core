@@ -69,7 +69,7 @@ class GcsBlobStorage(client: Storage, bucketId: String, chunkSize: Int = GcsBlob
   }
 
   override def url(name: String): Future[Option[URL]] = Future {
-    val protocol: String = "https"
+    val protocol: String     = "https"
     val resourcePath: String = s"storage.googleapis.com/${bucket.getName}/"
     Option(bucket.get(name)).map { blob =>
       new URL(protocol, resourcePath, blob.getName)

@@ -40,7 +40,7 @@ trait BlobStorage {
 
   /**
     * Path to specified resource. Checks that the resource exists and returns None if
-    * it is not found.
+    * it is not found. Depending on the implementation, may throw.
     */
   def url(name: String): Future[Option[URL]]
 }

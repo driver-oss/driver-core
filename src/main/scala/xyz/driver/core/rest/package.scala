@@ -33,6 +33,15 @@ trait ServiceTransport {
       implicit mat: Materializer): Future[Unmarshal[ResponseEntity]]
 }
 
+sealed trait SortingOrder
+object SortingOrder {
+  case object Asc  extends SortingOrder
+  case object Desc extends SortingOrder
+}
+
+final case class SortingField(name: String, sortingOrder: SortingOrder)
+final case class Sorting(sortingFields: Seq[SortingField])
+
 final case class Pagination(pageSize: Int, pageNumber: Int) {
   require(pageSize > 0, "Page size must be greater than zero")
   require(pageNumber > 0, "Page number must be greater than zero")
@@ -243,4 +252,29 @@ object `package` {
 
   def paginationQuery(pagination: Pagination) =
     Seq("pageNumber" -> pagination.pageNumber.toString, "pageSize" -> pagination.pageSize.toString)
+
+  def extractSorting(sortingString: String): Sorting = {
+    val sortingFields = sortingString.split(",").map { sortingParam =>
+      if (sortingParam.length > 1) {
+        if (sortingParam.take(1) == "-") SortingField(sortingParam.substring(1), SortingOrder.Desc)
+        else SortingField(sortingParam, SortingOrder.Asc)
+      } else throw new IllegalArgumentException("Sorting's parameters are incorrect")
+    }
+
+    Sorting(sortingFields.toSeq)
+  }
+
+  val sorting: Directive1[Sorting] = parameter("sort".as[String]).as(extractSorting)
+
+  def sortingQuery(sorting: Sorting) = {
+    val sortingString = sorting.sortingFields
+      .map { sortingFiled =>
+        sortingFiled.sortingOrder match {
+          case SortingOrder.Asc  => sortingFiled.name
+          case SortingOrder.Desc => s"-${sortingFiled.name}"
+        }
+      }
+      .mkString(",")
+    Seq("sort" -> sortingString)
+  }
 }

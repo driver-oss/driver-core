@@ -253,20 +253,23 @@ object `package` {
   def paginationQuery(pagination: Pagination) =
     Seq("pageNumber" -> pagination.pageNumber.toString, "pageSize" -> pagination.pageSize.toString)
 
-  def extractSorting(sortingString: String): Sorting = {
-    val sortingFields = sortingString.split(",").map { sortingParam =>
-      if (sortingParam.length > 1) {
-        if (sortingParam.take(1) == "-") SortingField(sortingParam.substring(1), SortingOrder.Desc)
-        else SortingField(sortingParam, SortingOrder.Asc)
-      } else throw new IllegalArgumentException("Sorting's parameters are incorrect")
-    }
+  private def extractSorting(sortingString: Option[String]): Sorting = {
+    val sortingFields = sortingString.fold(Seq.empty[SortingField])(
+      _.split(",")
+        .filter(_.length > 0)
+        .map { sortingParam =>
+          if (sortingParam.length > 1 && sortingParam.take(1) == "-") {
+            SortingField(sortingParam.substring(1), SortingOrder.Desc)
+          } else SortingField(sortingParam, SortingOrder.Asc)
+        }
+        .toSeq)
 
-    Sorting(sortingFields.toSeq)
+    Sorting(sortingFields)
   }
 
-  val sorting: Directive1[Sorting] = parameter("sort".as[String]).as(extractSorting)
+  val sorting: Directive1[Sorting] = parameter("sort".as[String].?).as(extractSorting)
 
-  def sortingQuery(sorting: Sorting) = {
+  def sortingQuery(sorting: Sorting): Seq[(String, String)] = {
     val sortingString = sorting.sortingFields
       .map { sortingFiled =>
         sortingFiled.sortingOrder match {

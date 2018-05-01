@@ -7,7 +7,7 @@ import slick.{lifted => sl}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait Dal {
+trait Repository {
   type T[D]
   implicit def monadT: Monad[T]
 
@@ -19,19 +19,19 @@ trait Dal {
     OptionT[T, R](customAction(action.run))
 }
 
-class FutureDal(executionContext: ExecutionContext) extends Dal {
-  implicit val exec = executionContext
+class FutureRepository(executionContext: ExecutionContext) extends Repository {
+  implicit val exec: ExecutionContext = executionContext
   override type T[D] = Future[D]
-  implicit val monadT = implicitly[Monad[Future]]
+  implicit val monadT: Monad[Future] = implicitly[Monad[Future]]
 
   def execute[D](operations: T[D]): Future[D]     = operations
   def noAction[V](v: V): T[V]                     = Future.successful(v)
   def customAction[R](action: => Future[R]): T[R] = action
 }
 
-class SlickDal(database: Database, executionContext: ExecutionContext) extends Dal {
+class SlickRepository(database: Database, executionContext: ExecutionContext) extends Repository {
   import database.profile.api._
-  implicit val exec = executionContext
+  implicit val exec: ExecutionContext = executionContext
 
   override type T[D] = slick.dbio.DBIO[D]
 

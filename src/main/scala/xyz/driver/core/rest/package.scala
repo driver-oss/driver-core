@@ -271,10 +271,10 @@ object `package` {
 
   def sortingQuery(sorting: Sorting): Seq[(String, String)] = {
     val sortingString = sorting.sortingFields
-      .map { sortingFiled =>
-        sortingFiled.sortingOrder match {
-          case SortingOrder.Asc  => sortingFiled.name
-          case SortingOrder.Desc => s"-${sortingFiled.name}"
+      .map { sortingField =>
+        sortingField.sortingOrder match {
+          case SortingOrder.Asc  => sortingField.name
+          case SortingOrder.Desc => s"-${sortingField.name}"
         }
       }
       .mkString(",")

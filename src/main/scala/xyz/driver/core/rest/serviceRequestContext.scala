@@ -18,11 +18,19 @@ class ServiceRequestContext(
   def permissionsToken: Option[PermissionsToken] =
     contextHeaders.get(AuthProvider.PermissionsTokenHeader).map(PermissionsToken.apply)
 
-  def withAuthToken(authToken: AuthToken): ServiceRequestContext =
+  def withAuthToken(authToken: AuthToken): this.type =
     new ServiceRequestContext(
       trackingId,
       originatingIp,
       contextHeaders.updated(AuthProvider.AuthenticationTokenHeader, authToken.value)
+    )
+
+  def withAuthenticatedUser[U <: User](user: U): AuthorizedServiceRequestContext[U] =
+    new AuthorizedServiceRequestContext(
+      trackingId,
+      originatingIp,
+      contextHeaders,
+      user
     )
 
   def withAuthenticatedUser[U <: User](authToken: AuthToken, user: U): AuthorizedServiceRequestContext[U] =

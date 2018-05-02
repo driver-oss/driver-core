@@ -36,4 +36,13 @@ package object database {
     cal.set(date.year, date.month, date.day, 0, 0, 0)
     new SqlDate(cal.getTime.getTime)
   }
+
+  @deprecated("Dal is deprecated. Please use Repository trait instead!", "1.8.26")
+  type Dal = Repository
+
+  @deprecated("SlickDal is deprecated. Please use SlickRepository trait instead!", "1.8.26")
+  type SlickDal = SlickRepository
+
+  @deprecated("FutureDal is deprecated. Please use FutureRepository trait instead!", "1.8.26")
+  type FutureDal = FutureRepository
 }

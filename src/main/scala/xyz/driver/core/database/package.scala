@@ -40,9 +40,9 @@ package object database {
   @deprecated("Dal is deprecated. Please use Repository trait instead!", "1.8.26")
   type Dal = Repository
 
-  @deprecated("SlickDal is deprecated. Please use SlickRepository trait instead!", "1.8.26")
+  @deprecated("SlickDal is deprecated. Please use SlickRepository class instead!", "1.8.26")
   type SlickDal = SlickRepository
 
-  @deprecated("FutureDal is deprecated. Please use FutureRepository trait instead!", "1.8.26")
+  @deprecated("FutureDal is deprecated. Please use FutureRepository class instead!", "1.8.26")
   type FutureDal = FutureRepository
 }

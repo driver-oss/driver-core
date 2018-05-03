@@ -10,7 +10,7 @@ Core library is used to provide ways to implement practices established in [Driv
  * `config` Contains method `loadDefaultConfig` with default way of providing config to the application,
  * `domain` Common generic domain objects, e.g., `Email` and `PhoneNumber`,
  * `messages` Localization messages supporting different locales and methods to read from config,
- * `database` Method for database initialization from config, `Id`, `Name`, `Time`, `Date` etc. mapping, schema lifecycle and base classes to implement and test `Dal` (data access layer objects),
+ * `database` Method for database initialization from config, `Id`, `Name`, `Time`, `Date` etc. mapping, schema lifecycle and base classes to implement and test `Repository` (data access objects),
  * `rest` Wrapper over call to external REST API, authorization, context headers, XSS protection, does logging and allows to add Swagger to a service,
  * `auth` Basic entities for authentication and authorization: `User`, `Role` `Permission` `AuthToken`, `AuthCredentials` etc.,
  * `swagger` Contains custom `AbstractModelConverter` to customize Swagger JSON with any Scala  JSON formats created by, for instance, Spray JSON,

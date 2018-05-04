@@ -12,6 +12,9 @@ import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
+import kamon.Kamon
+import kamon.statsd.StatsDReporter
+import kamon.system.SystemMetrics
 import org.slf4j.{LoggerFactory, MDC}
 import xyz.driver.core
 import xyz.driver.core.rest._
@@ -47,6 +50,10 @@ class DriverApp(
   val appEnvironment: String                                = config.getString("application.environment")
 
   def run(): Unit = {
+    Console.print("Starting metrics collection...\n")
+    Kamon.addReporter(new StatsDReporter())
+    SystemMetrics.startCollecting()
+    Console.print("Metrics collection started\n")
     activateServices(modules)
     scheduleServicesDeactivation(modules)
     bindHttp(modules)

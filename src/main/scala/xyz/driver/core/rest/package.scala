@@ -258,9 +258,12 @@ object `package` {
       _.split(",")
         .filter(_.length > 0)
         .map { sortingParam =>
-          if (sortingParam.length > 1 && sortingParam.take(1) == "-") {
+          if (sortingParam.startsWith("-")) {
             SortingField(sortingParam.substring(1), SortingOrder.Desc)
-          } else SortingField(sortingParam, SortingOrder.Asc)
+          } else {
+            val fieldName = if (sortingParam.startsWith("+")) sortingParam.substring(1) else sortingParam
+            SortingField(fieldName, SortingOrder.Asc)
+          }
         }
         .toSeq)
 

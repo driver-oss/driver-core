@@ -19,8 +19,7 @@ trait DriverRoute {
   def route: Route
 
   def routeWithDefaults: Route = {
-    (defaultResponseHeaders & handleExceptions(ExceptionHandler(exceptionHandler)) & handleRejections(
-      authenticationRejectionHandler)) {
+    (defaultResponseHeaders & handleExceptions(ExceptionHandler(exceptionHandler))) {
       route
     }
   }
@@ -98,13 +97,4 @@ trait DriverRoute {
   protected def errorResponse[T <: Exception](statusCode: StatusCode, message: String, exception: T): Route = {
     complete(HttpResponse(statusCode, entity = message))
   }
-
-  protected def authenticationRejectionHandler: RejectionHandler =
-    RejectionHandler
-      .newBuilder()
-      .handle {
-        case AuthenticationFailedRejection(_, challenge) =>
-          complete(HttpResponse(StatusCodes.Unauthorized, entity = challenge.realm))
-      }
-      .result()
 }

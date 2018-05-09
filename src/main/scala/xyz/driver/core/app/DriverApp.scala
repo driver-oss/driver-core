@@ -127,7 +127,7 @@ class DriverApp(
     val combinedRoute =
       Route.seal(modules.map(_.route).foldLeft(basicRoutes.routeWithDefaults)(_ ~ _) ~ defaultOptionsRoute)
 
-    (extractHost & extractClientIP & trace(tracer)) {
+    (extractHost & extractClientIP & trace(tracer) & handleRejections(authenticationRejectionHandler)) {
       case (origin, ip) =>
         ctx =>
           val trackingId = extractTrackingId(ctx.request)
@@ -152,6 +152,15 @@ class DriverApp(
           }(contextWithTrackingId)
     }
   }
+
+  protected def authenticationRejectionHandler: RejectionHandler =
+    RejectionHandler
+      .newBuilder()
+      .handle {
+        case AuthenticationFailedRejection(_, challenge) =>
+          complete(HttpResponse(StatusCodes.Unauthorized, entity = challenge.realm))
+      }
+      .result()
 
   protected def bindHttp(modules: Seq[Module]): Unit = {
     val _ = http.bindAndHandle(route2HandlerFlow(appRoute), interface, port)(materializer)

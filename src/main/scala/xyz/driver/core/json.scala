@@ -187,7 +187,7 @@ object json {
 
   implicit val phoneNumberFormat = jsonFormat2(PhoneNumber.apply)
 
-  implicit val authCredentialsFormat = jsonFormat3(AuthCredentials)
+  implicit val authCredentialsFormat = jsonFormat2(AuthCredentials)
 
   implicit object inetAddressFormat extends JsonFormat[InetAddress] {
     override def read(json: JsValue): InetAddress = json match {

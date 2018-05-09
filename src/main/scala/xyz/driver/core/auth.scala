@@ -1,6 +1,6 @@
 package xyz.driver.core
 
-import xyz.driver.core.domain.{Email, PhoneNumber}
+import xyz.driver.core.domain.Email
 import xyz.driver.core.time.Time
 import scalaz.Equal
 
@@ -39,7 +39,10 @@ object auth {
 
   final case class PasswordHash(value: String)
 
-  final case class AuthCredentials(email: Option[Email], password: String, phoneNumber: Option[PhoneNumber] = None) {
-    require(email.isDefined | phoneNumber.isDefined)
-  }
+  /**
+    * User-provided information for obtaining a session token. [[email]] can be a string representation of a
+    * phone number or a email.
+    * @param email: a.k.a "user identifier string" internally parsed to either a email or phone number
+    */
+  final case class AuthCredentials(email: String, password: String)
 }

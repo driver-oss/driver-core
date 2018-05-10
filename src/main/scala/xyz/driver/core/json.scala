@@ -187,7 +187,7 @@ object json {
 
   implicit val phoneNumberFormat = jsonFormat2(PhoneNumber.apply)
 
-  implicit object authCredentialsFormat extends JsonFormat[AuthCredentials] {
+  implicit val authCredentialsFormat = new RootJsonFormat[AuthCredentials] {
     override def read(json: JsValue): AuthCredentials = {
       json match {
         case JsObject(fields) =>

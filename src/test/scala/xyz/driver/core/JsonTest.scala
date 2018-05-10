@@ -11,6 +11,7 @@ import xyz.driver.core.json._
 import xyz.driver.core.time.provider.SystemTimeProvider
 import spray.json._
 import xyz.driver.core.TestTypes.CustomGADT
+import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.json.enumeratum.HasJsonFormat
 import xyz.driver.core.tagging.Taggable
@@ -310,5 +311,33 @@ class JsonTest extends FlatSpec with Matchers {
       val invalidAddress = JsString("foobar")
       inetAddressFormat.read(invalidAddress)
     }
+  }
+
+  "AuthCredentials format" should "read and write correct JSON" in {
+    val email    = Email("someone", "noehere.com")
+    val phoneId  = PhoneNumber.parse("1 207 8675309")
+    val password = "nopassword"
+
+    phoneId.isDefined should be(true) // test this real quick
+
+    val emailAuth = AuthCredentials(email.toString, password)
+    val pnAuth    = AuthCredentials(phoneId.get.toString, password)
+
+    val emailWritten = authCredentialsFormat.write(emailAuth)
+    emailWritten should be("""{"identifier":"someone@noehere.com","password":"nopassword"}""".parseJson)
+
+    val phoneWritten = authCredentialsFormat.write(pnAuth)
+    phoneWritten should be("""{"identifier":"+1 2078675309","password":"nopassword"}""".parseJson)
+
+    val identifierEmailParsed =
+      authCredentialsFormat.read("""{"identifier":"someone@nowhere.com","password":"nopassword"}""".parseJson)
+    var written = authCredentialsFormat.write(identifierEmailParsed)
+    written should be("{\"identifier\":\"someone@nowhere.com\",\"password\":\"nopassword\"}".parseJson)
+
+    val emailEmailParsed =
+      authCredentialsFormat.read("""{"email":"someone@nowhere.com","password":"nopassword"}""".parseJson)
+    written = authCredentialsFormat.write(emailEmailParsed)
+    written should be("{\"identifier\":\"someone@nowhere.com\",\"password\":\"nopassword\"}".parseJson)
+
   }
 }

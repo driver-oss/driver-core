@@ -2,7 +2,6 @@ package xyz.driver.core
 
 import xyz.driver.core.domain.Email
 import xyz.driver.core.time.Time
-
 import scalaz.Equal
 
 object auth {
@@ -40,5 +39,5 @@ object auth {
 
   final case class PasswordHash(value: String)
 
-  final case class AuthCredentials(email: Email, password: String)
+  final case class AuthCredentials(identifier: String, password: String)
 }

@@ -32,9 +32,15 @@ object domain {
     private val phoneUtil = PhoneNumberUtil.getInstance()
 
     def parse(phoneNumber: String): Option[PhoneNumber] = {
-      val phone = phoneUtil.parseAndKeepRawInput(phoneNumber, "US")
-      if (!phoneUtil.isValidNumber(phone)) None
-      else Some(PhoneNumber(phone.getCountryCode.toString, phone.getNationalNumber.toString))
+      val phone = scala.util.Try(phoneUtil.parseAndKeepRawInput(phoneNumber, "US")).toOption
+
+      val validated = phone match {
+        case None => None
+        case Some(pn) =>
+          if (!phoneUtil.isValidNumber(pn)) None
+          else Some(pn)
+      }
+      validated.map(pn => PhoneNumber(pn.getCountryCode.toString, pn.getNationalNumber.toString))
     }
   }
 }

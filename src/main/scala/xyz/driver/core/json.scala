@@ -187,7 +187,33 @@ object json {
 
   implicit val phoneNumberFormat = jsonFormat2(PhoneNumber.apply)
 
-  implicit val authCredentialsFormat = jsonFormat2(AuthCredentials)
+  implicit val authCredentialsFormat = new RootJsonFormat[AuthCredentials] {
+    override def read(json: JsValue): AuthCredentials = {
+      json match {
+        case JsObject(fields) =>
+          val emailField      = fields.get("email")
+          val identifierField = fields.get("identifier")
+          val passwordField   = fields.get("password")
+
+          (emailField, identifierField, passwordField) match {
+            case (_, _, None) =>
+              deserializationError("password field must be set")
+            case (Some(JsString(em)), _, Some(JsString(pw))) =>
+              val email = Email.parse(em).getOrElse(throw deserializationError(s"failed to parse email $em"))
+              AuthCredentials(email.toString, pw)
+            case (_, Some(JsString(id)), Some(JsString(pw))) => AuthCredentials(id.toString, pw.toString)
+            case (None, None, _)                             => deserializationError("identifier must be provided")
+            case _                                           => deserializationError(s"failed to deserialize ${json.prettyPrint}")
+          }
+        case _ => deserializationError(s"failed to deserialize ${json.prettyPrint}")
+      }
+    }
+
+    override def write(obj: AuthCredentials): JsValue = JsObject(
+      "identifier" -> JsString(obj.identifier),
+      "password"   -> JsString(obj.password)
+    )
+  }
 
   implicit object inetAddressFormat extends JsonFormat[InetAddress] {
     override def read(json: JsValue): InetAddress = json match {

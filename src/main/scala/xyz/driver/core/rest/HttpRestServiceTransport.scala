@@ -75,8 +75,11 @@ class HttpRestServiceTransport(
         Future.successful(Unmarshal(HttpEntity.Empty: ResponseEntity))
       } else if (response.status.isFailure()) {
         val serviceCalled = s"${requestStub.method} ${requestStub.uri}"
-        Unmarshal(response.entity).to[String] flatMap { error =>
-          Future.failed(ExternalServiceException(serviceCalled, error))
+        Unmarshal(response.entity).to[String] flatMap { errorString =>
+          import spray.json._
+          import xyz.driver.core.json._
+          val serviceException = util.Try(serviceExceptionFormat.read(errorString.parseJson)).toOption
+          Future.failed(ExternalServiceException(serviceCalled, errorString, serviceException))
         }
       } else {
         Future.successful(Unmarshal(response.entity))

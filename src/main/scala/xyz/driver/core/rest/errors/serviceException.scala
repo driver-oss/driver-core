@@ -10,7 +10,10 @@ final case class InvalidActionException(override val message: String = "This act
 final case class ResourceNotFoundException(override val message: String = "Resource not found")
     extends ServiceException(message)
 
-final case class ExternalServiceException(serviceName: String, serviceMessage: String)
+final case class ExternalServiceException(
+    serviceName: String,
+    serviceMessage: String,
+    serviceException: Option[ServiceException])
     extends ServiceException(s"Error while calling '$serviceName': $serviceMessage")
 
 final case class ExternalServiceTimeoutException(serviceName: String)

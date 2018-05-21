@@ -90,11 +90,17 @@ trait DriverRoute {
     }
 
     { (ctx: RequestContext) =>
-      errorResponse(statusCode, serviceException.message, serviceException)(ctx)
+      import xyz.driver.core.json.serviceExceptionFormat
+      val entity =
+        HttpEntity(ContentTypes.`application/json`, serviceExceptionFormat.write(serviceException).toString())
+      errorResponse(statusCode, entity, serviceException)(ctx)
     }
   }
 
-  protected def errorResponse[T <: Exception](statusCode: StatusCode, message: String, exception: T): Route = {
-    complete(HttpResponse(statusCode, entity = message))
+  protected def errorResponse[T <: Exception](statusCode: StatusCode, message: String, exception: T): Route =
+    errorResponse(statusCode, HttpEntity(message), exception)
+
+  protected def errorResponse[T <: Exception](statusCode: StatusCode, entity: ResponseEntity, exception: T): Route = {
+    complete(HttpResponse(statusCode, entity = entity))
   }
 }

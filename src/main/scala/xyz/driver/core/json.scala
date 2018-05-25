@@ -16,6 +16,7 @@ import spray.json._
 import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.date.{Date, DayOfWeek, Month}
 import xyz.driver.core.domain.{Email, PhoneNumber}
+import xyz.driver.core.rest.errors._
 import xyz.driver.core.time.{Time, TimeOfDay}
 
 import scala.reflect.runtime.universe._
@@ -366,6 +367,24 @@ object json {
 
       def read(value: JsValue): NonEmptyName[T] =
         NonEmptyName[T](nonEmptyStringFormat.read(value))
+    }
+
+  implicit val serviceExceptionFormat: RootJsonFormat[ServiceException] =
+    GadtJsonFormat.create[ServiceException]("type") {
+      case _: InvalidInputException           => "InvalidInputException"
+      case _: InvalidActionException          => "InvalidActionException"
+      case _: ResourceNotFoundException       => "ResourceNotFoundException"
+      case _: ExternalServiceException        => "ExternalServiceException"
+      case _: ExternalServiceTimeoutException => "ExternalServiceTimeoutException"
+      case _: DatabaseException               => "DatabaseException"
+    } {
+      case "InvalidInputException"     => jsonFormat(InvalidInputException, "message")
+      case "InvalidActionException"    => jsonFormat(InvalidActionException, "message")
+      case "ResourceNotFoundException" => jsonFormat(ResourceNotFoundException, "message")
+      case "ExternalServiceException" =>
+        jsonFormat(ExternalServiceException, "serviceName", "serviceMessage", "serviceException")
+      case "ExternalServiceTimeoutException" => jsonFormat(ExternalServiceTimeoutException, "message")
+      case "DatabaseException"               => jsonFormat(DatabaseException, "message")
     }
 
   val jsValueToStringMarshaller: Marshaller[JsValue, String] =

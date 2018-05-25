@@ -3,6 +3,9 @@ package xyz.driver
 import scalaz.{Equal, Monad, OptionT}
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
+import xyz.driver.core.rest.errors.ExternalServiceException
+
+import scala.concurrent.{ExecutionContext, Future}
 
 package object core {
 
@@ -53,6 +56,14 @@ package object core {
 
     def toUnitOptionT: OptionT[H, Unit] =
       OptionT.optionT[H](monadT(monadicValue)(_ => Option(())))
+  }
+
+  implicit class FutureExtensions[T](future: Future[T]) {
+    def passThroughExternalServiceException(implicit executionContext: ExecutionContext): Future[T] =
+      future.transform(identity, {
+        case ExternalServiceException(_, _, Some(e)) => e
+        case t: Throwable                            => t
+      })
   }
 }
 

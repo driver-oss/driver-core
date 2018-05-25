@@ -1,5 +1,6 @@
 package xyz.driver.core.rest
 
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives.{complete => akkaComplete}
 import akka.http.scaladsl.server.{Directives, Route}
@@ -7,11 +8,14 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.scalalogging.Logger
 import org.scalatest.{AsyncFlatSpec, Matchers}
 import xyz.driver.core.logging.NoLogger
+import xyz.driver.core.json.serviceExceptionFormat
+import xyz.driver.core.FutureExtensions
 import xyz.driver.core.rest.errors._
 
 import scala.concurrent.Future
 
-class DriverRouteTest extends AsyncFlatSpec with ScalatestRouteTest with Matchers with Directives {
+class DriverRouteTest
+    extends AsyncFlatSpec with ScalatestRouteTest with SprayJsonSupport with Matchers with Directives {
   class TestRoute(override val route: Route) extends DriverRoute {
     override def log: Logger = NoLogger
   }
@@ -31,7 +35,7 @@ class DriverRouteTest extends AsyncFlatSpec with ScalatestRouteTest with Matcher
     Post("/api/v1/foo/bar") ~> route.routeWithDefaults ~> check {
       handled shouldBe true
       status shouldBe StatusCodes.BadRequest
-      responseAs[String] shouldBe "Invalid input"
+      responseAs[ServiceException] shouldBe InvalidInputException()
     }
   }
 
@@ -41,7 +45,7 @@ class DriverRouteTest extends AsyncFlatSpec with ScalatestRouteTest with Matcher
     Post("/api/v1/foo/bar") ~> route.routeWithDefaults ~> check {
       handled shouldBe true
       status shouldBe StatusCodes.Forbidden
-      responseAs[String] shouldBe "This action is not allowed"
+      responseAs[ServiceException] shouldBe InvalidActionException()
     }
   }
 
@@ -51,18 +55,31 @@ class DriverRouteTest extends AsyncFlatSpec with ScalatestRouteTest with Matcher
     Post("/api/v1/foo/bar") ~> route.routeWithDefaults ~> check {
       handled shouldBe true
       status shouldBe StatusCodes.NotFound
-      responseAs[String] shouldBe "Resource not found"
+      responseAs[ServiceException] shouldBe ResourceNotFoundException()
     }
   }
 
   it should "respond with a 500 for ExternalServiceException" in {
-    val error = ExternalServiceException("GET /api/v1/users/", "Permission denied")
+    val error = ExternalServiceException("GET /api/v1/users/", "Permission denied", None)
     val route = new TestRoute(akkaComplete(Future.failed[String](error)))
 
     Post("/api/v1/foo/bar") ~> route.routeWithDefaults ~> check {
       handled shouldBe true
       status shouldBe StatusCodes.InternalServerError
-      responseAs[String] shouldBe "Error while calling 'GET /api/v1/users/': Permission denied"
+      responseAs[ServiceException] shouldBe error
+    }
+  }
+
+  it should "allow pass-through of external service exceptions" in {
+    val innerError = InvalidInputException()
+    val error      = ExternalServiceException("GET /api/v1/users/", "Permission denied", Some(innerError))
+    val future     = Future.failed[String](error)
+    val route      = new TestRoute(akkaComplete(future.passThroughExternalServiceException))
+
+    Post("/api/v1/foo/bar") ~> route.routeWithDefaults ~> check {
+      handled shouldBe true
+      status shouldBe StatusCodes.BadRequest
+      responseAs[ServiceException] shouldBe innerError
     }
   }
 
@@ -73,7 +90,7 @@ class DriverRouteTest extends AsyncFlatSpec with ScalatestRouteTest with Matcher
     Post("/api/v1/foo/bar") ~> route.routeWithDefaults ~> check {
       handled shouldBe true
       status shouldBe StatusCodes.GatewayTimeout
-      responseAs[String] shouldBe "GET /api/v1/users/ took too long to respond"
+      responseAs[ServiceException] shouldBe error
     }
   }
 
@@ -83,7 +100,7 @@ class DriverRouteTest extends AsyncFlatSpec with ScalatestRouteTest with Matcher
     Post("/api/v1/foo/bar") ~> route.routeWithDefaults ~> check {
       handled shouldBe true
       status shouldBe StatusCodes.InternalServerError
-      responseAs[String] shouldBe "Database access error"
+      responseAs[ServiceException] shouldBe DatabaseException()
     }
   }
 }

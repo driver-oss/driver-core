@@ -1,7 +1,7 @@
 import sbt._
 import Keys._
 
-lazy val akkaHttpV = "10.0.11"
+lazy val akkaHttpV = "10.1.1"
 
 lazy val core = (project in file("."))
   .driverLibrary("core")

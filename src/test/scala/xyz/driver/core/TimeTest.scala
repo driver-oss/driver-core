@@ -14,8 +14,8 @@ import scala.concurrent.duration._
 
 class TimeTest extends FlatSpec with Matchers with Checkers {
 
-  implicit val arbitraryDuration = Arbitrary[Duration](Gen.chooseNum(0L, 9999999999L).map(_.milliseconds))
-  implicit val arbitraryTime     = Arbitrary[Time](Gen.chooseNum(0L, 9999999999L).map(millis => Time(millis)))
+  implicit val arbDuration = Arbitrary[Duration](Gen.chooseNum(0L, 9999999999L).map(_.milliseconds))
+  implicit val arbTime     = Arbitrary[Time](Gen.chooseNum(0L, 9999999999L).map(millis => Time(millis)))
 
   "Time" should "have correct methods to compare" in {
 

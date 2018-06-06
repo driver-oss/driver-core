@@ -7,24 +7,27 @@ lazy val core = (project in file("."))
   .driverLibrary("core")
   .settings(lintingSettings ++ formatSettings)
   .settings(libraryDependencies ++= Seq(
-    "xyz.driver"                    %% "tracing"                        % "0.0.2",
+    "xyz.driver"                    %% "tracing"                        % "0.1.0",
+    "com.typesafe.akka"             %% "akka-actor"                     % "2.5.13",
+    "com.typesafe.akka"             %% "akka-stream"                    % "2.5.13",
     "com.typesafe.akka"             %% "akka-http-core"                 % akkaHttpV,
     "com.typesafe.akka"             %% "akka-http-spray-json"           % akkaHttpV,
     "com.typesafe.akka"             %% "akka-http-testkit"              % akkaHttpV,
-    "com.pauldijou"                 %% "jwt-core"                       % "0.14.0",
-    "org.scalatest"                 %% "scalatest"                      % "3.0.2" % "test",
-    "org.scalacheck"                %% "scalacheck"                     % "1.13.4" % "test",
-    "org.scalaz"                    %% "scalaz-core"                    % "7.2.19",
-    "com.github.swagger-akka-http"  %% "swagger-akka-http"              % "0.11.2",
-    "com.typesafe.scala-logging"    %% "scala-logging"                  % "3.5.0",
-    "eu.timepit"                    %% "refined"                        % "0.8.4",
-    "com.typesafe.slick"            %% "slick"                          % "3.2.1",
+    "com.pauldijou"                 %% "jwt-core"                       % "0.16.0",
+    "org.scalatest"                 %% "scalatest"                      % "3.0.5" % "test",
+    "org.scalacheck"                %% "scalacheck"                     % "1.14.0" % "test",
+    "org.scalaz"                    %% "scalaz-core"                    % "7.2.24",
+    "com.github.swagger-akka-http"  %% "swagger-akka-http"              % "0.14.0",
+    "com.typesafe.scala-logging"    %% "scala-logging"                  % "3.9.0",
+    "eu.timepit"                    %% "refined"                        % "0.9.0",
+    "com.typesafe.slick"            %% "slick"                          % "3.2.3",
     "com.beachape"                  %% "enumeratum"                     % "1.5.13",
     "org.mockito"                   %  "mockito-core"                   % "1.9.5"       % Test,
-    "com.amazonaws"                 %  "aws-java-sdk-s3"                % "1.11.26",
-    "com.google.cloud"              %  "google-cloud-pubsub"            % "0.42.1-beta",
-    "com.google.cloud"              %  "google-cloud-storage"           % "1.24.1",
-    "com.typesafe"                  %  "config"                         % "1.3.1",
-    "ch.qos.logback"                %  "logback-classic"                % "1.1.11",
-    "com.googlecode.libphonenumber" %  "libphonenumber"                 % "8.9.2"
+    "com.amazonaws"                 %  "aws-java-sdk-s3"                % "1.11.342",
+    "com.google.cloud"              %  "google-cloud-pubsub"            % "1.31.0",
+    "com.google.cloud"              %  "google-cloud-storage"           % "1.31.0",
+    "com.typesafe"                  %  "config"                         % "1.3.3",
+    "ch.qos.logback"                %  "logback-classic"                % "1.2.3",
+    "com.googlecode.libphonenumber" %  "libphonenumber"                 % "8.9.7"
   ))
+  .settings(scalaVersion := "2.12.6")

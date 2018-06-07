@@ -245,9 +245,29 @@ object json {
         }
     }
 
+    trait HasJsonFormatWithDefault[T <: EnumEntry] { enum: Enum[T] =>
+      def default: T
+
+      implicit val format: JsonFormat[T] = new EnumWithDefaultJsonFormat[T](enum, default)
+
+      implicit val unmarshaller: Unmarshaller[String, T] =
+        Unmarshaller.strict { value =>
+          enum.withNameOption(value).getOrElse(default)
+        }
+    }
+
     class EnumJsonFormat[T <: EnumEntry](enum: Enum[T]) extends JsonFormat[T] {
       override def read(json: JsValue): T = json match {
         case JsString(name) => enum.withNameOption(name).getOrElse(unrecognizedValue(name, enum.values))
+        case _              => deserializationError("Expected string as enumeration value, but got " + json.toString)
+      }
+
+      override def write(obj: T): JsValue = JsString(obj.entryName)
+    }
+
+    class EnumWithDefaultJsonFormat[T <: EnumEntry](enum: Enum[T], default: T) extends JsonFormat[T] {
+      override def read(json: JsValue): T = json match {
+        case JsString(name) => enum.withNameOption(name).getOrElse(default)
         case _              => deserializationError("Expected string as enumeration value, but got " + json.toString)
       }
 

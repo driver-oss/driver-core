@@ -17,17 +17,37 @@ object generators {
 
   private val random = new Random
   import random._
+  private val secureRandom = new java.security.SecureRandom()
 
   private val DefaultMaxLength       = 10
   private val StringLetters          = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ".toSet
-  private val NonAmbigiousCharacters = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789".toSet
-  private val Numbers                = "0123456789".toSet
+  private val NonAmbigiousCharacters = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+  private val Numbers                = "0123456789"
 
-  private def nextTokenString(length: Int, charSet: Set[Char]): String =
-    List.fill(length)(oneOf(charSet)).mkString
+  private def nextTokenString(length: Int, chars: IndexedSeq[Char]): String = {
+    val builder = new StringBuilder
+    for (_ <- 0 until length) {
+      builder += chars(secureRandom.nextInt(chars.length))
+    }
+    builder.result()
+  }
 
+  /** Creates a random invitation token.
+    *
+    * This token is meant fo human input and avoids using ambiguous characters such as 'O' and '0'. It
+    * therefore contains less entropy and is not meant to be used as a cryptographic secret. */
+  @deprecated(
+    "The term 'token' is too generic and security and readability conventions are not well defined. " +
+      "Services should implement their own version that suits their security requirements.",
+    "1.11.0"
+  )
   def nextToken(length: Int): String = nextTokenString(length, NonAmbigiousCharacters)
 
+  @deprecated(
+    "The term 'token' is too generic and security and readability conventions are not well defined. " +
+      "Services should implement their own version that suits their security requirements.",
+    "1.11.0"
+  )
   def nextNumericToken(length: Int): String = nextTokenString(length, Numbers)
 
   def nextInt(maxValue: Int, minValue: Int = 0): Int = random.nextInt(maxValue - minValue) + minValue

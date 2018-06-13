@@ -19,7 +19,7 @@ trait DriverRoute {
   def route: Route
 
   def routeWithDefaults: Route = {
-    (defaultResponseHeaders & handleExceptions(ExceptionHandler(exceptionHandler))) {
+    (defaultResponseHeaders & handleExceptions(ExceptionHandler(exceptionHandler)) & rejectKeepAlive) {
       route
     }
   }
@@ -103,4 +103,7 @@ trait DriverRoute {
   protected def errorResponse[T <: Exception](statusCode: StatusCode, entity: ResponseEntity, exception: T): Route = {
     complete(HttpResponse(statusCode, entity = entity))
   }
+
+  protected def rejectKeepAlive: Directive0 =
+    mapResponse(_.mapHeaders(_.filterNot(_.is("connection")) :+ Connection("close")))
 }

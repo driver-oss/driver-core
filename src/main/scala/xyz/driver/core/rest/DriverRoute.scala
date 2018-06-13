@@ -19,7 +19,7 @@ trait DriverRoute {
   def route: Route
 
   def routeWithDefaults: Route = {
-    (defaultResponseHeaders & handleExceptions(ExceptionHandler(exceptionHandler)) & rejectKeepAlive) {
+    (defaultResponseHeaders & handleExceptions(ExceptionHandler(exceptionHandler))) {
       route
     }
   }
@@ -32,7 +32,7 @@ trait DriverRoute {
       val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
       MDC.put("trackingId", trackingId)
 
-      respondWithHeader(tracingHeader)
+      respondWithHeader(tracingHeader) & rejectKeepAlive
     }
   }
 

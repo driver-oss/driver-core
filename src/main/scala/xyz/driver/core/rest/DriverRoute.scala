@@ -32,7 +32,11 @@ trait DriverRoute {
       val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
       MDC.put("trackingId", trackingId)
 
-      respondWithHeader(tracingHeader) & rejectKeepAlive
+      // This header will eliminate the risk of LB trying to reuse a connection
+      // that already timed out on the server side by completely rejecting keep-alive
+      val rejectKeepAlive = Connection("close")
+
+      respondWithHeaders(tracingHeader, rejectKeepAlive)
     }
   }
 
@@ -104,6 +108,4 @@ trait DriverRoute {
     complete(HttpResponse(statusCode, entity = entity))
   }
 
-  protected def rejectKeepAlive: Directive0 =
-    mapResponse(_.mapHeaders(_.filterNot(_.is("connection")) :+ Connection("close")))
 }

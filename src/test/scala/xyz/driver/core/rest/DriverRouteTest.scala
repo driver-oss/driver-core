@@ -2,8 +2,9 @@ package xyz.driver.core.rest
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.headers.Connection
 import akka.http.scaladsl.server.Directives.{complete => akkaComplete}
-import akka.http.scaladsl.server.{Directives, Route}
+import akka.http.scaladsl.server.{Directives, Rejection, RejectionHandler, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.scalalogging.Logger
 import org.scalatest.{AsyncFlatSpec, Matchers}
@@ -12,6 +13,7 @@ import xyz.driver.core.json.serviceExceptionFormat
 import xyz.driver.core.FutureExtensions
 import xyz.driver.core.rest.errors._
 
+import scala.collection.immutable
 import scala.concurrent.Future
 
 class DriverRouteTest
@@ -101,6 +103,21 @@ class DriverRouteTest
       handled shouldBe true
       status shouldBe StatusCodes.InternalServerError
       responseAs[ServiceException] shouldBe DatabaseException()
+    }
+  }
+
+  it should "add a `Connection: close` header to avoid clashing with envoy's timeouts" in {
+    val rejectionHandler = RejectionHandler.newBuilder().handleNotFound(complete(StatusCodes.NotFound)).result()
+    val route            = new TestRoute(handleRejections(rejectionHandler)((get & path("foo"))(complete("OK"))))
+
+    Get("/foo") ~> route.routeWithDefaults ~> check {
+      status shouldBe StatusCodes.OK
+      headers should contain(Connection("close"))
+    }
+
+    Get("/bar") ~> route.routeWithDefaults ~> check {
+      status shouldBe StatusCodes.NotFound
+      headers should contain(Connection("close"))
     }
   }
 }

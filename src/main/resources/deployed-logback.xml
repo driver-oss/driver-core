@@ -79,7 +79,6 @@
         </encoder>
     </appender>
     <root level="DEBUG">
-        <appender-ref ref="STDOUT_DEBUG" />
         <appender-ref ref="STDOUT_INFO" />
         <appender-ref ref="STDERR_WARN" />
         <appender-ref ref="STDERR_ERROR" />

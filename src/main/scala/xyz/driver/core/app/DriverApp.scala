@@ -139,7 +139,7 @@ class DriverApp(
 
           storeRequestContextToMdc(ctx.request, origin, ip)
 
-          log.debug(s"""Received request {"method":"${ctx.request.method.value}","url": "${ctx.request.uri}"}""")
+          log.info(s"""Received request ${ctx.request.method.value} ${ctx.request.uri} (trace: $trackingId)""")
 
           val contextWithTrackingId =
             ctx.withRequest(
@@ -147,9 +147,20 @@ class DriverApp(
                 .addHeader(RawHeader(ContextHeaders.TrackingIdHeader, trackingId))
                 .addHeader(RawHeader(ContextHeaders.StacktraceHeader, updatedStacktrace)))
 
-          respondWithAllCorsHeaders {
-            combinedRoute
-          }(contextWithTrackingId)
+          val logResponses = mapRouteResult {
+            case c @ Complete(response) =>
+              log.info(
+                s"Responded to ${ctx.request.method.value} ${ctx.request.uri} " +
+                  s"with ${response.status.toString} (trace: $trackingId)")
+              c
+            case r @ Rejected(rejections) =>
+              log.warn(
+                s"Request ${ctx.request.method.value} ${ctx.request.uri} " +
+                  s"(trace: $trackingId) is rejected:\n${rejections.mkString(",\n")}")
+              r
+          }
+
+          respondWithAllCorsHeaders(logResponses(combinedRoute))(contextWithTrackingId)
     }
   }
 

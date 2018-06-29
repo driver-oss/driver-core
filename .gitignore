@@ -19,4 +19,4 @@ project/plugins/project/
 .idea
 scalafmt
 .scalafmt.conf
-scalastyle-config.xml
+.scalastyle-config.xml

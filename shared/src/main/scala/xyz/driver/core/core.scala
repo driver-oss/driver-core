@@ -1,8 +1,8 @@
 package xyz.driver
 
-import scalaz.{Equal, Monad, OptionT}
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
+import scalaz.{Equal, Monad, OptionT}
 import xyz.driver.core.rest.errors.ExternalServiceException
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -118,11 +118,15 @@ package core {
     implicit def nonEmptyNameOrdering[T]: Ordering[NonEmptyName[T]] = Ordering.by(_.value.value)
   }
 
+  @deprecated("Base64 formats are rarely used in core and will be removed. Please implement the wrapper type in " +
+  "services, or open an issue if you think it should stay in core.", "driver-core 1.11.5")
   final case class Revision[T](id: String)
 
   object Revision {
     implicit def revisionEqual[T]: Equal[Revision[T]] = Equal.equal[Revision[T]](_.id == _.id)
   }
 
+  @deprecated("Base64 formats are rarely used in core and will be removed. Please implement the wrapper type in " +
+    "services, or open an issue if you think it should stay in core.", "driver-core 1.11.5")
   final case class Base64(value: String)
 }

@@ -11,15 +11,12 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.Materializer
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
-import xyz.driver.tracing.TracingDirectives
 
 import scala.concurrent.Future
 import scala.util.Try
 import scalaz.{Functor, OptionT}
 import scalaz.Scalaz.{intInstance, stringInstance}
 import scalaz.syntax.equal._
-
-trait Service
 
 trait HttpClient {
   def makeRequest(request: HttpRequest): Future[HttpResponse]
@@ -33,40 +30,6 @@ trait ServiceTransport {
       implicit mat: Materializer): Future[Unmarshal[ResponseEntity]]
 }
 
-sealed trait SortingOrder
-object SortingOrder {
-  case object Asc  extends SortingOrder
-  case object Desc extends SortingOrder
-}
-
-final case class SortingField(name: String, sortingOrder: SortingOrder)
-final case class Sorting(sortingFields: Seq[SortingField])
-
-final case class Pagination(pageSize: Int, pageNumber: Int) {
-  require(pageSize > 0, "Page size must be greater than zero")
-  require(pageNumber > 0, "Page number must be greater than zero")
-
-  def offset: Int = pageSize * (pageNumber - 1)
-}
-
-final case class ListResponse[+T](items: Seq[T], meta: ListResponse.Meta)
-
-object ListResponse {
-
-  def apply[T](items: Seq[T], size: Int, pagination: Option[Pagination]): ListResponse[T] =
-    ListResponse(
-      items = items,
-      meta = ListResponse.Meta(size, pagination.fold(1)(_.pageNumber), pagination.fold(size)(_.pageSize)))
-
-  final case class Meta(itemsCount: Int, pageNumber: Int, pageSize: Int)
-
-  object Meta {
-    def apply(itemsCount: Int, pagination: Pagination): Meta =
-      Meta(itemsCount, pagination.pageNumber, pagination.pageSize)
-  }
-
-}
-
 object `package` {
   implicit class OptionTRestAdditions[T](optionT: OptionT[Future, T]) {
     def responseOrNotFound(successCode: StatusCodes.Success = StatusCodes.OK)(
@@ -74,27 +37,6 @@ object `package` {
         em: ToEntityMarshaller[T]): Future[ToResponseMarshallable] = {
       optionT.fold[ToResponseMarshallable](successCode -> _, StatusCodes.NotFound -> None)
     }
-  }
-
-  object ContextHeaders {
-    val AuthenticationTokenHeader: String  = "Authorization"
-    val PermissionsTokenHeader: String     = "Permissions"
-    val AuthenticationHeaderPrefix: String = "Bearer"
-    val ClientFingerprintHeader: String    = "X-Client-Fingerprint"
-    val TrackingIdHeader: String           = "X-Trace"
-    val StacktraceHeader: String           = "X-Stacktrace"
-    val OriginatingIpHeader: String        = "X-Forwarded-For"
-    val ResourceCount: String              = "X-Resource-Count"
-    val PageCount: String                  = "X-Page-Count"
-    val TraceHeaderName: String            = TracingDirectives.TraceHeaderName
-    val SpanHeaderName: String             = TracingDirectives.SpanHeaderName
-  }
-
-  object AuthProvider {
-    val AuthenticationTokenHeader: String    = ContextHeaders.AuthenticationTokenHeader
-    val PermissionsTokenHeader: String       = ContextHeaders.PermissionsTokenHeader
-    val SetAuthenticationTokenHeader: String = "set-authorization"
-    val SetPermissionsTokenHeader: String    = "set-permissions"
   }
 
   val AllowedHeaders: Seq[String] =

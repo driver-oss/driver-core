@@ -2,11 +2,10 @@ package xyz.driver.core.rest
 
 import java.net.InetAddress
 
-import xyz.driver.core.auth.{AuthToken, PermissionsToken, User}
-import xyz.driver.core.generators
-
 import scalaz.Scalaz.{mapEqual, stringInstance}
 import scalaz.syntax.equal._
+import xyz.driver.core.auth.{AuthToken, PermissionsToken, User}
+import xyz.driver.core.generators
 
 class ServiceRequestContext(
     val trackingId: String = generators.nextUuid().toString,

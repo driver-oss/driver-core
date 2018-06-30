@@ -1,10 +1,9 @@
 package xyz.driver.core.rest.auth
 
-import xyz.driver.core.auth.{Permission, PermissionsToken}
-
 import scalaz.Scalaz.mapMonoid
 import scalaz.Semigroup
 import scalaz.syntax.semigroup._
+import xyz.driver.core.auth.{Permission, PermissionsToken}
 
 final case class AuthorizationResult(authorized: Map[Permission, Boolean], token: Option[PermissionsToken])
 object AuthorizationResult {

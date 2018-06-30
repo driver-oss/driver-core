@@ -1,16 +1,16 @@
 package xyz.driver.core.rest
 
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.{Unmarshal, Unmarshaller}
 import akka.stream.Materializer
 
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, OptionT}
+import spray.json._
+import xyz.driver.core.CoreJsonFormats
 
-trait RestService extends Service {
-
-  import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-  import spray.json._
+trait RestService extends Service with CoreJsonFormats with Unmarshallers with SprayJsonSupport {
 
   protected implicit val exec: ExecutionContext
   protected implicit val materializer: Materializer

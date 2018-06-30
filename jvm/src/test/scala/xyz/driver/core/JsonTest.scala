@@ -142,7 +142,7 @@ class JsonTest extends FlatSpec with Matchers {
     case object Val2 extends EnumVal
     case object Val3 extends EnumVal
 
-    val format = new EnumJsonFormat[EnumVal]("a" -> Val1, "b" -> Val2, "c" -> Val3)
+    val format = new EnumJsonFormat2[EnumVal]("a" -> Val1, "b" -> Val2, "c" -> Val3)
 
     val referenceEnumValue1 = Val2
     val referenceEnumValue2 = Val3
@@ -224,29 +224,6 @@ class JsonTest extends FlatSpec with Matchers {
     intercept[DeserializationException] {
       JsString("Val4").convertTo[MyEnum]
     }.getMessage shouldBe "Unexpected value Val4. Expected one of: [Val1, Val 2, Val/3]"
-  }
-
-  // Should be defined outside of case to have a TypeTag
-  case class CustomWrapperClass(value: Int)
-
-  "Json format for Value classes" should "read and write correct JSON" in {
-
-    val format = new ValueClassFormat[CustomWrapperClass](v => BigDecimal(v.value), d => CustomWrapperClass(d.toInt))
-
-    val referenceValue1 = CustomWrapperClass(-2)
-    val referenceValue2 = CustomWrapperClass(10)
-
-    val writtenJson1 = format.write(referenceValue1)
-    writtenJson1.prettyPrint should be("-2")
-
-    val writtenJson2 = format.write(referenceValue2)
-    writtenJson2.prettyPrint should be("10")
-
-    val parsedValue1 = format.read(writtenJson1)
-    val parsedValue2 = format.read(writtenJson2)
-
-    parsedValue1 should be(referenceValue1)
-    parsedValue2 should be(referenceValue2)
   }
 
   "Json format for classes GADT" should "read and write correct JSON" in {

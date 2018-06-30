@@ -1,12 +1,9 @@
 package xyz.driver.core
 
-import com.typesafe.scalalogging.Logger
-
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success, Try}
 
 object future {
-  val log = Logger("Driver.Future")
 
   implicit class RichFuture[T](f: Future[T]) {
     def mapAll[U](pf: PartialFunction[Try[T], U])(implicit executionContext: ExecutionContext): Future[U] = {
@@ -41,7 +38,7 @@ object future {
           middleState.future.foreach {
             case Right((_, pt)) => pt.complete(f)
             case Left((t1, _)) => // This should never happen
-              log.error(s"Logic error: tried to set Failure($err) but Left($t1) already set")
+              sys.error(s"Logic error: tried to set Failure($err) but Left($t1) already set")
           }
         }
       case Success(t) =>
@@ -52,7 +49,7 @@ object future {
           middleState.future.foreach {
             case Right((_, pt)) => pt.success(t)
             case Left((t1, _)) => // This should never happen
-              log.error(s"Logic error: tried to set Left($t) but Left($t1) already set")
+              sys.error(s"Logic error: tried to set Left($t) but Left($t1) already set")
           }
         }
     }
@@ -63,7 +60,7 @@ object future {
           middleState.future.foreach {
             case Left((_, pu)) => pu.complete(f)
             case Right((u1, _)) => // This should never happen
-              log.error(s"Logic error: tried to set Failure($err) but Right($u1) already set")
+              sys.error(s"Logic error: tried to set Failure($err) but Right($u1) already set")
           }
         }
       case Success(u) =>
@@ -74,7 +71,7 @@ object future {
           middleState.future.foreach {
             case Left((_, pu)) => pu.success(u)
             case Right((u1, _)) => // This should never happen
-              log.error(s"Logic error: tried to set Right($u) but Right($u1) already set")
+              sys.error(s"Logic error: tried to set Right($u) but Right($u1) already set")
           }
         }
     }

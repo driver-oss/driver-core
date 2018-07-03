@@ -189,7 +189,7 @@ trait CoreJsonFormats extends DerivedJsonProtocol {
     override def write(value: T): JsValue = {
       map.find(_._2 == value).map(_._1) match {
         case Some(name) => JsString(name)
-        case _ => serializationError(s"Value $value is not found in the mapping $map")
+        case _          => serializationError(s"Value $value is not found in the mapping $map")
       }
     }
 
@@ -205,7 +205,7 @@ trait CoreJsonFormats extends DerivedJsonProtocol {
 
     def read(json: JsValue): T = json match {
       case JsNumber(value) => create(value)
-      case _ => deserializationError(s"Expected number as ${typeOf[T].getClass.getName}, but got " + json.toString)
+      case _               => deserializationError(s"Expected number as ${typeOf[T].getClass.getName}, but got " + json.toString)
     }
   }
 
@@ -288,7 +288,8 @@ trait CoreJsonFormats extends DerivedJsonProtocol {
       }
     }
 
-  implicit def nonEmptyNameFormat[T](implicit nonEmptyStringFormat: JsonFormat[Refined[String, NonEmpty]]): RootJsonFormat[NonEmptyName[T]] =
+  implicit def nonEmptyNameFormat[T](
+      implicit nonEmptyStringFormat: JsonFormat[Refined[String, NonEmpty]]): RootJsonFormat[NonEmptyName[T]] =
     new RootJsonFormat[NonEmptyName[T]] {
       def write(name: NonEmptyName[T]) = JsString(name.value.value)
 

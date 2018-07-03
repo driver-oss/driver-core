@@ -10,6 +10,6 @@ object ContextHeaders {
   val OriginatingIpHeader: String        = "X-Forwarded-For"
   val ResourceCount: String              = "X-Resource-Count"
   val PageCount: String                  = "X-Page-Count"
-  val TraceHeaderName = "Tracing-Trace-Id"
-  val SpanHeaderName = "Tracing-Span-Id"
-  }
+  val TraceHeaderName                    = "Tracing-Trace-Id"
+  val SpanHeaderName                     = "Tracing-Span-Id"
+}

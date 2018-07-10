@@ -4,16 +4,15 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.headers.Connection
 import akka.http.scaladsl.server.Directives.{complete => akkaComplete}
-import akka.http.scaladsl.server.{Directives, Rejection, RejectionHandler, Route}
+import akka.http.scaladsl.server.{Directives, RejectionHandler, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.scalalogging.Logger
 import org.scalatest.{AsyncFlatSpec, Matchers}
-import xyz.driver.core.logging.NoLogger
-import xyz.driver.core.json.serviceExceptionFormat
 import xyz.driver.core.FutureExtensions
+import xyz.driver.core.json.serviceExceptionFormat
+import xyz.driver.core.logging.NoLogger
 import xyz.driver.core.rest.errors._
 
-import scala.collection.immutable
 import scala.concurrent.Future
 
 class DriverRouteTest

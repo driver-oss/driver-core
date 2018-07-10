@@ -3,21 +3,21 @@ package xyz.driver.core.rest
 import java.net.InetAddress
 
 import akka.http.scaladsl.marshalling.{ToEntityMarshaller, ToResponseMarshallable}
-import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.Materializer
 import akka.stream.scaladsl.Flow
 import akka.util.ByteString
+import scalaz.Scalaz.{intInstance, stringInstance}
+import scalaz.syntax.equal._
+import scalaz.{Functor, OptionT}
 import xyz.driver.tracing.TracingDirectives
 
 import scala.concurrent.Future
 import scala.util.Try
-import scalaz.{Functor, OptionT}
-import scalaz.Scalaz.{intInstance, stringInstance}
-import scalaz.syntax.equal._
 
 trait Service
 
@@ -252,6 +252,22 @@ object `package` {
 
   def paginationQuery(pagination: Pagination) =
     Seq("pageNumber" -> pagination.pageNumber.toString, "pageSize" -> pagination.pageSize.toString)
+
+  def completeWithPagination[T](handler: Option[Pagination] => Future[ListResponse[T]])(
+      implicit marshaller: ToEntityMarshaller[Seq[T]]): Route = {
+    optionalPagination { pagination =>
+      onSuccess(handler(pagination)) {
+        case ListResponse(resultPart, ListResponse.Meta(count, _, _)) =>
+          val resourceCountHeader = RawHeader(ContextHeaders.ResourceCount, count.toString)
+          val headers = pagination.fold[List[HttpHeader]](List(resourceCountHeader)) { p =>
+            val pageCount = (count / p.pageSize) + (if (count % p.pageSize == 0) 0 else 1)
+            List(resourceCountHeader, RawHeader(ContextHeaders.PageCount, pageCount.toString))
+          }
+
+          respondWithHeaders(headers)(complete(ToResponseMarshallable(resultPart)))
+      }
+    }
+  }
 
   private def extractSorting(sortingString: Option[String]): Sorting = {
     val sortingFields = sortingString.fold(Seq.empty[SortingField])(

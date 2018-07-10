@@ -8,6 +8,8 @@ lazy val core = (project in file("."))
   .settings(lintingSettings ++ formatSettings)
   .settings(libraryDependencies ++= Seq(
     "xyz.driver"                    %% "tracing"                        % "0.1.2",
+    "com.softwaremill.sttp"         %% "core"                           % "1.2.2",
+    "com.softwaremill.sttp"         %% "akka-http-backend"              % "1.2.2",
     "com.typesafe.akka"             %% "akka-actor"                     % "2.5.13",
     "com.typesafe.akka"             %% "akka-stream"                    % "2.5.13",
     "com.typesafe.akka"             %% "akka-http-core"                 % akkaHttpV,
@@ -18,6 +20,7 @@ lazy val core = (project in file("."))
     "io.kamon"                      %% "kamon-statsd"                   % "1.0.0",
     "io.kamon"                      %% "kamon-system-metrics"           % "1.0.0",
     "io.kamon"                      %% "kamon-akka-2.5"                 % "1.0.0",
+    "org.scala-lang.modules"        %% "scala-async"                    % "0.9.7",
     "org.scalatest"                 %% "scalatest"                      % "3.0.5" % "test",
     "org.scalacheck"                %% "scalacheck"                     % "1.14.0" % "test",
     "org.scalaz"                    %% "scalaz-core"                    % "7.2.24",
@@ -37,4 +40,3 @@ lazy val core = (project in file("."))
     "com.googlecode.libphonenumber" %  "libphonenumber"                 % "8.9.7",
     "javax.xml.bind"                %  "jaxb-api"                       % "2.2.8"
   ))
-  .settings(scalaVersion := "2.12.6")

@@ -257,12 +257,11 @@ object `package` {
       implicit marshaller: ToEntityMarshaller[Seq[T]]): Route = {
     optionalPagination { pagination =>
       onSuccess(handler(pagination)) {
-        case ListResponse(resultPart, ListResponse.Meta(count, _, _)) =>
-          val resourceCountHeader = RawHeader(ContextHeaders.ResourceCount, count.toString)
-          val headers = pagination.fold[List[HttpHeader]](List(resourceCountHeader)) { p =>
-            val pageCount = (count / p.pageSize) + (if (count % p.pageSize == 0) 0 else 1)
-            List(resourceCountHeader, RawHeader(ContextHeaders.PageCount, pageCount.toString))
-          }
+        case ListResponse(resultPart, ListResponse.Meta(count, _, pageSize)) =>
+          val pageCount = (count / pageSize) + (if (count % pageSize == 0) 0 else 1)
+          val headers = List(
+            RawHeader(ContextHeaders.ResourceCount, count.toString),
+            RawHeader(ContextHeaders.PageCount, pageCount.toString))
 
           respondWithHeaders(headers)(complete(ToResponseMarshallable(resultPart)))
       }

@@ -1,5 +1,6 @@
 package xyz.driver.core.rest
 
+import akka.http.scaladsl.marshalling.ToResponseMarshallable
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.{Directives, Route, ValidationRejection}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
@@ -94,11 +95,11 @@ class RestTest extends WordSpec with Matchers with ScalatestRouteTest with Direc
       }
     }
 
-    "return a response with resource count header when no pagination has been passed" in {
+    "return a response with pagination headers when no pagination has been passed" in {
       Get("/") ~> route ~> check {
         responseAs[Seq[String]] shouldBe data
         header(ContextHeaders.ResourceCount).map(_.value) should contain("103")
-        header(ContextHeaders.PageCount) shouldBe empty
+        header(ContextHeaders.PageCount).map(_.value) should contain("1")
       }
     }
   }

@@ -258,7 +258,7 @@ object `package` {
     optionalPagination { pagination =>
       onSuccess(handler(pagination)) {
         case ListResponse(resultPart, ListResponse.Meta(count, _, pageSize)) =>
-          val pageCount = (count / pageSize) + (if (count % pageSize == 0) 0 else 1)
+          val pageCount = if (pageSize == 0) 0 else (count / pageSize) + (if (count % pageSize == 0) 0 else 1)
           val headers = List(
             RawHeader(ContextHeaders.ResourceCount, count.toString),
             RawHeader(ContextHeaders.PageCount, pageCount.toString))

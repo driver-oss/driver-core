@@ -186,7 +186,13 @@ object json {
     }
   }
 
-  implicit val phoneNumberFormat = jsonFormat2(PhoneNumber.apply)
+  implicit object phoneNumberFormat extends RootJsonFormat[PhoneNumber] {
+    private val basicFormat                       = jsonFormat2(PhoneNumber.apply)
+    override def write(obj: PhoneNumber): JsValue = basicFormat.write(obj)
+    override def read(json: JsValue): PhoneNumber = {
+      PhoneNumber.parse(basicFormat.read(json).toString).getOrElse(deserializationError("Invalid phone number"))
+    }
+  }
 
   implicit val authCredentialsFormat = new RootJsonFormat[AuthCredentials] {
     override def read(json: JsValue): AuthCredentials = {

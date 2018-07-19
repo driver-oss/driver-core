@@ -138,9 +138,9 @@ class JsonTest extends FlatSpec with Matchers {
   it should "reject an invalid phone number" in {
     val phoneJson = """{"countryCode":"1","number":"111-111-1113"}""".parseJson
 
-    assertThrows[DeserializationException] {
+    intercept[DeserializationException] {
       json.phoneNumberFormat.read(phoneJson)
-    }
+    }.getMessage shouldBe "Invalid phone number"
   }
 
   "Json format for ADT mappings" should "read and write correct JSON" in {

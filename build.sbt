@@ -21,7 +21,7 @@ lazy val core = (project in file("."))
     "org.scalatest"                 %% "scalatest"                      % "3.0.5" % "test",
     "org.scalacheck"                %% "scalacheck"                     % "1.14.0" % "test",
     "org.scalaz"                    %% "scalaz-core"                    % "7.2.24",
-    "com.github.swagger-akka-http"  %% "swagger-akka-http"              % "0.14.0",
+    "com.github.swagger-akka-http"  %% "swagger-akka-http"              % "0.14.1",
     "com.typesafe.scala-logging"    %% "scala-logging"                  % "3.9.0",
     "eu.timepit"                    %% "refined"                        % "0.9.0",
     "com.typesafe.slick"            %% "slick"                          % "3.2.3",
@@ -32,8 +32,9 @@ lazy val core = (project in file("."))
     "com.google.cloud"              %  "google-cloud-storage"           % "1.31.0",
     "com.typesafe"                  %  "config"                         % "1.3.3",
     "ch.qos.logback"                %  "logback-classic"                % "1.2.3",
-    "ch.qos.logback.contrib"        %  "logback-json-classic"            % "0.1.5",
-    "ch.qos.logback.contrib"        %  "logback-jackson"                 % "0.1.5",
-    "com.googlecode.libphonenumber" %  "libphonenumber"                 % "8.9.7"
+    "ch.qos.logback.contrib"        %  "logback-json-classic"           % "0.1.5",
+    "ch.qos.logback.contrib"        %  "logback-jackson"                % "0.1.5",
+    "com.googlecode.libphonenumber" %  "libphonenumber"                 % "8.9.7",
+    "javax.xml.bind"                %  "jaxb-api"                       % "2.2.8"
   ))
   .settings(scalaVersion := "2.12.6")

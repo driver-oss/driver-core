@@ -30,6 +30,7 @@ lazy val core = (project in file("."))
     "com.amazonaws"                 %  "aws-java-sdk-s3"                % "1.11.342",
     "com.google.cloud"              %  "google-cloud-pubsub"            % "1.31.0",
     "com.google.cloud"              %  "google-cloud-storage"           % "1.31.0",
+    "com.aliyun.oss"                %  "aliyun-sdk-oss"                 % "2.8.2",
     "com.typesafe"                  %  "config"                         % "1.3.3",
     "ch.qos.logback"                %  "logback-classic"                % "1.2.3",
     "ch.qos.logback.contrib"        %  "logback-json-classic"            % "0.1.5",

@@ -3,9 +3,9 @@ package xyz.driver.core.storage
 import java.net.URL
 import java.nio.file.Path
 
+import akka.Done
 import akka.stream.scaladsl.{Sink, Source}
 import akka.util.ByteString
-import akka.{Done, NotUsed}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
@@ -30,7 +30,7 @@ trait BlobStorage {
   def content(name: String): Future[Option[Array[Byte]]]
 
   /** Stream data asynchronously and with backpressure. */
-  def download(name: String): Future[Option[Source[ByteString, NotUsed]]]
+  def download(name: String): Future[Option[Source[ByteString, Any]]]
 
   /** Get a sink to upload data. */
   def upload(name: String): Future[Sink[ByteString, Future[Done]]]

@@ -2,7 +2,6 @@ package xyz.driver.core
 
 import java.io.File
 import java.lang.management.ManagementFactory
-import java.lang.reflect.Modifier
 
 object stats {
 
@@ -41,18 +40,11 @@ object stats {
       }
     }
 
-    def operatingSystemStats: Map[String, String] = {
-      val operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean
-      operatingSystemMXBean.getClass.getDeclaredMethods
-        .map(method => { method.setAccessible(true); method })
-        .filter(method => method.getName.startsWith("get") && Modifier.isPublic(method.getModifiers))
-        .map { method =>
-          try {
-            method.getName -> String.valueOf(method.invoke(operatingSystemMXBean))
-          } catch {
-            case t: Throwable => method.getName -> t.getMessage
-        }
-      } toMap
-    }
+    @deprecated(
+      "OS stats accessed internal APIs which have been removed in new versions of Java. " +
+        "Refer to InfluxDB and Grafana instead for OS metrics.",
+      "1.11.9")
+    def operatingSystemStats: Map[String, String] = Map.empty
+
   }
 }

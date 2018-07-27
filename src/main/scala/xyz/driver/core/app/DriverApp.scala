@@ -255,8 +255,7 @@ class DriverApp(
               "freeSpace"   -> f.freeSpace.toJson,
               "totalSpace"  -> f.totalSpace.toJson,
               "usableSpace" -> f.usableSpace.toJson)
-          }.toJson,
-          "operatingSystem" -> SystemStats.operatingSystemStats.toJson
+          }.toJson
         ))
     }
   }

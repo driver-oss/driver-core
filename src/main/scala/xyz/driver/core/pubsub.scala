@@ -12,6 +12,7 @@ import com.typesafe.scalalogging.Logger
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Try}
 
+@deprecated("Use the message bus implementation in xyz.driver.core.messaging.GoogleBus", "1.11.5")
 object pubsub {
 
   trait PubsubPublisher[Message] {

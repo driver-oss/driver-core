@@ -3,21 +3,29 @@ package xyz.driver.core.storage
 import java.io.ByteArrayInputStream
 import java.net.URL
 import java.nio.file.Path
+import java.util.Date
 
 import akka.Done
 import akka.stream.scaladsl.{Sink, Source, StreamConverters}
 import akka.util.ByteString
 import com.aliyun.oss.OSSClient
 import com.aliyun.oss.model.ObjectPermission
+import com.typesafe.config.Config
+import xyz.driver.core.time.provider.TimeProvider
 
 import scala.collection.JavaConverters._
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
-class AliyunBlobStorage(client: OSSClient, bucketId: String, chunkSize: Int = AliyunBlobStorage.DefaultChunkSize)(
-    implicit ec: ExecutionContext)
-    extends BlobStorage {
+class AliyunBlobStorage(
+    client: OSSClient,
+    bucketId: String,
+    timeProvider: TimeProvider,
+    chunkSize: Int = AliyunBlobStorage.DefaultChunkSize)(implicit ec: ExecutionContext)
+    extends SignedBlobStorage {
   override def uploadContent(name: String, content: Array[Byte]): Future[String] = Future {
-    client.putObject(bucketId, name, new ByteArrayInputStream(content)).getResponse.getUri
+    client.putObject(bucketId, name, new ByteArrayInputStream(content))
+    name
   }
 
   override def uploadFile(name: String, content: Path): Future[String] = Future {
@@ -30,7 +38,7 @@ class AliyunBlobStorage(client: OSSClient, bucketId: String, chunkSize: Int = Al
   }
 
   override def list(prefix: String): Future[Set[String]] = Future {
-    client.listObjects(prefix, prefix).getObjectSummaries.asScala.map(_.getKey)(collection.breakOut)
+    client.listObjects(bucketId, prefix).getObjectSummaries.asScala.map(_.getKey)(collection.breakOut)
   }
 
   override def content(name: String): Future[Option[Array[Byte]]] = Future {
@@ -67,11 +75,34 @@ class AliyunBlobStorage(client: OSSClient, bucketId: String, chunkSize: Int = Al
       val isPrivate   = acl.getPermission == ObjectPermission.Private
       val bucket      = client.getBucketInfo(bucketId).getBucket
       val endpointUrl = if (isPrivate) bucket.getIntranetEndpoint else bucket.getExtranetEndpoint
-      new URL(s"$endpointUrl/$name")
+      new URL(s"https://$bucketId.$endpointUrl/$name")
+    }
+  }
+
+  override def signedDownloadUrl(name: String, duration: Duration): Future[Option[URL]] = Future {
+    if (client.doesObjectExist(bucketId, name)) {
+      val expiration = new Date(timeProvider.currentTime().advanceBy(duration).millis)
+      Some(client.generatePresignedUrl(bucketId, name, expiration))
+    } else {
+      None
     }
   }
 }
 
 object AliyunBlobStorage {
   val DefaultChunkSize: Int = 8192
+
+  def apply(config: Config, bucketId: String, timeProvider: TimeProvider)(
+      implicit ec: ExecutionContext): AliyunBlobStorage = {
+    val clientId     = config.getString("storage.aliyun.clientId")
+    val clientSecret = config.getString("storage.aliyun.clientSecret")
+    val endpoint     = config.getString("storage.aliyun.endpoint")
+    this(clientId, clientSecret, endpoint, bucketId, timeProvider)
+  }
+
+  def apply(clientId: String, clientSecret: String, endpoint: String, bucketId: String, timeProvider: TimeProvider)(
+      implicit ec: ExecutionContext): AliyunBlobStorage = {
+    val client = new OSSClient(endpoint, clientId, clientSecret)
+    new AliyunBlobStorage(client, bucketId, timeProvider)
+  }
 }

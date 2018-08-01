@@ -39,5 +39,6 @@ lazy val core = (project in file("."))
     "ch.qos.logback.contrib"        %  "logback-json-classic"           % "0.1.5",
     "ch.qos.logback.contrib"        %  "logback-jackson"                % "0.1.5",
     "com.googlecode.libphonenumber" %  "libphonenumber"                 % "8.9.7",
+    "com.neovisionaries"            %  "nv-i18n"                        % "1.23",
     "javax.xml.bind"                %  "jaxb-api"                       % "2.2.8"
   ))

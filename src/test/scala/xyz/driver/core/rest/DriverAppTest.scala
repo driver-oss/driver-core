@@ -81,4 +81,13 @@ class DriverAppTest extends AsyncFlatSpec with ScalatestRouteTest with Matchers 
       header[`Access-Control-Allow-Methods`].get.methods should contain theSameElementsAs allowedMethods
     }
   }
+
+  it should "respond with Pragma and Cache-Control (no-cache) headers" in {
+    val route = new TestApp(get(complete(StatusCodes.OK)))
+    Get(s"/api/v1/test") ~> route.appRoute ~> check {
+      status shouldBe StatusCodes.OK
+      header("Pragma").map(_.value()) should contain("no-cache")
+      header("Cache-Control").map(_.value()) should contain("no-cache")
+    }
+  }
 }

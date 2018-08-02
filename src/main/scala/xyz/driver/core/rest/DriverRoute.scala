@@ -2,8 +2,8 @@ package xyz.driver.core.rest
 
 import java.sql.SQLException
 
-import akka.http.scaladsl.model.{StatusCodes, _}
 import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.model.{StatusCodes, _}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import com.typesafe.scalalogging.Logger
@@ -32,11 +32,7 @@ trait DriverRoute {
       val tracingHeader = RawHeader(ContextHeaders.TrackingIdHeader, trackingId)
       MDC.put("trackingId", trackingId)
 
-      // This header will eliminate the risk of LB trying to reuse a connection
-      // that already timed out on the server side by completely rejecting keep-alive
-      val rejectKeepAlive = Connection("close")
-
-      respondWithHeaders(tracingHeader, rejectKeepAlive)
+      respondWithHeaders(tracingHeader +: DriverRoute.DefaultHeaders: _*)
     }
   }
 
@@ -108,4 +104,15 @@ trait DriverRoute {
     complete(HttpResponse(statusCode, entity = entity))
   }
 
+}
+
+object DriverRoute {
+  val DefaultHeaders: List[HttpHeader] = List(
+    // This header will eliminate the risk of envoy trying to reuse a connection
+    // that already timed out on the server side by completely rejecting keep-alive
+    Connection("close"),
+    // These 2 headers are the simplest way to prevent IE from caching GET requests
+    RawHeader("Pragma", "no-cache"),
+    RawHeader("Cache-Control", "no-cache")
+  )
 }

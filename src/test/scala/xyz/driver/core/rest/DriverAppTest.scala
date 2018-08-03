@@ -1,7 +1,8 @@
 package xyz.driver.core.rest
 
-import akka.http.scaladsl.model.{HttpMethod, StatusCodes}
+import akka.http.scaladsl.model.headers.CacheDirectives.`no-cache`
 import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.model.{HttpMethod, StatusCodes}
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.config.ConfigFactory
@@ -87,7 +88,7 @@ class DriverAppTest extends AsyncFlatSpec with ScalatestRouteTest with Matchers 
     Get(s"/api/v1/test") ~> route.appRoute ~> check {
       status shouldBe StatusCodes.OK
       header("Pragma").map(_.value()) should contain("no-cache")
-      header("Cache-Control").map(_.value()) should contain("no-cache")
+      header[`Cache-Control`].map(_.value()) should contain("no-cache")
     }
   }
 }

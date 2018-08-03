@@ -2,6 +2,7 @@ package xyz.driver.core.rest
 
 import java.sql.SQLException
 
+import akka.http.scaladsl.model.headers.CacheDirectives.`no-cache`
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model.{StatusCodes, _}
 import akka.http.scaladsl.server.Directives._
@@ -113,6 +114,6 @@ object DriverRoute {
     Connection("close"),
     // These 2 headers are the simplest way to prevent IE from caching GET requests
     RawHeader("Pragma", "no-cache"),
-    RawHeader("Cache-Control", "no-cache")
+    `Cache-Control`(List(`no-cache`(Nil)))
   )
 }

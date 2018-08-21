@@ -8,7 +8,6 @@ import xyz.driver.core.rest.errors.{ExternalServiceException, UnauthorizedExcept
 import xyz.driver.core.rest.{AuthorizedServiceRequestContext, ContextHeaders, ServiceRequestContext, serviceContext}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
 
 abstract class AuthProvider[U <: User](
     val authorization: Authorization[U],
@@ -36,7 +35,9 @@ abstract class AuthProvider[U <: User](
       log.info(s"Request (${context.trackingId}) missing authentication credentials")
       Future.successful(None)
     case Credentials.Provided(authToken) =>
-      authenticatedUser(context.withAuthToken(AuthToken(authToken))).run
+      authenticatedUser(context.withAuthToken(AuthToken(authToken))).run.recover({
+        case ExternalServiceException(_, _, Some(UnauthorizedException(_))) => None
+      })
   }
 
   /**
@@ -47,17 +48,13 @@ abstract class AuthProvider[U <: User](
       permissions: Permission*): Directive1[AuthorizedServiceRequestContext[U]] = {
     authenticateOAuth2Async[U](realm, authenticator(context)) flatMap { authenticatedUser =>
       val authCtx = context.withAuthenticatedUser(context.authToken.get, authenticatedUser)
-      onComplete(authorization.userHasPermissions(authenticatedUser, permissions)(authCtx)) flatMap {
-        case Success(AuthorizationResult(authorized, token)) =>
+      onSuccess(authorization.userHasPermissions(authenticatedUser, permissions)(authCtx)) flatMap {
+        case AuthorizationResult(authorized, token) =>
           val allAuthorized = permissions.forall(authorized.getOrElse(_, false))
           akkaAuthorize(allAuthorized) tflatMap { _ =>
             val cachedPermissionsCtx = token.fold(authCtx)(authCtx.withPermissionsToken)
             provide(cachedPermissionsCtx)
           }
-        case Failure(ExternalServiceException(_, _, Some(t @ UnauthorizedException(_)))) =>
-          failWith(t)
-        case Failure(t) =>
-          failWith(t)
       }
     }
   }

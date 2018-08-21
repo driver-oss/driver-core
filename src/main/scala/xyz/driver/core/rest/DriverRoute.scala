@@ -79,6 +79,9 @@ trait DriverRoute {
       case e: InvalidActionException =>
         log.info("Invalid client action error", e)
         StatusCodes.Forbidden
+      case e: UnauthorizedException =>
+        log.info("Unauthorized user error", e)
+        StatusCodes.Unauthorized
       case e: ResourceNotFoundException =>
         log.info("Resource not found error", e)
         StatusCodes.NotFound

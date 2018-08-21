@@ -7,6 +7,10 @@ final case class InvalidInputException(override val message: String = "Invalid i
 final case class InvalidActionException(override val message: String = "This action is not allowed")
     extends ServiceException(message)
 
+final case class UnauthorizedException(
+    override val message: String = "The user's authentication credentials are invalid or missing")
+    extends ServiceException(message)
+
 final case class ResourceNotFoundException(override val message: String = "Resource not found")
     extends ServiceException(message)
 

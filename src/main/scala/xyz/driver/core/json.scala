@@ -8,6 +8,7 @@ import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
+import com.neovisionaries.i18n.{CountryCode, CurrencyCode}
 import enumeratum._
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
@@ -19,6 +20,7 @@ import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.rest.errors._
 import xyz.driver.core.time.{Time, TimeOfDay}
 
+import scala.reflect.{ClassTag, classTag}
 import scala.reflect.runtime.universe._
 import scala.util.Try
 
@@ -234,6 +236,10 @@ object json {
       JsString(obj.getHostAddress)
   }
 
+  implicit val countryCodeFormat: JsonFormat[CountryCode] = javaEnumFormat[CountryCode]
+
+  implicit val currencyCodeFormat: JsonFormat[CurrencyCode] = javaEnumFormat[CurrencyCode]
+
   object enumeratum {
 
     def enumUnmarshaller[T <: EnumEntry](enum: Enum[T]): Unmarshaller[String, T] =
@@ -279,6 +285,11 @@ object json {
         map.getOrElse(name, throw DeserializationException(s"Value $name is not found in the mapping $map"))
       case _ => deserializationError("Expected string as enumeration value, but got " + json.toString)
     }
+  }
+
+  def javaEnumFormat[T <: java.lang.Enum[_]: ClassTag]: JsonFormat[T] = {
+    val values = classTag[T].runtimeClass.asInstanceOf[Class[T]].getEnumConstants
+    new EnumJsonFormat[T](values.map(v => v.name() -> v): _*)
   }
 
   class ValueClassFormat[T: TypeTag](writeValue: T => BigDecimal, create: BigDecimal => T) extends JsonFormat[T] {

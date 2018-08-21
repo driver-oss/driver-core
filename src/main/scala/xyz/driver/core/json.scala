@@ -379,6 +379,7 @@ object json {
     GadtJsonFormat.create[ServiceException]("type") {
       case _: InvalidInputException           => "InvalidInputException"
       case _: InvalidActionException          => "InvalidActionException"
+      case _: UnauthorizedException           => "UnauthorizedException"
       case _: ResourceNotFoundException       => "ResourceNotFoundException"
       case _: ExternalServiceException        => "ExternalServiceException"
       case _: ExternalServiceTimeoutException => "ExternalServiceTimeoutException"
@@ -386,6 +387,7 @@ object json {
     } {
       case "InvalidInputException"     => jsonFormat(InvalidInputException, "message")
       case "InvalidActionException"    => jsonFormat(InvalidActionException, "message")
+      case "UnauthorizedException"     => jsonFormat(UnauthorizedException, "message")
       case "ResourceNotFoundException" => jsonFormat(ResourceNotFoundException, "message")
       case "ExternalServiceException" =>
         jsonFormat(ExternalServiceException, "serviceName", "serviceMessage", "serviceException")

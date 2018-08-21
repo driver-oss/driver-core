@@ -4,9 +4,11 @@ import akka.http.scaladsl.server.directives.Credentials
 import com.typesafe.scalalogging.Logger
 import scalaz.OptionT
 import xyz.driver.core.auth.{AuthToken, Permission, User}
+import xyz.driver.core.rest.errors.{ExternalServiceException, UnauthorizedException}
 import xyz.driver.core.rest.{AuthorizedServiceRequestContext, ContextHeaders, ServiceRequestContext, serviceContext}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 abstract class AuthProvider[U <: User](
     val authorization: Authorization[U],
@@ -45,13 +47,17 @@ abstract class AuthProvider[U <: User](
       permissions: Permission*): Directive1[AuthorizedServiceRequestContext[U]] = {
     authenticateOAuth2Async[U](realm, authenticator(context)) flatMap { authenticatedUser =>
       val authCtx = context.withAuthenticatedUser(context.authToken.get, authenticatedUser)
-      onSuccess(authorization.userHasPermissions(authenticatedUser, permissions)(authCtx)) flatMap {
-        case AuthorizationResult(authorized, token) =>
+      onComplete(authorization.userHasPermissions(authenticatedUser, permissions)(authCtx)) flatMap {
+        case Success(AuthorizationResult(authorized, token)) =>
           val allAuthorized = permissions.forall(authorized.getOrElse(_, false))
           akkaAuthorize(allAuthorized) tflatMap { _ =>
             val cachedPermissionsCtx = token.fold(authCtx)(authCtx.withPermissionsToken)
             provide(cachedPermissionsCtx)
           }
+        case Failure(ExternalServiceException(_, _, Some(t @ UnauthorizedException(_)))) =>
+          failWith(t)
+        case Failure(t) =>
+          failWith(t)
       }
     }
   }

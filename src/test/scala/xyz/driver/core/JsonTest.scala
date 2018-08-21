@@ -351,18 +351,30 @@ class JsonTest extends FlatSpec with Matchers with Inspectors {
   }
 
   "CountryCode format" should "read and write correct JSON" in {
-    forAll(CountryCode.values.toSeq) { countryCode =>
-      val written = countryCodeFormat.write(countryCode)
+    val samples = Seq(
+      "US" -> CountryCode.US,
+      "CN" -> CountryCode.CN,
+      "AT" -> CountryCode.AT
+    )
 
-      countryCodeFormat.read(written) shouldBe countryCode
+    forAll(samples) {
+      case (serialized, enumValue) =>
+        countryCodeFormat.write(enumValue) shouldBe JsString(serialized)
+        countryCodeFormat.read(JsString(serialized)) shouldBe enumValue
     }
   }
 
   "CurrencyCode format" should "read and write correct JSON" in {
-    forAll(CurrencyCode.values.toSeq) { countryCode =>
-      val written = currencyCodeFormat.write(countryCode)
+    val samples = Seq(
+      "USD" -> CurrencyCode.USD,
+      "CNY" -> CurrencyCode.CNY,
+      "EUR" -> CurrencyCode.EUR
+    )
 
-      currencyCodeFormat.read(written) shouldBe countryCode
+    forAll(samples) {
+      case (serialized, enumValue) =>
+        currencyCodeFormat.write(enumValue) shouldBe JsString(serialized)
+        currencyCodeFormat.read(JsString(serialized)) shouldBe enumValue
     }
   }
 

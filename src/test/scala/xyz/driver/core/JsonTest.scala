@@ -2,11 +2,12 @@ package xyz.driver.core
 
 import java.net.InetAddress
 
+import com.neovisionaries.i18n.{CountryCode, CurrencyCode}
 import enumeratum._
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.Positive
 import eu.timepit.refined.refineMV
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{FlatSpec, Inspectors, Matchers}
 import xyz.driver.core.json._
 import xyz.driver.core.time.provider.SystemTimeProvider
 import spray.json._
@@ -19,7 +20,7 @@ import xyz.driver.core.time.TimeOfDay
 
 import scala.collection.immutable.IndexedSeq
 
-class JsonTest extends FlatSpec with Matchers {
+class JsonTest extends FlatSpec with Matchers with Inspectors {
   import DefaultJsonProtocol._
 
   "Json format for Id" should "read and write correct JSON" in {
@@ -348,4 +349,21 @@ class JsonTest extends FlatSpec with Matchers {
     written should be("{\"identifier\":\"someone@nowhere.com\",\"password\":\"nopassword\"}".parseJson)
 
   }
+
+  "CountryCode format" should "read and write correct JSON" in {
+    forAll(CountryCode.values.toSeq) { countryCode =>
+      val written = countryCodeFormat.write(countryCode)
+
+      countryCodeFormat.read(written) shouldBe countryCode
+    }
+  }
+
+  "CurrencyCode format" should "read and write correct JSON" in {
+    forAll(CurrencyCode.values.toSeq) { countryCode =>
+      val written = currencyCodeFormat.write(countryCode)
+
+      currencyCodeFormat.read(written) shouldBe countryCode
+    }
+  }
+
 }

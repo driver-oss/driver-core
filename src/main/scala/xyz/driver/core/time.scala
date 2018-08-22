@@ -1,6 +1,7 @@
 package xyz.driver.core
 
 import java.text.SimpleDateFormat
+import java.time.{Clock, Instant, ZoneId, ZoneOffset}
 import java.util._
 import java.util.concurrent.TimeUnit
 
@@ -170,6 +171,16 @@ object time {
 
     final class SpecificTimeProvider(time: Time) extends TimeProvider {
       def currentTime() = time
+    }
+
+    class ChangeableClock(@volatile var instant: Instant, val zone: ZoneId = ZoneOffset.UTC) extends Clock {
+
+      def tick(duration: FiniteDuration): Unit =
+        instant = instant.plusNanos(duration.toNanos)
+
+      val getZone: ZoneId = zone
+
+      def withZone(zone: ZoneId): Clock = new ChangeableClock(instant, zone = zone)
     }
   }
 }

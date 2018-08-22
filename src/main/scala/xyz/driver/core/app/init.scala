@@ -1,6 +1,7 @@
 package xyz.driver.core.app
 
 import java.nio.file.{Files, Paths}
+import java.time.Clock
 import java.util.concurrent.{Executor, Executors}
 
 import akka.actor.ActorSystem
@@ -23,7 +24,7 @@ object init {
     val gitHeadCommit: scala.Option[String]
   }
 
-  case class ApplicationContext(config: Config, time: TimeProvider, log: Logger)
+  case class ApplicationContext(config: Config, time: TimeProvider, clock: Clock, log: Logger)
 
   /** NOTE: This needs to be the first that is run when application starts.
     * Otherwise if another command causes the logger to be instantiated,
@@ -84,10 +85,12 @@ object init {
   def defaultApplicationContext(): ApplicationContext = {
     val config = getEnvironmentSpecificConfig()
 
-    val time = new SystemTimeProvider()
-    val log  = Logger(LoggerFactory.getLogger(classOf[DriverApp]))
+    val time  = new SystemTimeProvider()
+    val clock = Clock.systemUTC()
 
-    ApplicationContext(config, time, log)
+    val log = Logger(LoggerFactory.getLogger(classOf[DriverApp]))
+
+    ApplicationContext(config, time, clock, log)
   }
 
   def createDefaultApplication(

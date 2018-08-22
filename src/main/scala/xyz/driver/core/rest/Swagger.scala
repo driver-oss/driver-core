@@ -13,24 +13,20 @@ import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
 import io.swagger.util.Json
 
-import scala.reflect.runtime.universe
-import scala.reflect.runtime.universe.Type
 import scala.util.control.NonFatal
 
 class Swagger(
     override val host: String,
-    override val schemes: List[Scheme],
+    accessSchemes: List[String],
     version: String,
-    val apiTypes: Seq[Type],
+    override val apiClasses: Set[Class[_]],
     val config: Config,
     val logger: Logger)
     extends SwaggerHttpService {
 
-  lazy val mirror = universe.runtimeMirror(getClass.getClassLoader)
-
-  override val apiClasses = apiTypes.map { tpe =>
-    mirror.runtimeClass(tpe.typeSymbol.asClass)
-  }.toSet
+  override val schemes = accessSchemes.map { s =>
+    Scheme.forValue(s)
+  }
 
   // Note that the reason for overriding this is a subtle chain of causality:
   //
@@ -52,15 +48,19 @@ class Swagger(
     try {
       val swagger: JSwagger = reader.read(apiClasses.asJava)
 
-      // Removing trailing spaces
-      swagger.setPaths(
+      val paths = if (swagger.getPaths == null) {
+        Map.empty
+      } else {
         swagger.getPaths.asScala
-          .map {
-            case (key, path) =>
-              key.trim -> path
-          }
-          .toMap
-          .asJava)
+      }
+
+      // Removing trailing spaces
+      val fixedPaths = paths.map {
+        case (key, path) =>
+          key.trim -> path
+      }
+
+      swagger.setPaths(fixedPaths.asJava)
 
       Json.pretty().writeValueAsString(swagger)
     } catch {

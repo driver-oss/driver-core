@@ -22,6 +22,8 @@ import scala.util.Try
 
 trait Service
 
+object Service
+
 trait HttpClient {
   def makeRequest(request: HttpRequest): Future[HttpResponse]
 }
@@ -117,7 +119,8 @@ object `package` {
       "X-Content-Type-Options",
       "Strict-Transport-Security",
       AuthProvider.SetAuthenticationTokenHeader,
-      AuthProvider.SetPermissionsTokenHeader
+      AuthProvider.SetPermissionsTokenHeader,
+      "Traceparent"
     )
 
   def allowOrigin(originHeader: Option[Origin]): `Access-Control-Allow-Origin` =

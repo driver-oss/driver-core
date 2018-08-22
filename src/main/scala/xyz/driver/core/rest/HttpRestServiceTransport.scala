@@ -10,7 +10,6 @@ import com.typesafe.scalalogging.Logger
 import org.slf4j.MDC
 import xyz.driver.core.Name
 import xyz.driver.core.rest.errors.{ExternalServiceException, ExternalServiceTimeoutException}
-import xyz.driver.core.time.provider.TimeProvider
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
@@ -20,8 +19,7 @@ class HttpRestServiceTransport(
     applicationVersion: String,
     actorSystem: ActorSystem,
     executionContext: ExecutionContext,
-    log: Logger,
-    time: TimeProvider)
+    log: Logger)
     extends ServiceTransport {
 
   protected implicit val execution: ExecutionContext = executionContext
@@ -30,7 +28,7 @@ class HttpRestServiceTransport(
 
   def sendRequestGetResponse(context: ServiceRequestContext)(requestStub: HttpRequest): Future[HttpResponse] = {
 
-    val requestTime = time.currentTime()
+    val requestTime = System.currentTimeMillis()
 
     val request = requestStub
       .withHeaders(context.contextHeaders.toSeq.map {
@@ -51,11 +49,11 @@ class HttpRestServiceTransport(
 
     response.onComplete {
       case Success(r) =>
-        val responseLatency = requestTime.durationTo(time.currentTime())
+        val responseLatency = System.currentTimeMillis() - requestTime
         log.debug(s"Response from ${request.uri} to request $requestStub is successful in $responseLatency ms: $r")
 
       case Failure(t: Throwable) =>
-        val responseLatency = requestTime.durationTo(time.currentTime())
+        val responseLatency = System.currentTimeMillis() - requestTime
         log.warn(s"Failed to receive response from ${request.method} ${request.uri} in $responseLatency ms", t)
     }(executionContext)
 

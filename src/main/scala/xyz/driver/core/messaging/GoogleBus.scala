@@ -2,7 +2,7 @@ package xyz.driver.core
 package messaging
 
 import java.nio.ByteBuffer
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.security.Signature
 import java.time.Instant
 import java.util
@@ -245,14 +245,23 @@ object GoogleBus {
     implicit val subscrptionPullFormat: RootJsonFormat[SubscriptionPull] = jsonFormat1(SubscriptionPull)
   }
 
+  def fromKeyfile(keyfile: Path, namespace: String)(
+      implicit executionContext: ExecutionContext,
+      backend: SttpBackend[Future, _]): GoogleBus = {
+    val creds = ServiceAccountCredentials.fromStream(Files.newInputStream(keyfile))
+    new GoogleBus(creds, namespace)
+  }
+
+  @deprecated(
+    "Reading from the environment adds opaque dependencies and hance leads to extra complexity. Use fromKeyfile instead.",
+    "driver-core 1.12.2")
   def fromEnv(implicit executionContext: ExecutionContext, backend: SttpBackend[Future, _]): GoogleBus = {
     def env(key: String) = {
       require(sys.env.contains(key), s"Environment variable $key is not set.")
       sys.env(key)
     }
     val keyfile = Paths.get(env("GOOGLE_APPLICATION_CREDENTIALS"))
-    val creds   = ServiceAccountCredentials.fromStream(Files.newInputStream(keyfile))
-    new GoogleBus(creds, env("SERVICE_NAMESPACE"))
+    fromKeyfile(keyfile, env("SERVICE_NAMESPACE"))
   }
 
 }

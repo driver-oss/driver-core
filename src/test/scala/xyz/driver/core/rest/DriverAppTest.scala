@@ -12,16 +12,16 @@ class DriverAppTest extends AsyncFlatSpec with ScalatestRouteTest with Matchers 
   val config = ConfigFactory.parseString("""
                                            |application {
                                            |   cors {
-                                           |     allowedMethods: ["GET", "PUT", "POST", "PATCH", "DELETE", "OPTIONS"]
-                                           |     allowedOrigins: [{scheme: https, hostSuffix: example.com}]
+                                           |     allowedOrigins: ["example.com"]
                                            |   }
                                            |}
                                          """.stripMargin).withFallback(ConfigFactory.load)
 
+  val origin         = Origin(HttpOrigin("https", Host("example.com")))
   val allowedOrigins = Set(HttpOrigin("https", Host("example.com")))
   val allowedMethods: collection.immutable.Seq[HttpMethod] = {
     import akka.http.scaladsl.model.HttpMethods._
-    collection.immutable.Seq(GET, PUT, POST, PATCH, DELETE, OPTIONS)
+    collection.immutable.Seq(GET, PUT, POST, PATCH, DELETE, OPTIONS, TRACE)
   }
 
   import scala.reflect.runtime.universe.typeOf
@@ -37,7 +37,7 @@ class DriverAppTest extends AsyncFlatSpec with ScalatestRouteTest with Matchers 
 
   it should "respond with the correct CORS headers for the swagger OPTIONS route" in {
     val route = new TestApp(get(complete(StatusCodes.OK)))
-    Options(s"/api-docs/swagger.json") ~> route.appRoute ~> check {
+    Options(s"/api-docs/swagger.json").withHeaders(origin) ~> route.appRoute ~> check {
       status shouldBe StatusCodes.OK
       headers should contain(`Access-Control-Allow-Origin`(HttpOriginRange(allowedOrigins.toSeq: _*)))
       header[`Access-Control-Allow-Methods`].get.methods should contain theSameElementsAs allowedMethods
@@ -46,19 +46,17 @@ class DriverAppTest extends AsyncFlatSpec with ScalatestRouteTest with Matchers 
 
   it should "respond with the correct CORS headers for the test route" in {
     val route = new TestApp(get(complete(StatusCodes.OK)))
-    Get(s"/api/v1/test") ~> route.appRoute ~> check {
+    Get(s"/api/v1/test").withHeaders(origin) ~> route.appRoute ~> check {
       status shouldBe StatusCodes.OK
       headers should contain(`Access-Control-Allow-Origin`(HttpOriginRange(allowedOrigins.toSeq: _*)))
-      header[`Access-Control-Allow-Methods`].get.methods should contain theSameElementsAs allowedMethods
     }
   }
 
   it should "respond with the correct CORS headers for a concatenated route" in {
     val route = new TestApp(get(complete(StatusCodes.OK)) ~ post(complete(StatusCodes.OK)))
-    Post(s"/api/v1/test") ~> route.appRoute ~> check {
+    Post(s"/api/v1/test").withHeaders(origin) ~> route.appRoute ~> check {
       status shouldBe StatusCodes.OK
       headers should contain(`Access-Control-Allow-Origin`(HttpOriginRange(allowedOrigins.toSeq: _*)))
-      header[`Access-Control-Allow-Methods`].get.methods should contain theSameElementsAs allowedMethods
     }
   }
 
@@ -68,7 +66,6 @@ class DriverAppTest extends AsyncFlatSpec with ScalatestRouteTest with Matchers 
       .withHeaders(Origin(HttpOrigin("https", Host("foo.example.com")))) ~> route.appRoute ~> check {
       status shouldBe StatusCodes.OK
       headers should contain(`Access-Control-Allow-Origin`(HttpOrigin("https", Host("foo.example.com"))))
-      header[`Access-Control-Allow-Methods`].get.methods should contain theSameElementsAs allowedMethods
     }
   }
 
@@ -77,8 +74,7 @@ class DriverAppTest extends AsyncFlatSpec with ScalatestRouteTest with Matchers 
     Get(s"/api/v1/test")
       .withHeaders(Origin(HttpOrigin("https", Host("invalid.foo.bar.com")))) ~> route.appRoute ~> check {
       status shouldBe StatusCodes.OK
-      headers should contain(`Access-Control-Allow-Origin`(HttpOriginRange(allowedOrigins.toSeq: _*)))
-      header[`Access-Control-Allow-Methods`].get.methods should contain theSameElementsAs allowedMethods
+      headers should contain(`Access-Control-Allow-Origin`(HttpOriginRange.*))
     }
   }
 

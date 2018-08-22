@@ -5,10 +5,6 @@ import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDate}
 import java.util.{TimeZone, UUID}
 
-import akka.http.scaladsl.marshalling.{Marshaller, Marshalling}
-import akka.http.scaladsl.model.Uri.Path
-import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
-import akka.http.scaladsl.server._
 import akka.http.scaladsl.unmarshalling.Unmarshaller
 import com.neovisionaries.i18n.{CountryCode, CurrencyCode}
 import enumeratum._
@@ -19,6 +15,7 @@ import spray.json._
 import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.date.{Date, DayOfWeek, Month}
 import xyz.driver.core.domain.{Email, PhoneNumber}
+import xyz.driver.core.rest.directives.{PathMatchers, Unmarshallers}
 import xyz.driver.core.rest.errors._
 import xyz.driver.core.time.{Time, TimeOfDay}
 
@@ -27,24 +24,8 @@ import scala.reflect.{ClassTag, classTag}
 import scala.util.Try
 import scala.util.control.NonFatal
 
-object json {
+object json extends PathMatchers with Unmarshallers {
   import DefaultJsonProtocol._
-
-  private def UuidInPath[T]: PathMatcher1[Id[T]] =
-    PathMatchers.JavaUUID.map((id: UUID) => Id[T](id.toString.toLowerCase))
-
-  def IdInPath[T]: PathMatcher1[Id[T]] = UuidInPath[T] | new PathMatcher1[Id[T]] {
-    def apply(path: Path) = path match {
-      case Path.Segment(segment, tail) => Matched(tail, Tuple1(Id[T](segment)))
-      case _                           => Unmatched
-    }
-  }
-
-  implicit def paramUnmarshaller[T](implicit reader: JsonReader[T]): Unmarshaller[String, T] =
-    Unmarshaller.firstOf(
-      Unmarshaller.strict((JsString(_: String)) andThen reader.read),
-      stringToValueUnmarshaller[T]
-    )
 
   implicit def idFormat[T]: RootJsonFormat[Id[T]] = new RootJsonFormat[Id[T]] {
     def write(id: Id[T]) = JsString(id.value)
@@ -67,13 +48,6 @@ object json {
       override def read(json: JsValue): F @@ T = transformReadValue(underlying.read(json))
     }
 
-  def NameInPath[T]: PathMatcher1[Name[T]] = new PathMatcher1[Name[T]] {
-    def apply(path: Path) = path match {
-      case Path.Segment(segment, tail) => Matched(tail, Tuple1(Name[T](segment)))
-      case _                           => Unmatched
-    }
-  }
-
   implicit def nameFormat[T] = new RootJsonFormat[Name[T]] {
     def write(name: Name[T]) = JsString(name.value)
 
@@ -82,26 +56,6 @@ object json {
       case _              => throw DeserializationException("Name expects string")
     }
   }
-
-  def TimeInPath: PathMatcher1[Time] = InstantInPath.map(instant => Time(instant.toEpochMilli))
-
-  private def timestampInPath: PathMatcher1[Long] =
-    PathMatcher("""[+-]?\d*""".r) flatMap { string =>
-      try Some(string.toLong)
-      catch { case _: IllegalArgumentException => None }
-    }
-
-  def InstantInPath: PathMatcher1[Instant] =
-    new PathMatcher1[Instant] {
-      def apply(path: Path): PathMatcher.Matching[Tuple1[Instant]] = path match {
-        case Path.Segment(head, tail) =>
-          try Matched(tail, Tuple1(Instant.parse(head)))
-          catch {
-            case NonFatal(_) => Unmatched
-          }
-        case _ => Unmatched
-      }
-    } | timestampInPath.map(Instant.ofEpochMilli)
 
   implicit val timeFormat: RootJsonFormat[Time] = new RootJsonFormat[Time] {
     def write(time: Time) = JsObject("timestamp" -> JsNumber(time.millis))
@@ -193,14 +147,6 @@ object json {
       case _                                            => throw DeserializationException("Expected a number from 0 to 11")
     }
   }
-
-  def RevisionInPath[T]: PathMatcher1[Revision[T]] =
-    PathMatcher("""[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}""".r) flatMap { string =>
-      Some(Revision[T](string))
-    }
-
-  implicit def revisionFromStringUnmarshaller[T]: Unmarshaller[String, Revision[T]] =
-    Unmarshaller.strict[String, Revision[T]](Revision[T])
 
   implicit def revisionFormat[T]: RootJsonFormat[Revision[T]] = new RootJsonFormat[Revision[T]] {
     def write(revision: Revision[T]) = JsString(revision.id.toString)
@@ -413,17 +359,6 @@ object json {
       }
     }
 
-  def NonEmptyNameInPath[T]: PathMatcher1[NonEmptyName[T]] = new PathMatcher1[NonEmptyName[T]] {
-    def apply(path: Path) = path match {
-      case Path.Segment(segment, tail) =>
-        refineV[NonEmpty](segment) match {
-          case Left(_)               => Unmatched
-          case Right(nonEmptyString) => Matched(tail, Tuple1(NonEmptyName[T](nonEmptyString)))
-        }
-      case _ => Unmatched
-    }
-  }
-
   implicit def nonEmptyNameFormat[T](implicit nonEmptyStringFormat: JsonFormat[Refined[String, NonEmpty]]) =
     new RootJsonFormat[NonEmptyName[T]] {
       def write(name: NonEmptyName[T]) = JsString(name.value.value)
@@ -452,15 +387,4 @@ object json {
       case "DatabaseException"               => jsonFormat(DatabaseException, "message")
     }
 
-  val jsValueToStringMarshaller: Marshaller[JsValue, String] =
-    Marshaller.strict[JsValue, String](value => Marshalling.Opaque[String](() => value.compactPrint))
-
-  def valueToStringMarshaller[T](implicit jsonFormat: JsonWriter[T]): Marshaller[T, String] =
-    jsValueToStringMarshaller.compose[T](jsonFormat.write)
-
-  val stringToJsValueUnmarshaller: Unmarshaller[String, JsValue] =
-    Unmarshaller.strict[String, JsValue](value => value.parseJson)
-
-  def stringToValueUnmarshaller[T](implicit jsonFormat: JsonReader[T]): Unmarshaller[String, T] =
-    stringToJsValueUnmarshaller.map[T](jsonFormat.read)
 }

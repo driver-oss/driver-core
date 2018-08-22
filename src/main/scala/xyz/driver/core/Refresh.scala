@@ -9,7 +9,8 @@ import scala.concurrent.duration.Duration
 /** A single-value asynchronous cache with TTL.
   *
   * Slightly adapted from
-  * [[https://github.com/twitter/util/blob/ae0ab09134414438af9dfaa88a4613cecbff4741/util-cache/src/main/scala/com/twitter/cache/Refresh.scala Twitter's "util" library]]
+  * [[https://github.com/twitter/util/blob/ae0ab09134414438af9dfaa88a4613cecbff4741/util-cache/src/main/scala/com/twitter/cache/Refresh.scala
+  * Twitter's "util" library]]
   *
   * Released under the Apache License 2.0.
   */

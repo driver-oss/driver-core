@@ -6,6 +6,7 @@ import slick.lifted.{AbstractTable, CanBeQueryCondition, RunnableCompiled}
 import slick.{lifted => sl}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.higherKinds
 
 trait Repository {
   type T[D]

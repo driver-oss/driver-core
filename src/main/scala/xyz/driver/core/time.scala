@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit
 import xyz.driver.core.date.Month
 
 import scala.concurrent.duration._
+import scala.language.implicitConversions
 import scala.util.Try
 
 object time {

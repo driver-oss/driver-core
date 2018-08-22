@@ -15,6 +15,7 @@ import xyz.driver.tracing.{GoogleTracer, NoTracer, Tracer}
 
 import scala.concurrent.ExecutionContext
 import scala.util.Try
+import scala.language.reflectiveCalls
 
 object init {
 

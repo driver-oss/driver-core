@@ -41,6 +41,16 @@ object time {
       cal.setTimeInMillis(millis)
       date.Date(cal.get(Calendar.YEAR), date.Month(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
     }
+
+    def toInstant: Instant = Instant.ofEpochMilli(millis)
+  }
+
+  object Time {
+    implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
+
+    implicit def timeToInstant(time: Time): Instant = time.toInstant
+
+    implicit def instantToTime(instant: Instant): Time = Time(instant.toEpochMilli)
   }
 
   /**
@@ -128,11 +138,6 @@ object time {
     }
   }
 
-  object Time {
-
-    implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
-  }
-
   final case class TimeRange(start: Time, end: Time) {
     def duration: Duration = FiniteDuration(end.millis - start.millis, MILLISECONDS)
   }
@@ -150,6 +155,16 @@ object time {
   def textualTime(timezone: TimeZone)(time: Time): String =
     make(new SimpleDateFormat("MMM dd, yyyy hh:mm:ss a"))(_.setTimeZone(timezone)).format(new Date(time.millis))
 
+  class ChangeableClock(@volatile var instant: Instant, val zone: ZoneId = ZoneOffset.UTC) extends Clock {
+
+    def tick(duration: FiniteDuration): Unit =
+      instant = instant.plusNanos(duration.toNanos)
+
+    val getZone: ZoneId = zone
+
+    def withZone(zone: ZoneId): Clock = new ChangeableClock(instant, zone = zone)
+  }
+
   object provider {
 
     /**
@@ -160,27 +175,27 @@ object time {
       * All the calls to receive current time must be made using time
       * provider injected to the caller.
       */
+    @deprecated("Use java.time.Clock instead", "0.13.0")
     trait TimeProvider {
       def currentTime(): Time
+    }
+
+    final implicit class ClockTimeProvider(clock: Clock) extends TimeProvider {
+      def currentTime(): Time = Time(clock.instant().toEpochMilli)
     }
 
     final class SystemTimeProvider extends TimeProvider {
       def currentTime() = Time(System.currentTimeMillis())
     }
+
     final val SystemTimeProvider = new SystemTimeProvider
 
     final class SpecificTimeProvider(time: Time) extends TimeProvider {
+
+      def this(instant: Instant) = this(Time.instantToTime(instant))
+
       def currentTime() = time
     }
 
-    class ChangeableClock(@volatile var instant: Instant, val zone: ZoneId = ZoneOffset.UTC) extends Clock {
-
-      def tick(duration: FiniteDuration): Unit =
-        instant = instant.plusNanos(duration.toNanos)
-
-      val getZone: ZoneId = zone
-
-      def withZone(zone: ZoneId): Clock = new ChangeableClock(instant, zone = zone)
-    }
   }
 }

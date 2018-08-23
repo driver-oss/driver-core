@@ -163,6 +163,15 @@ object time {
     val getZone: ZoneId = zone
 
     def withZone(zone: ZoneId): Clock = new ChangeableClock(instant, zone = zone)
+
+    override def equals(obj: Any): Boolean = obj match {
+      case other: ChangeableClock => instant == other.instant && zone == other.zone
+      case _                      => false
+    }
+
+    override def hashCode: Int = instant.hashCode ^ zone.hashCode
+
+    override def toString: String = "ChangeableClock(" + instant + "," + zone + ")"
   }
 
   object provider {

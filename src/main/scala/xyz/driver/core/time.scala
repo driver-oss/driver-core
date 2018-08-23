@@ -178,14 +178,19 @@ object time {
     @deprecated("Use java.time.Clock instead", "0.13.0")
     trait TimeProvider {
       def currentTime(): Time
+      def toClock: Clock
     }
 
     final implicit class ClockTimeProvider(clock: Clock) extends TimeProvider {
       def currentTime(): Time = Time(clock.instant().toEpochMilli)
+
+      val toClock: Clock = clock
     }
 
     final class SystemTimeProvider extends TimeProvider {
       def currentTime() = Time(System.currentTimeMillis())
+
+      lazy val toClock: Clock = Clock.systemUTC()
     }
 
     final val SystemTimeProvider = new SystemTimeProvider
@@ -194,7 +199,9 @@ object time {
 
       def this(instant: Instant) = this(Time.instantToTime(instant))
 
-      def currentTime() = time
+      def currentTime(): Time = time
+
+      lazy val toClock: Clock = Clock.fixed(time, ZoneOffset.UTC)
     }
 
   }

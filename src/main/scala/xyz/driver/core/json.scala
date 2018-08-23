@@ -86,9 +86,7 @@ object json {
   private def timestampInPath: PathMatcher1[Long] =
     PathMatcher("""[+-]?\d*""".r) flatMap { string =>
       try Some(string.toLong)
-      catch {
-        case _: IllegalArgumentException => None
-      }
+      catch { case _: IllegalArgumentException => None }
     }
 
   def InstantInPath: PathMatcher1[Instant] =
@@ -129,13 +127,13 @@ object json {
             case JsNumber(millis) => Some(Instant.ofEpochMilli(millis.longValue()))
             case _                => None
           }
-          .getOrElse(throw DeserializationException("Time expects number"))
+          .getOrElse(deserializationError(s"Instant expects ISO timestamp but got ${value.compactPrint}"))
       case JsNumber(millis)                             => Instant.ofEpochMilli(millis.longValue())
       case JsString(str) if NumberUtils.isParsable(str) => Instant.ofEpochMilli(str.toLong)
       case JsString(str) =>
         try Instant.parse(str)
-        catch { case NonFatal(_) => deserializationError("Instant expects timestamp string") }
-      case _ => deserializationError("Instant expects timestamp string")
+        catch { case NonFatal(_) => deserializationError(s"Instant expects ISO timestamp but got $str") }
+      case _ => deserializationError(s"Instant expects ISO timestamp but got ${value.compactPrint}")
     }
   }
 

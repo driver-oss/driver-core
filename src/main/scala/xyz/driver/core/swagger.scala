@@ -69,24 +69,27 @@ object swagger {
         chain: util.Iterator[ModelConverter]): Property = {
       val javaType = Json.mapper().constructType(`type`)
 
-      Option(javaType.getRawClass) flatMap { cls =>
-        customProperties.get(cls)
-      } orElse {
-        `type` match {
-          case rt: ReferenceType if isOption(javaType.getRawClass) && chain.hasNext =>
-            val nextType = rt.getContentType
-            val nextResolved = Option(resolveProperty(nextType, context, annotations, chain)).getOrElse(
-              chain.next().resolveProperty(nextType, context, annotations, chain))
-            nextResolved.setRequired(false)
-            Option(nextResolved)
-          case t if chain.hasNext =>
-            val nextResolved = chain.next().resolveProperty(t, context, annotations, chain)
-            nextResolved.setRequired(true)
-            Option(nextResolved)
-          case _ =>
-            Option.empty[Property]
+      Option(javaType.getRawClass)
+        .flatMap { cls =>
+          customProperties.get(cls)
         }
-      } orNull
+        .orElse {
+          `type` match {
+            case rt: ReferenceType if isOption(javaType.getRawClass) && chain.hasNext =>
+              val nextType = rt.getContentType
+              val nextResolved = Option(resolveProperty(nextType, context, annotations, chain)).getOrElse(
+                chain.next().resolveProperty(nextType, context, annotations, chain))
+              nextResolved.setRequired(false)
+              Option(nextResolved)
+            case t if chain.hasNext =>
+              val nextResolved = chain.next().resolveProperty(t, context, annotations, chain)
+              nextResolved.setRequired(true)
+              Option(nextResolved)
+            case _ =>
+              Option.empty[Property]
+          }
+        }
+        .orNull
     }
 
     @SuppressWarnings(Array("org.wartremover.warts.Null"))

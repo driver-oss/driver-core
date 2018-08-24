@@ -2,6 +2,7 @@ package xyz.driver.core
 package messaging
 
 import scala.concurrent._
+import scala.language.higherKinds
 
 /** Base trait for representing message buses.
   *

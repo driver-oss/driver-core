@@ -7,9 +7,12 @@ import xyz.driver.core.rest.errors.ExternalServiceException
 
 import scala.concurrent.{ExecutionContext, Future}
 
-package object core {
+// TODO: this package seems too complex, look at all the features we need!
+import scala.language.reflectiveCalls
+import scala.language.higherKinds
+import scala.language.implicitConversions
 
-  import scala.language.reflectiveCalls
+package object core {
 
   def make[T](v: => T)(f: T => Unit): T = {
     val value = v

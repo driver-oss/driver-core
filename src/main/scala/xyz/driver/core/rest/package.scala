@@ -191,18 +191,21 @@ object `package` {
     request.headers.find(_.name == ContextHeaders.StacktraceHeader).fold("")(_.value()).split("->")
 
   def extractContextHeaders(request: HttpRequest): Map[String, String] = {
-    request.headers.filter { h =>
-      h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader ||
-      h.name === ContextHeaders.PermissionsTokenHeader || h.name === ContextHeaders.StacktraceHeader ||
-      h.name === ContextHeaders.TraceHeaderName || h.name === ContextHeaders.SpanHeaderName ||
-      h.name === ContextHeaders.OriginatingIpHeader || h.name === ContextHeaders.ClientFingerprintHeader
-    } map { header =>
-      if (header.name === ContextHeaders.AuthenticationTokenHeader) {
-        header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim
-      } else {
-        header.name -> header.value
+    request.headers
+      .filter { h =>
+        h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader ||
+        h.name === ContextHeaders.PermissionsTokenHeader || h.name === ContextHeaders.StacktraceHeader ||
+        h.name === ContextHeaders.TraceHeaderName || h.name === ContextHeaders.SpanHeaderName ||
+        h.name === ContextHeaders.OriginatingIpHeader || h.name === ContextHeaders.ClientFingerprintHeader
       }
-    } toMap
+      .map { header =>
+        if (header.name === ContextHeaders.AuthenticationTokenHeader) {
+          header.name -> header.value.stripPrefix(ContextHeaders.AuthenticationHeaderPrefix).trim
+        } else {
+          header.name -> header.value
+        }
+      }
+      .toMap
   }
 
   private[rest] def escapeScriptTags(byteString: ByteString): ByteString = {

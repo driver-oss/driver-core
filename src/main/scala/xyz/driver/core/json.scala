@@ -15,7 +15,6 @@ import enumeratum._
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.refineV
-import org.apache.commons.lang3.math.NumberUtils
 import spray.json._
 import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.date.{Date, DayOfWeek, Month}
@@ -101,24 +100,15 @@ object json {
       }
     } | timestampInPath.map(Instant.ofEpochMilli)
 
-  implicit val timeFormat = new RootJsonFormat[Time] {
+  implicit val timeFormat: RootJsonFormat[Time] = new RootJsonFormat[Time] {
     def write(time: Time) = JsObject("timestamp" -> JsNumber(time.millis))
 
-    def read(value: JsValue): Time = value match {
-      case JsObject(fields) =>
-        fields
-          .get("timestamp")
-          .flatMap {
-            case JsNumber(millis) => Some(Time(millis.toLong))
-            case _                => None
-          }
-          .getOrElse(throw DeserializationException("Time expects number"))
-      case _ => throw DeserializationException("Time expects number")
-    }
+    def read(value: JsValue): Time = Time(instantFormat.read(value))
   }
 
-  implicit val instantFormat = new JsonFormat[Instant] {
+  implicit val instantFormat: JsonFormat[Instant] = new JsonFormat[Instant] {
     def write(instant: Instant): JsValue = JsString(instant.toString)
+
     def read(value: JsValue): Instant = value match {
       case JsObject(fields) =>
         fields
@@ -128,8 +118,7 @@ object json {
             case _                => None
           }
           .getOrElse(deserializationError(s"Instant expects ISO timestamp but got ${value.compactPrint}"))
-      case JsNumber(millis)                             => Instant.ofEpochMilli(millis.longValue())
-      case JsString(str) if NumberUtils.isParsable(str) => Instant.ofEpochMilli(str.toLong)
+      case JsNumber(millis) => Instant.ofEpochMilli(millis.longValue())
       case JsString(str) =>
         try Instant.parse(str)
         catch { case NonFatal(_) => deserializationError(s"Instant expects ISO timestamp but got $str") }

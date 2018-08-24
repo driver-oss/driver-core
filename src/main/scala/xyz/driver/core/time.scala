@@ -48,9 +48,7 @@ object time {
   object Time {
     implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
 
-    implicit def timeToInstant(time: Time): Instant = time.toInstant
-
-    implicit def instantToTime(instant: Instant): Time = Time(instant.toEpochMilli)
+    implicit def apply(instant: Instant): Time = Time(instant.toEpochMilli)
   }
 
   /**
@@ -177,7 +175,9 @@ object time {
       * All the calls to receive current time must be made using time
       * provider injected to the caller.
       */
-    @deprecated("Use java.time.Clock instead", "0.13.0")
+    @deprecated(
+      "Use java.time.Clock instead. Note that xyz.driver.core.Time and xyz.driver.core.date.Date will also be deprecated soon!",
+      "0.13.0")
     trait TimeProvider {
       def currentTime(): Time
       def toClock: Clock
@@ -199,11 +199,9 @@ object time {
 
     final class SpecificTimeProvider(time: Time) extends TimeProvider {
 
-      def this(instant: Instant) = this(Time.instantToTime(instant))
-
       def currentTime(): Time = time
 
-      lazy val toClock: Clock = Clock.fixed(time, ZoneOffset.UTC)
+      lazy val toClock: Clock = Clock.fixed(time.toInstant, ZoneOffset.UTC)
     }
 
   }

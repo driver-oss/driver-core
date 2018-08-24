@@ -19,8 +19,8 @@ import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.json._
 import xyz.driver.core.json.enumeratum.HasJsonFormat
 import xyz.driver.core.tagging.Taggable
-import xyz.driver.core.time.TimeOfDay
 import xyz.driver.core.time.provider.SystemTimeProvider
+import xyz.driver.core.time.{Time, TimeOfDay}
 
 import scala.collection.immutable.IndexedSeq
 
@@ -94,6 +94,18 @@ class JsonTest extends WordSpec with Matchers with Inspectors {
       val parsedTime = json.timeFormat.read(writtenJson)
       parsedTime should be(referenceTime)
     }
+
+    "read from inputs compatible with Instant" in {
+      val referenceTime = new SystemTimeProvider().currentTime()
+
+      val jsons = Seq(
+        JsNumber(referenceTime.millis),
+        JsString(Instant.ofEpochMilli(referenceTime.millis).toString))
+
+      forAll(jsons) { json =>
+        json.convertTo[Time] shouldBe referenceTime
+      }
+    }
   }
 
   "Json format for TimeOfDay" should {
@@ -128,10 +140,6 @@ class JsonTest extends WordSpec with Matchers with Inspectors {
 
     "read correct JSON when value is an epoch milli number" in {
       JsNumber(instant.toEpochMilli).convertTo[Instant] shouldBe instant
-    }
-
-    "read correct JSON when value is an epoch milli string" in {
-      JsString(instant.toEpochMilli.toString).convertTo[Instant] shouldBe instant
     }
 
     "read correct JSON when value is an ISO timestamp string" in {

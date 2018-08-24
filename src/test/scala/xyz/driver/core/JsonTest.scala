@@ -98,9 +98,7 @@ class JsonTest extends WordSpec with Matchers with Inspectors {
     "read from inputs compatible with Instant" in {
       val referenceTime = new SystemTimeProvider().currentTime()
 
-      val jsons = Seq(
-        JsNumber(referenceTime.millis),
-        JsString(Instant.ofEpochMilli(referenceTime.millis).toString))
+      val jsons = Seq(JsNumber(referenceTime.millis), JsString(Instant.ofEpochMilli(referenceTime.millis).toString))
 
       forAll(jsons) { json =>
         json.convertTo[Time] shouldBe referenceTime

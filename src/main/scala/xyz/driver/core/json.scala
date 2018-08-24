@@ -1,6 +1,8 @@
 package xyz.driver.core
 
 import java.net.InetAddress
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDate}
 import java.util.{TimeZone, UUID}
 
 import akka.http.scaladsl.marshalling.{Marshaller, Marshalling}
@@ -23,6 +25,7 @@ import xyz.driver.core.time.{Time, TimeOfDay}
 import scala.reflect.{ClassTag, classTag}
 import scala.reflect.runtime.universe._
 import scala.util.Try
+import scala.util.control.NonFatal
 
 object json {
   import DefaultJsonProtocol._
@@ -77,25 +80,49 @@ object json {
     }
   }
 
-  def TimeInPath: PathMatcher1[Time] =
+  def TimeInPath: PathMatcher1[Time] = InstantInPath.map(instant => Time(instant.toEpochMilli))
+
+  private def timestampInPath: PathMatcher1[Long] =
     PathMatcher("""[+-]?\d*""".r) flatMap { string =>
-      try Some(Time(string.toLong))
+      try Some(string.toLong)
       catch { case _: IllegalArgumentException => None }
     }
 
-  implicit val timeFormat = new RootJsonFormat[Time] {
+  def InstantInPath: PathMatcher1[Instant] =
+    new PathMatcher1[Instant] {
+      def apply(path: Path): PathMatcher.Matching[Tuple1[Instant]] = path match {
+        case Path.Segment(head, tail) =>
+          try Matched(tail, Tuple1(Instant.parse(head)))
+          catch {
+            case NonFatal(_) => Unmatched
+          }
+        case _ => Unmatched
+      }
+    } | timestampInPath.map(Instant.ofEpochMilli)
+
+  implicit val timeFormat: RootJsonFormat[Time] = new RootJsonFormat[Time] {
     def write(time: Time) = JsObject("timestamp" -> JsNumber(time.millis))
 
-    def read(value: JsValue): Time = value match {
+    def read(value: JsValue): Time = Time(instantFormat.read(value))
+  }
+
+  implicit val instantFormat: JsonFormat[Instant] = new JsonFormat[Instant] {
+    def write(instant: Instant): JsValue = JsString(instant.toString)
+
+    def read(value: JsValue): Instant = value match {
       case JsObject(fields) =>
         fields
           .get("timestamp")
           .flatMap {
-            case JsNumber(millis) => Some(Time(millis.toLong))
+            case JsNumber(millis) => Some(Instant.ofEpochMilli(millis.longValue()))
             case _                => None
           }
-          .getOrElse(throw DeserializationException("Time expects number"))
-      case _ => throw DeserializationException("Time expects number")
+          .getOrElse(deserializationError(s"Instant expects ISO timestamp but got ${value.compactPrint}"))
+      case JsNumber(millis) => Instant.ofEpochMilli(millis.longValue())
+      case JsString(str) =>
+        try Instant.parse(str)
+        catch { case NonFatal(_) => deserializationError(s"Instant expects ISO timestamp but got $str") }
+      case _ => deserializationError(s"Instant expects ISO timestamp but got ${value.compactPrint}")
     }
   }
 
@@ -137,6 +164,22 @@ object json {
           .getOrElse(
             throw DeserializationException(s"Misformated ISO 8601 Date. Expected YYYY-MM-DD, but got $dateString."))
       case _ => throw DeserializationException(s"Date expects a string, but got $value.")
+    }
+  }
+
+  implicit val localDateFormat = new RootJsonFormat[LocalDate] {
+    val format = DateTimeFormatter.ISO_LOCAL_DATE
+
+    def write(date: LocalDate): JsValue = JsString(date.format(format))
+    def read(value: JsValue): LocalDate = value match {
+      case JsString(dateString) =>
+        try LocalDate.parse(dateString, format)
+        catch {
+          case NonFatal(_) =>
+            throw deserializationError(s"Malformed ISO 8601 Date. Expected YYYY-MM-DD, but got $dateString.")
+        }
+      case _ =>
+        throw deserializationError(s"Malformed ISO 8601 Date. Expected YYYY-MM-DD, but got ${value.compactPrint}.")
     }
   }
 

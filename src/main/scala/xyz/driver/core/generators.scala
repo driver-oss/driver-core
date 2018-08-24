@@ -2,6 +2,7 @@ package xyz.driver.core
 
 import enumeratum._
 import java.math.MathContext
+import java.time.{Instant, LocalDate, ZoneOffset}
 import java.util.UUID
 
 import xyz.driver.core.time.{Time, TimeOfDay, TimeRange}
@@ -88,7 +89,9 @@ object generators {
 
   def nextTriad[F, S, T](first: => F, second: => S, third: => T): (F, S, T) = (first, second, third)
 
-  def nextTime(): Time = Time(math.abs(nextLong() % System.currentTimeMillis))
+  def nextInstant(): Instant = Instant.ofEpochMilli(math.abs(nextLong() % System.currentTimeMillis))
+
+  def nextTime(): Time = nextInstant()
 
   def nextTimeOfDay: TimeOfDay = TimeOfDay(java.time.LocalTime.MIN.plusSeconds(nextLong), java.util.TimeZone.getDefault)
 
@@ -102,6 +105,8 @@ object generators {
   }
 
   def nextDate(): Date = nextTime().toDate(java.util.TimeZone.getTimeZone("UTC"))
+
+  def nextLocalDate(): LocalDate = nextInstant().atZone(ZoneOffset.UTC).toLocalDate
 
   def nextDayOfWeek(): DayOfWeek = oneOf(DayOfWeek.All)
 

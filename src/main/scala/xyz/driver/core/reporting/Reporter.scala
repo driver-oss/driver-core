@@ -66,7 +66,7 @@ trait Reporter {
     *
     * $rootWarning
     */
-  def traceRoot[A](name: String, tags: Map[String, String])(op: SpanContext => A): A =
+  def traceRoot[A](name: String, tags: Map[String, String] = Map.empty)(op: SpanContext => A): A =
     traceWithOptionalParent(
       name,
       tags,
@@ -79,7 +79,7 @@ trait Reporter {
     *
     * @see traceRoot
     */
-  def traceRootAsync[A](name: String, tags: Map[String, String])(op: SpanContext => Future[A]): Future[A] =
+  def traceRootAsync[A](name: String, tags: Map[String, String] = Map.empty)(op: SpanContext => Future[A]): Future[A] =
     traceWithOptionalParentAsync(
       name,
       tags,
@@ -102,7 +102,7 @@ trait Reporter {
     * @tparam A Return type of the operation.
     * @return The value of the child operation.
     */
-  def trace[A](name: String, tags: Map[String, String], relation: CausalRelation = CausalRelation.Child)(
+  def trace[A](name: String, tags: Map[String, String] = Map.empty, relation: CausalRelation = CausalRelation.Child)(
       op: /* implicit (gotta wait for Scala 3) */ SpanContext => A)(implicit ctx: SpanContext): A =
     traceWithOptionalParent(
       name,
@@ -117,7 +117,10 @@ trait Reporter {
     *
     * @see trace
     */
-  def traceAsync[A](name: String, tags: Map[String, String], relation: CausalRelation = CausalRelation.Child)(
+  def traceAsync[A](
+      name: String,
+      tags: Map[String, String] = Map.empty,
+      relation: CausalRelation = CausalRelation.Child)(
       op: /* implicit (gotta wait for Scala 3) */ SpanContext => Future[A])(implicit ctx: SpanContext): Future[A] =
     traceWithOptionalParentAsync(
       name,

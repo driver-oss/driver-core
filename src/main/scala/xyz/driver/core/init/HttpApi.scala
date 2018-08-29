@@ -60,18 +60,21 @@ trait HttpApi extends CloudServices with Directives with SprayJsonSupport { self
     val tags = Map(
       "service_name"    -> name,
       "service_version" -> version.getOrElse("<unknown>"),
-      "http_user_agent" -> ctx.request.header[`User-Agent`].map(_.value).getOrElse("<unknown>"),
+      "http_path"       -> ctx.request.uri.path.toString,
+      "http_method"     -> ctx.request.method.value.toString,
       "http_uri"        -> ctx.request.uri.toString,
-      "http_path"       -> ctx.request.uri.path.toString
+      "http_user_agent" -> ctx.request.header[`User-Agent`].map(_.value).getOrElse("<unknown>")
     )
     val parent = ctx.request.header[Traceparent].map { p =>
       SpanContext(p.traceId, p.spanId) -> CausalRelation.Child
     }
-    reporter.traceWithOptionalParentAsync("handle_service_request", tags, parent) { sctx =>
-      val header     = Traceparent(sctx.traceId, sctx.spanId)
-      val withHeader = ctx.withRequest(ctx.request.withHeaders(header))
-      inner(withHeader)
-    }
+    reporter
+      .traceWithOptionalParentAsync(s"${ctx.request.method.value.toLowerCase}_${ctx.request.uri.path}", tags, parent) {
+        sctx =>
+          val header     = Traceparent(sctx.traceId, sctx.spanId)
+          val withHeader = ctx.withRequest(ctx.request.withHeaders(header))
+          inner(withHeader)
+      }
   }
 
   /** Extended route. */

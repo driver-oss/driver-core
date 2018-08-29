@@ -111,7 +111,7 @@ class GoogleReporter(
       parentSpanId: Option[String],
       displayName: String,
       attributes: Map[String, String]) = Span(
-    s"project/${credentials.getProjectId}/traces/$traceId/spans/$spanId",
+    s"projects/${credentials.getProjectId}/traces/$traceId/spans/$spanId",
     spanId,
     parentSpanId,
     TruncatableString(displayName),
@@ -125,7 +125,7 @@ class GoogleReporter(
       tags: Map[String, String],
       parent: Option[(SpanContext, CausalRelation)])(operation: SpanContext => A): A = {
     val child = parent match {
-      case Some((p, _)) => SpanContext(p.traceId, f"${Random.nextLong()}%02x")
+      case Some((p, _)) => SpanContext(p.traceId, f"${Random.nextLong()}%016x")
       case None         => SpanContext.fresh()
     }
     val span   = startSpan(child.traceId, child.spanId, parent.map(_._1.spanId), operationName, tags)
@@ -140,7 +140,7 @@ class GoogleReporter(
       tags: Map[String, String],
       parent: Option[(SpanContext, CausalRelation)])(operation: SpanContext => Future[A]): Future[A] = {
     val child = parent match {
-      case Some((p, _)) => SpanContext(p.traceId, f"${Random.nextLong()}%02x")
+      case Some((p, _)) => SpanContext(p.traceId, f"${Random.nextLong()}%016x")
       case None         => SpanContext.fresh()
     }
     val span   = startSpan(child.traceId, child.spanId, parent.map(_._1.spanId), operationName, tags)

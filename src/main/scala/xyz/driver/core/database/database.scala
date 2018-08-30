@@ -11,6 +11,7 @@ import com.typesafe.config.Config
 package database {
 
   import java.sql.SQLDataException
+  import java.time.{Instant, LocalDate}
 
   import eu.timepit.refined.api.{Refined, Validate}
   import eu.timepit.refined.refineV
@@ -56,13 +57,18 @@ package database {
   trait DateColumnTypes extends ColumnTypes {
     import profile.api._
     implicit def `xyz.driver.core.time.Date.columnType`: BaseColumnType[Date]
+    implicit def `java.time.LocalDate.columnType`: BaseColumnType[LocalDate]
   }
 
   object DateColumnTypes {
     trait SqlDate extends DateColumnTypes {
       import profile.api._
+
       override implicit def `xyz.driver.core.time.Date.columnType`: BaseColumnType[Date] =
         MappedColumnType.base[Date, java.sql.Date](dateToSqlDate, sqlDateToDate)
+
+      override implicit def `java.time.LocalDate.columnType`: BaseColumnType[LocalDate] =
+        MappedColumnType.base[LocalDate, java.sql.Date](java.sql.Date.valueOf, _.toLocalDate)
     }
   }
 
@@ -123,6 +129,7 @@ package database {
   trait TimestampColumnTypes extends ColumnTypes {
     import profile.api._
     implicit def `xyz.driver.core.time.Time.columnType`: BaseColumnType[Time]
+    implicit def `java.time.Instant.columnType`: BaseColumnType[Instant]
   }
 
   object TimestampColumnTypes {
@@ -133,13 +140,19 @@ package database {
         MappedColumnType.base[Time, java.sql.Timestamp](
           time => new java.sql.Timestamp(time.millis),
           timestamp => Time(timestamp.getTime))
+
+      override implicit def `java.time.Instant.columnType`: BaseColumnType[Instant] =
+        MappedColumnType.base[Instant, java.sql.Timestamp](java.sql.Timestamp.from, _.toInstant)
     }
 
     trait PrimitiveTimestamp extends TimestampColumnTypes {
       import profile.api._
 
       override implicit def `xyz.driver.core.time.Time.columnType`: BaseColumnType[Time] =
-        MappedColumnType.base[Time, Long](_.millis, Time(_))
+        MappedColumnType.base[Time, Long](_.millis, Time.apply)
+
+      override implicit def `java.time.Instant.columnType`: BaseColumnType[Instant] =
+        MappedColumnType.base[Instant, Long](_.toEpochMilli, Instant.ofEpochMilli)
     }
   }
 

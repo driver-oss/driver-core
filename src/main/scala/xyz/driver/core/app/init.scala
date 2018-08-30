@@ -10,6 +10,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import xyz.driver.core.logging.MdcExecutionContext
+import xyz.driver.core.reporting.{NoTraceReporter, ScalaLoggerLike}
 import xyz.driver.core.time.provider.TimeProvider
 import xyz.driver.tracing.{GoogleTracer, NoTracer, Tracer}
 
@@ -25,7 +26,7 @@ object init {
     val gitHeadCommit: scala.Option[String]
   }
 
-  case class ApplicationContext(config: Config, clock: Clock, log: Logger) {
+  case class ApplicationContext(config: Config, clock: Clock, reporter: ScalaLoggerLike) {
     val time: TimeProvider = clock
   }
 
@@ -63,7 +64,7 @@ object init {
         serviceAccountFile = serviceAccountKeyFile
       )(actorSystem, materializer)
     } else {
-      applicationContext.log.warn(s"Tracing file $serviceAccountKeyFile was not found, using NoTracer!")
+      applicationContext.reporter.logger.warn(s"Tracing file $serviceAccountKeyFile was not found, using NoTracer!")
       NoTracer
     }
   }
@@ -89,7 +90,7 @@ object init {
     ApplicationContext(
       config = getEnvironmentSpecificConfig(),
       clock = Clock.systemUTC(),
-      log = Logger(LoggerFactory.getLogger(classOf[DriverApp])))
+      new NoTraceReporter(Logger(LoggerFactory.getLogger(classOf[DriverApp]))))
 
   def createDefaultApplication(
       modules: Seq[Module],
@@ -107,7 +108,7 @@ object init {
       buildInfo.gitHeadCommit.getOrElse("None"),
       modules = modules,
       context.time,
-      context.log,
+      context.reporter,
       context.config,
       interface = "0.0.0.0",
       baseUrl,

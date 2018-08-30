@@ -15,6 +15,7 @@ import scalaz.Scalaz.{intInstance, stringInstance}
 import scalaz.syntax.equal._
 import scalaz.{Functor, OptionT}
 import xyz.driver.core.rest.auth.AuthProvider
+import xyz.driver.core.rest.headers.Traceparent
 import xyz.driver.tracing.TracingDirectives
 
 import scala.concurrent.Future
@@ -199,7 +200,8 @@ object `package` {
         h.name === ContextHeaders.AuthenticationTokenHeader || h.name === ContextHeaders.TrackingIdHeader ||
         h.name === ContextHeaders.PermissionsTokenHeader || h.name === ContextHeaders.StacktraceHeader ||
         h.name === ContextHeaders.TraceHeaderName || h.name === ContextHeaders.SpanHeaderName ||
-        h.name === ContextHeaders.OriginatingIpHeader || h.name === ContextHeaders.ClientFingerprintHeader
+        h.name === ContextHeaders.OriginatingIpHeader || h.name === ContextHeaders.ClientFingerprintHeader ||
+        h.name === Traceparent.name
       }
       .map { header =>
         if (header.name === ContextHeaders.AuthenticationTokenHeader) {

@@ -5,12 +5,13 @@ trait ScalaLoggerLike extends Reporter {
 
   def logger: Logger
 
-  override def debug(message: String)(implicit ctx: SpanContext): Unit = logger.debug(message)
-  override def info(message: String)(implicit ctx: SpanContext): Unit  = logger.info(message)
-  override def warn(message: String)(implicit ctx: SpanContext): Unit  = logger.warn(message)
-  override def error(message: String)(implicit ctx: SpanContext): Unit = logger.error(message)
-  override def error(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
-    logger.error(message, reason)
+  override def log(severity: Reporter.Severity, message: String, reason: Option[Throwable])(
+      implicit ctx: SpanContext): Unit = severity match {
+    case Reporter.Severity.Debug         => logger.debug(message, reason.orNull)
+    case Reporter.Severity.Informational => logger.info(message, reason.orNull)
+    case Reporter.Severity.Warning       => logger.warn(message, reason.orNull)
+    case Reporter.Severity.Error         => logger.error(message, reason.orNull)
+  }
 
 }
 

@@ -9,7 +9,6 @@ import xyz.driver.core.rest.Swagger
 import xyz.driver.core.rest.directives.Directives
 import akka.http.scaladsl.model.headers._
 import xyz.driver.core.reporting.Reporter.CausalRelation
-import xyz.driver.core.reporting.SpanContext
 import xyz.driver.core.rest.headers.Traceparent
 
 import scala.collection.JavaConverters._
@@ -58,22 +57,27 @@ trait HttpApi extends CloudServices with Directives with SprayJsonSupport { self
 
   private def traced(inner: Route): Route = (ctx: RequestContext) => {
     val tags = Map(
-      "service_name"    -> name,
-      "service_version" -> version.getOrElse("<unknown>"),
-      "http_path"       -> ctx.request.uri.path.toString,
-      "http_method"     -> ctx.request.method.value.toString,
-      "http_uri"        -> ctx.request.uri.toString,
-      "http_user_agent" -> ctx.request.header[`User-Agent`].map(_.value).getOrElse("<unknown>")
+      "service.version" -> version.getOrElse("<unknown>"),
+      // open tracing semantic tags
+      "span.kind"     -> "server",
+      "service"       -> name,
+      "http.url"      -> ctx.request.uri.toString,
+      "http.method"   -> ctx.request.method.value,
+      "peer.hostname" -> ctx.request.uri.authority.host.toString,
+      // google's tracing console provides extra search features if we define these tags
+      "/http/path"       -> ctx.request.uri.path.toString,
+      "/http/method"     -> ctx.request.method.value.toString,
+      "/http/url"        -> ctx.request.uri.toString,
+      "/http/user_agent" -> ctx.request.header[`User-Agent`].map(_.value).getOrElse("<unknown>")
     )
-    val parent = ctx.request.header[Traceparent].map { p =>
-      SpanContext(p.traceId, p.spanId) -> CausalRelation.Child
+    val parent = ctx.request.header[Traceparent].map { header =>
+      header.spanContext -> CausalRelation.Child
     }
     reporter
-      .traceWithOptionalParentAsync(s"${ctx.request.method.value.toLowerCase}_${ctx.request.uri.path}", tags, parent) {
-        sctx =>
-          val header     = Traceparent(sctx.traceId, sctx.spanId)
-          val withHeader = ctx.withRequest(ctx.request.withHeaders(header))
-          inner(withHeader)
+      .traceWithOptionalParentAsync(s"http_handle_rpc", tags, parent) { spanContext =>
+        val header     = Traceparent(spanContext)
+        val withHeader = ctx.withRequest(ctx.request.withHeaders(header))
+        inner(withHeader)
       }
   }
 

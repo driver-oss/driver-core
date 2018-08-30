@@ -107,7 +107,7 @@ trait AkkaBootable {
     applicationVersion = version.getOrElse("<unknown>"),
     actorSystem = system,
     executionContext = executionContext,
-    log = reporter
+    reporter = reporter
   )
 
   // utilities

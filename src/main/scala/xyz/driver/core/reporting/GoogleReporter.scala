@@ -10,6 +10,7 @@ import akka.stream.{Materializer, OverflowStrategy}
 import com.google.auth.oauth2.ServiceAccountCredentials
 import com.softwaremill.sttp._
 import com.typesafe.scalalogging.Logger
+import org.slf4j.MDC
 import spray.json.DerivedJsonProtocol._
 import spray.json._
 import xyz.driver.core.reporting.Reporter.CausalRelation
@@ -17,7 +18,7 @@ import xyz.driver.core.reporting.Reporter.CausalRelation
 import scala.async.Async._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Random
+import scala.util.{Failure, Random, Success, Try}
 import scala.util.control.NonFatal
 
 /** A reporter that collects traces and submits them to
@@ -117,7 +118,8 @@ class GoogleReporter(
     TruncatableString(displayName),
     Instant.now(),
     Instant.now(),
-    Attributes(attributes ++ Map("namespace" -> namespace))
+    Attributes(attributes ++ Map("service.namespace" -> namespace)),
+    Failure(new IllegalStateException("span status not set"))
   )
 
   def traceWithOptionalParent[A](
@@ -145,12 +147,20 @@ class GoogleReporter(
     }
     val span   = startSpan(child.traceId, child.spanId, parent.map(_._1.spanId), operationName, tags)
     val result = operation(child)
-    result.onComplete { _ =>
+    result.onComplete { result =>
       span.endTime = Instant.now()
+      span.status = result
       submit(span)
     }
     result
   }
+
+  override def log(severity: Reporter.Severity, message: String, reason: Option[Throwable])(
+      implicit ctx: SpanContext): Unit = {
+    MDC.put("trace", s"projects/${credentials.getProjectId}/traces/${ctx.traceId}")
+    super.log(severity, message, reason)
+  }
+
 }
 
 object GoogleReporter {
@@ -167,7 +177,8 @@ object GoogleReporter {
       displayName: TruncatableString,
       startTime: Instant,
       var endTime: Instant,
-      attributes: Attributes
+      var attributes: Attributes,
+      var status: Try[_]
   )
 
   private case class Spans(spans: Seq[Span])
@@ -185,9 +196,25 @@ object GoogleReporter {
     }
   }
 
+  private implicit val statusFormat = new RootJsonFormat[Try[_]] {
+    override def read(json: JsValue): Try[_] = sys.error("unimplemented")
+    override def write(obj: Try[_]) = {
+      // error codes defined at https://github.com/googleapis/googleapis/blob/master/google/rpc/code.proto
+      val (code, message) = obj match {
+        case Success(_) => (0, "success")
+        case Failure(_) => (2, "failure")
+      }
+      JsObject(
+        "code"    -> code.toJson,
+        "message" -> message.toJson,
+        "details" -> JsArray()
+      )
+    }
+  }
+
   private implicit val attributeFormat: RootJsonFormat[Attributes]                = jsonFormat1(Attributes)
   private implicit val truncatableStringFormat: RootJsonFormat[TruncatableString] = jsonFormat1(TruncatableString)
-  private implicit val spanFormat: RootJsonFormat[Span]                           = jsonFormat7(Span)
+  private implicit val spanFormat: RootJsonFormat[Span]                           = jsonFormat8(Span)
   private implicit val spansFormat: RootJsonFormat[Spans]                         = jsonFormat1(Spans)
 
 }

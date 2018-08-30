@@ -6,7 +6,11 @@ import xyz.driver.core.auth.{AuthToken, PermissionsToken, User}
 import xyz.driver.core.generators
 import scalaz.Scalaz.{mapEqual, stringInstance}
 import scalaz.syntax.equal._
+import xyz.driver.core.reporting.SpanContext
 import xyz.driver.core.rest.auth.AuthProvider
+import xyz.driver.core.rest.headers.Traceparent
+
+import scala.util.Try
 
 class ServiceRequestContext(
     val trackingId: String = generators.nextUuid().toString,
@@ -43,6 +47,15 @@ class ServiceRequestContext(
         originatingIp == originatingIp &&
         contextHeaders === ctx.contextHeaders
     case _ => false
+  }
+
+  def spanContext: SpanContext = {
+    val validHeader = Try {
+      contextHeaders(Traceparent.name)
+    }.flatMap { value =>
+      Traceparent.parse(value)
+    }
+    validHeader.map(_.spanContext).getOrElse(SpanContext.fresh())
   }
 
   override def toString: String = s"ServiceRequestContext($trackingId, $contextHeaders)"

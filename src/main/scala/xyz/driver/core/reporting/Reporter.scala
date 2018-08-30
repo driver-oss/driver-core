@@ -2,7 +2,7 @@ package xyz.driver.core.reporting
 
 import com.typesafe.scalalogging.Logger
 import org.slf4j.helpers.NOPLogger
-import xyz.driver.core.reporting.Reporter.CausalRelation
+import xyz.driver.core.reporting.Reporter.{CausalRelation, Severity}
 
 import scala.concurrent.Future
 
@@ -128,20 +128,28 @@ trait Reporter {
       Some(ctx -> relation)
     )(op)
 
+  /** Log a message. */
+  def log(severity: Severity, message: String, reason: Option[Throwable])(implicit ctx: SpanContext): Unit
+
   /** Log a debug message. */
-  def debug(message: String)(implicit ctx: SpanContext): Unit
+  def debug(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Debug, message, None)
+  def debug(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
+    log(Severity.Debug, message, Some(reason))
 
   /** Log an informational message. */
-  def info(message: String)(implicit ctx: SpanContext): Unit
+  def info(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Informational, message, None)
+  def info(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
+    log(Severity.Informational, message, Some(reason))
 
   /** Log a warning message. */
-  def warn(message: String)(implicit ctx: SpanContext): Unit
+  def warn(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Warning, message, None)
+  def warn(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
+    log(Severity.Warning, message, Some(reason))
 
-  /** Log a error message. */
-  def error(message: String)(implicit ctx: SpanContext): Unit
-
-  /** Log a error message with an associated throwable that caused the error condition. */
-  def error(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit
+  /** Log an error message. */
+  def error(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Error, message, None)
+  def error(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
+    log(Severity.Error, message, Some(reason))
 
 }
 
@@ -162,6 +170,14 @@ object Reporter {
 
     /** One event follows from another, not necessarily being the parent. */
     case object Follows extends CausalRelation
+  }
+
+  sealed trait Severity
+  object Severity {
+    case object Debug         extends Severity
+    case object Informational extends Severity
+    case object Warning       extends Severity
+    case object Error         extends Severity
   }
 
 }

@@ -14,7 +14,7 @@ import xyz.driver.core.time.Time
 
 import scala.util.control.NonFatal
 
-/** Akka-HTTP path matchers for suctom core types */
+/** Akka-HTTP path matchers for custom core types. */
 trait PathMatchers {
 
   private def UuidInPath[T]: PathMatcher1[Id[T]] =

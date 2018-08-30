@@ -75,7 +75,7 @@ trait AkkaBootable {
   /** General-purpose actor system for this application.
     * @group contexts
     */
-  implicit lazy val system: ActorSystem = ActorSystem("app")
+  implicit lazy val system: ActorSystem = ActorSystem(name)
 
   /** General-purpose stream materializer for this application.
     * @group contexts
@@ -98,9 +98,8 @@ trait AkkaBootable {
     */
   implicit lazy val httpClient: SttpBackend[Future, Source[ByteString, Any]] = AkkaHttpBackend.usingActorSystem(system)
 
-  /** Old HTTP client system. Prefer using an sttp backend for new service clients.
+  /** Client RPC transport abstraction.
     * @group contexts
-    * @see httpClient
     */
   implicit lazy val clientTransport: HttpRestServiceTransport = new HttpRestServiceTransport(
     applicationName = Name(name),

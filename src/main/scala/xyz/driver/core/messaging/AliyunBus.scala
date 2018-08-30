@@ -16,7 +16,7 @@ class AliyunBus(
     accessSecret: String,
     region: String,
     namespace: String,
-    pullTimeout: Int
+    pullTimeout: Int = 30
 )(implicit val executionContext: ExecutionContext)
     extends Bus {
   private val endpoint     = s"https://$accountId.mns.$region.aliyuncs.com"

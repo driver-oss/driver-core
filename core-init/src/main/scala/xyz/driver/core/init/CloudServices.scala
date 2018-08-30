@@ -3,10 +3,10 @@ package init
 
 import java.nio.file.Paths
 
-import xyz.driver.core.messaging.{CreateOnDemand, GoogleBus, QueueBus, StreamBus}
+import xyz.driver.core.messaging.{AliyunBus, CreateOnDemand, GoogleBus, QueueBus, StreamBus}
 import xyz.driver.core.reporting._
 import xyz.driver.core.rest.DnsDiscovery
-import xyz.driver.core.storage.{BlobStorage, FileSystemBlobStorage, GcsBlobStorage}
+import xyz.driver.core.storage.{AliyunBlobStorage, BlobStorage, FileSystemBlobStorage, GcsBlobStorage}
 
 import scala.collection.JavaConverters._
 
@@ -52,6 +52,10 @@ trait CloudServices extends AkkaBootable { self =>
         new GoogleReporter(p.credentials, p.namespace) with ScalaLoggingCompat with GoogleMdcLogger {
           val logger = ScalaLoggingCompat.defaultScalaLogger(true)
         }
+      case _: Platform.AliCloud =>
+        new NoTraceReporter with ScalaLoggingCompat {
+          val logger = ScalaLoggingCompat.defaultScalaLogger(true)
+        }
       case Platform.Dev =>
         new NoTraceReporter with ScalaLoggingCompat {
           val logger = ScalaLoggingCompat.defaultScalaLogger(false)
@@ -64,7 +68,7 @@ trait CloudServices extends AkkaBootable { self =>
   /** Object storage.
     *
     * When running on a cloud platform, prepends `$project-` to bucket names, where `$project`
-    * is the project ID (for example 'driverinc-production` or `driverinc-sandbox`).
+    * is the project ID (for example `driverinc-production` or `driverinc-sandbox`).
     *
     * @group utilities
     */
@@ -72,6 +76,8 @@ trait CloudServices extends AkkaBootable { self =>
     platform match {
       case p @ Platform.GoogleCloud(keyfile, _) =>
         GcsBlobStorage.fromKeyfile(keyfile, s"${p.project}-$bucketName")
+      case Platform.AliCloud(_, accessId, accessKey, region, _) =>
+        AliyunBlobStorage(accessId, accessKey, region, bucketName, java.time.Clock.systemDefaultZone())
       case Platform.Dev =>
         new FileSystemBlobStorage(Paths.get(s".data-$bucketName"))
     }
@@ -82,6 +88,8 @@ trait CloudServices extends AkkaBootable { self =>
   def messageBus: StreamBus = platform match {
     case p @ Platform.GoogleCloud(_, namespace) =>
       new GoogleBus(p.credentials, namespace) with StreamBus with CreateOnDemand
+    case Platform.AliCloud(accountId, accessId, accessKey, region, namespace) =>
+      new AliyunBus(accountId, accessId, accessKey, region, namespace) with StreamBus with CreateOnDemand
     case Platform.Dev =>
       new QueueBus()(self.system) with StreamBus
   }

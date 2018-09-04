@@ -3,12 +3,14 @@ package init
 
 import java.nio.file.Paths
 
-import xyz.driver.core.discovery.CanDiscoverService
+import com.typesafe.config.ConfigValueType
 import xyz.driver.core.messaging.{GoogleBus, QueueBus, StreamBus}
 import xyz.driver.core.reporting._
 import xyz.driver.core.reporting.ScalaLoggerLike.defaultScalaLogger
+import xyz.driver.core.rest.{DnsDiscovery, ServiceDescriptor}
 import xyz.driver.core.storage.{BlobStorage, FileSystemBlobStorage, GcsBlobStorage}
 
+import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 
 /** Mixin trait that provides essential cloud utilities. */
@@ -21,28 +23,29 @@ trait CloudServices extends AkkaBootable { self =>
 
   /** Service discovery for the current platform.
     *
-    * Define a service trait and companion object:
-    * {{{
-    * trait MyService {
-    *   def call(): Int
-    * }
-    * object MyService {
-    *   implicit val isDiscoverable = new xyz.driver.core.discovery.CanDiscoverService[MyService] {
-    *     def discover(p: xyz.driver.core.Platform): MyService = new MyService {
-    *       def call() = 42
-    *     }
-    *   }
-    * }
-    * }}}
-    *
-    * Then discover and use it:
-    * {{{
-    * discover[MyService].call()
-    * }}}
-    *
-    * @group utilities
     */
-  def discover[A](implicit cds: CanDiscoverService[A]): A = cds.discover(platform)
+  private lazy val discovery = {
+    def getOverrides(): Map[String, String] =
+      (for {
+        obj   <- config.getObjectList("services.dev-overrides").asScala
+        entry <- obj.entrySet().asScala
+      } yield {
+        val tpe = entry.getValue.valueType()
+        require(
+          tpe == ConfigValueType.STRING,
+          s"URL override for '${entry.getKey}' must be a " +
+            s"string. Found '${entry.getValue.unwrapped}', which is of type $tpe.")
+        entry.getKey -> entry.getValue.unwrapped.toString
+      }).toMap
+
+    val overrides = platform match {
+      case Platform.Dev => getOverrides()
+      case _            => Map.empty[String, String] // TODO we may want to provide a way to override deployed services as well
+    }
+    new DnsDiscovery(clientTransport, overrides)
+  }
+
+  def discover[A: ServiceDescriptor]: A = discovery.discover[A]
 
   /* TODO: this reporter uses the platform to determine if JSON logging should be enabled.
    * Since the default logger uses slf4j, its settings must be specified before a logger

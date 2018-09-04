@@ -17,8 +17,8 @@ import scala.util.{Failure, Success}
 class HttpRestServiceTransport(
     applicationName: Name[App],
     applicationVersion: String,
-    actorSystem: ActorSystem,
-    executionContext: ExecutionContext,
+    val actorSystem: ActorSystem,
+    val executionContext: ExecutionContext,
     reporter: Reporter)
     extends ServiceTransport {
 

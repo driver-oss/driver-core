@@ -1,24 +1,20 @@
 package xyz.driver.core
+package init
+
 import java.nio.file.{Files, Path, Paths}
 
 import com.google.auth.oauth2.ServiceAccountCredentials
 
-sealed trait Platform {
-  def isKubernetes: Boolean
-}
-
+sealed trait Platform
 object Platform {
   case class GoogleCloud(keyfile: Path, namespace: String) extends Platform {
     def credentials: ServiceAccountCredentials = ServiceAccountCredentials.fromStream(
       Files.newInputStream(keyfile)
     )
-    def project: String       = credentials.getProjectId
-    override def isKubernetes = true
+    def project: String = credentials.getProjectId
   }
   // case object AliCloud   extends Platform
-  case object Dev extends Platform {
-    override def isKubernetes: Boolean = false
-  }
+  case object Dev extends Platform
 
   lazy val fromEnv: Platform = {
     def isGoogle = sys.env.get("GOOGLE_APPLICATION_CREDENTIALS").map { value =>

@@ -75,8 +75,12 @@ trait HttpApi extends CloudServices with Directives with SprayJsonSupport { self
     }
     reporter
       .traceWithOptionalParentAsync(s"http_handle_rpc", tags, parent) { spanContext =>
-        val header     = Traceparent(spanContext)
-        val withHeader = ctx.withRequest(ctx.request.withHeaders(header))
+        val header = Traceparent(spanContext)
+        val withHeader = ctx.withRequest(
+          ctx.request
+            .removeHeader(header.name)
+            .addHeader(header)
+        )
         inner(withHeader)
       }
   }

@@ -3,7 +3,6 @@ package init
 
 import java.nio.file.Paths
 
-import com.typesafe.config.ConfigValueType
 import xyz.driver.core.messaging.{GoogleBus, QueueBus, StreamBus}
 import xyz.driver.core.reporting._
 import xyz.driver.core.reporting.ScalaLoggerLike.defaultScalaLogger
@@ -25,19 +24,13 @@ trait CloudServices extends AkkaBootable { self =>
     *
     */
   private lazy val discovery = {
-    def getOverrides(): Map[String, String] =
-      (for {
-        obj   <- config.getObjectList("services.dev-overrides").asScala
-        entry <- obj.entrySet().asScala
-      } yield {
-        val tpe = entry.getValue.valueType()
-        require(
-          tpe == ConfigValueType.STRING,
-          s"URL override for '${entry.getKey}' must be a " +
-            s"string. Found '${entry.getValue.unwrapped}', which is of type $tpe.")
-        entry.getKey -> entry.getValue.unwrapped.toString
-      }).toMap
-
+    def getOverrides(): Map[String, String] = {
+      val block = config.getObject("services.dev-overrides").unwrapped().asScala
+      for ((key, value) <- block) yield {
+        require(value.isInstanceOf[String], s"Service URL override for '$key' must be a string. Found '$value'.")
+        key -> value.toString
+      }
+    }.toMap
     val overrides = platform match {
       case Platform.Dev => getOverrides()
       case _            => Map.empty[String, String] // TODO we may want to provide a way to override deployed services as well
@@ -67,14 +60,18 @@ trait CloudServices extends AkkaBootable { self =>
   }
 
   /** Object storage.
+    *
+    * When running on a cloud platform, prepends `$project-` to bucket names, where `$project`
+    * is the project ID (for example 'driverinc-production` or `driverinc-sandbox`).
+    *
     * @group utilities
     */
-  def storage(bucketId: String): BlobStorage =
+  def storage(bucketName: String): BlobStorage =
     platform match {
-      case Platform.GoogleCloud(keyfile, _) =>
-        GcsBlobStorage.fromKeyfile(keyfile, bucketId)
+      case p @ Platform.GoogleCloud(keyfile, _) =>
+        GcsBlobStorage.fromKeyfile(keyfile, s"${p.project}-$bucketName")
       case Platform.Dev =>
-        new FileSystemBlobStorage(Paths.get(s".data-$bucketId"))
+        new FileSystemBlobStorage(Paths.get(s".data-$bucketName"))
     }
 
   /** Message bus.

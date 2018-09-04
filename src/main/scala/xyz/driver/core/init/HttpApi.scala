@@ -46,7 +46,7 @@ trait HttpApi extends CloudServices with Directives with SprayJsonSupport { self
       config,
       reporter
     )
-    generator.routes ~ generator.swaggerUI
+    generator.routes ~ generator.swaggerUINew
   }
 
   private def cors(inner: Route): Route =

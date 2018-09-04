@@ -124,4 +124,12 @@ class Swagger(
         "title" -> config.getString("swagger.apiInfo.title"))
     } ~ getFromResourceDirectory("swagger-ui")
 
+  def swaggerUINew: Route =
+    pathEndOrSingleSlash {
+      getTemplatedResource(
+        "swagger-ui-dist/index.html",
+        ContentTypes.`text/html(UTF-8)`,
+        "title" -> config.getString("swagger.apiInfo.title"))
+    } ~ getFromResourceDirectory("swagger-ui-dist")
+
 }

@@ -11,6 +11,7 @@ import com.github.swagger.akka.model._
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.Logger
 import io.swagger.models.Scheme
+import io.swagger.models.auth.{ApiKeyAuthDefinition, In}
 import io.swagger.util.Json
 
 import scala.util.control.NonFatal
@@ -69,6 +70,14 @@ class Swagger(
         throw t
     }
   }
+
+  override val securitySchemeDefinitions = Map(
+    "token" -> {
+      val definition = new ApiKeyAuthDefinition("Authorization", In.HEADER)
+      definition.setDescription("Authentication token")
+      definition
+    }
+  )
 
   override val basePath: String    = config.getString("swagger.basePath")
   override val apiDocsPath: String = config.getString("swagger.docsPath")

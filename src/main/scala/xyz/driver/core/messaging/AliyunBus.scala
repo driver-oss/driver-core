@@ -88,7 +88,13 @@ class AliyunBus(
   }
 
   override def publishMessages[A](topic: Topic[A], messages: Seq[A]): Future[Unit] = {
+
+    System.err.println("--------------------")
+    System.err.println(rawTopicName(topic))
+    System.err.println("--------------------")
+
     val topicRef = client.getTopicRef(rawTopicName(topic))
+
 
     val publishMessages = messages.map { message =>
       val promise = Promise[TopicMessage]

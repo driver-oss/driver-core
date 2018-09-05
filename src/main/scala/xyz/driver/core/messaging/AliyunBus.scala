@@ -3,6 +3,7 @@ import java.nio.ByteBuffer
 import java.util
 
 import com.aliyun.mns.client.{AsyncCallback, CloudAccount}
+import com.aliyun.mns.common.ServiceException
 import com.aliyun.mns.model
 import com.aliyun.mns.model._
 
@@ -53,7 +54,11 @@ class AliyunBus(
       pullTimeout,
       new AsyncCallback[util.List[model.Message]] {
         override def onSuccess(result: util.List[model.Message]): Unit = promise.success(result.asScala)
-        override def onFail(ex: Exception): Unit                       = promise.failure(ex)
+        override def onFail(ex: Exception): Unit = ex match {
+          case serviceException: ServiceException if serviceException.getErrorCode == "MessageNotExist" =>
+            promise.success(Nil)
+          case _ => promise.failure(ex)
+        }
       }
     )
 

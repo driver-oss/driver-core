@@ -73,6 +73,14 @@ class JsonTest extends WordSpec with Matchers with Inspectors {
       val parsedName = json.nameFormat.read(writtenJson)
       parsedName should be(referenceName)
     }
+
+    "read and write correct JSON for Name @@ Trimmed" in {
+      trait Irrelevant
+      JsString(" some name ").convertTo[Name[Irrelevant] @@ Trimmed] shouldBe Name[Irrelevant]("some name")
+
+      val trimmed: Name[Irrelevant] @@ Trimmed = Name("  some name  ")
+      trimmed.toJson shouldBe JsString("some string")
+    }
   }
 
   "Json format for NonEmptyName" should {

@@ -133,6 +133,9 @@ package core {
 
   object Trimmed {
     import tagging._
+
     implicit def string2Trimmed(str: String): String @@ Trimmed = str.trim().tagged[Trimmed]
+
+    implicit def name2Trimmed[T](name: Name[T]): Name[T] @@ Trimmed = Name[T](name.value.trim()).tagged[Trimmed]
   }
 }

@@ -125,14 +125,20 @@ class DriverApp(
   def appRoute: Route = {
     val serviceTypes   = modules.flatMap(_.routeTypes)
     val swaggerService = new Swagger(baseUrl, Scheme.forValue(scheme) :: Nil, version, serviceTypes, config, log)
-    val swaggerRoute   = swaggerService.routes ~ swaggerService.swaggerUI
-    val versionRt      = versionRoute(version, gitHash, time.currentTime())
+    val swaggerRoute = new DriverRoute {
+      def log: Logger = self.log
+      def route: Route = handleExceptions(ExceptionHandler(exceptionHandler)) {
+        swaggerService.routes ~ swaggerService.swaggerUI
+      }
+    }
+    val versionRt = versionRoute(version, gitHash, time.currentTime())
     val basicRoutes = new DriverRoute {
-      override def log: Logger  = self.log
-      override def route: Route = versionRt ~ healthRoute ~ swaggerRoute
+      def log: Logger  = self.log
+      def route: Route = versionRt ~ healthRoute
     }
     val combinedRoute =
-      Route.seal(modules.map(_.route).foldLeft(basicRoutes.routeWithDefaults)(_ ~ _) ~ defaultOptionsRoute)
+      Route.seal(
+        modules.map(_.route).foldLeft(basicRoutes.routeWithDefaults)(_ ~ _) ~ swaggerRoute.route ~ defaultOptionsRoute)
 
     (extractHost & extractClientIP & trace(tracer) & handleRejections(authenticationRejectionHandler)) {
       case (origin, ip) =>

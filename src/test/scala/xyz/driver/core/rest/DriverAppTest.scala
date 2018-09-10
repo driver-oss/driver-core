@@ -1,7 +1,8 @@
 package xyz.driver.core.rest
 
-import akka.http.scaladsl.model.{HttpMethod, StatusCodes}
+import akka.http.scaladsl.model.headers.CacheDirectives.`no-cache`
 import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.model.{HttpMethod, StatusCodes}
 import akka.http.scaladsl.server.{Directives, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.config.ConfigFactory
@@ -79,6 +80,15 @@ class DriverAppTest extends AsyncFlatSpec with ScalatestRouteTest with Matchers 
       status shouldBe StatusCodes.OK
       headers should contain(`Access-Control-Allow-Origin`(HttpOriginRange(allowedOrigins.toSeq: _*)))
       header[`Access-Control-Allow-Methods`].get.methods should contain theSameElementsAs allowedMethods
+    }
+  }
+
+  it should "respond with Pragma and Cache-Control (no-cache) headers" in {
+    val route = new TestApp(get(complete(StatusCodes.OK)))
+    Get(s"/api/v1/test") ~> route.appRoute ~> check {
+      status shouldBe StatusCodes.OK
+      header("Pragma").map(_.value()) should contain("no-cache")
+      header[`Cache-Control`].map(_.value()) should contain("no-cache")
     }
   }
 }

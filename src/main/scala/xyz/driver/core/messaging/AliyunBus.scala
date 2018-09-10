@@ -17,7 +17,7 @@ class AliyunBus(
     region: String,
     namespace: String,
     pullTimeout: Int)(implicit val executionContext: ExecutionContext)
-    extends Bus with StreamBus with CreateBeforeStream {
+    extends Bus {
   val endpoint     = s"https://$accountId.mns.$region.aliyuncs.com"
   val cloudAccount = new CloudAccount(accessId, accessSecret, endpoint)
   val client       = cloudAccount.getMNSClient
@@ -115,7 +115,7 @@ class AliyunBus(
     Future.sequence(publishMessages).map(_ => ())
   }
 
-  override def createTopic(topic: Topic[_]): Future[Unit] = Future {
+  def createTopic(topic: Topic[_]): Future[Unit] = Future {
     val topicName   = rawTopicName(topic)
     val topicExists = Option(client.listTopic(topicName, "", 1)).exists(!_.getResult.isEmpty)
     if (!topicExists) {
@@ -125,7 +125,7 @@ class AliyunBus(
     }
   }
 
-  override def createSubscription(topic: Topic[_], config: SubscriptionConfig): Future[Unit] = Future {
+  def createSubscription(topic: Topic[_], config: SubscriptionConfig): Future[Unit] = Future {
     val subscriptionName = rawSubscriptionName(config, topic)
     val topicName        = rawTopicName(topic)
     val topicRef         = client.getTopicRef(topicName)

@@ -58,7 +58,7 @@ class GoogleBus(
     namespace: String,
     pullTimeout: Duration = 90.seconds
 )(implicit val executionContext: ExecutionContext, backend: SttpBackend[Future, _])
-    extends Bus with StreamBus with CreateBeforeStream {
+    extends Bus {
   import GoogleBus.Protocol
 
   case class MessageId(subscription: String, ackId: String)
@@ -133,7 +133,7 @@ class GoogleBus(
       .bearer(await(getToken()))
     val result = await(request.send())
     result.body match {
-      case Left(error) if result.code != 409 => // 409 <=> topic already exists
+      case Left(error) if result.code != 409 => // 409 <=> topic already exists, ignore it
         throw new NoSuchElementException(s"Error creating topic: Status code ${result.code}: $error")
       case _ => ()
     }
@@ -152,7 +152,7 @@ class GoogleBus(
       )
     val result = await(request.send())
     result.body match {
-      case Left(error) if result.code != 409 => // 409 <=> subscription already exists
+      case Left(error) if result.code != 409 => // 409 <=> subscription already exists, ignore it
         throw new NoSuchElementException(s"Error creating subscription: Status code ${result.code}: $error")
       case _ => ()
     }

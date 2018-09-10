@@ -79,7 +79,7 @@ class JsonTest extends WordSpec with Matchers with Inspectors {
       JsString(" some name ").convertTo[Name[Irrelevant] @@ Trimmed] shouldBe Name[Irrelevant]("some name")
 
       val trimmed: Name[Irrelevant] @@ Trimmed = Name("  some name  ")
-      trimmed.toJson shouldBe JsString("some string")
+      trimmed.toJson shouldBe JsString("some name")
     }
   }
 

@@ -22,8 +22,8 @@ import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.rest.errors._
 import xyz.driver.core.time.{Time, TimeOfDay}
 
-import scala.reflect.{ClassTag, classTag}
 import scala.reflect.runtime.universe._
+import scala.reflect.{ClassTag, classTag}
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -56,13 +56,16 @@ object json {
     }
   }
 
-  implicit def taggedFormat[F, T](implicit underlying: JsonFormat[F]): JsonFormat[F @@ T] = new JsonFormat[F @@ T] {
-    import tagging._
+  implicit def taggedFormat[F, T](implicit underlying: JsonFormat[F], convert: F => F @@ T = null): JsonFormat[F @@ T] =
+    new JsonFormat[F @@ T] {
+      import tagging._
 
-    override def write(obj: F @@ T): JsValue = underlying.write(obj)
+      private val transformReadValue = Option(convert).getOrElse((_: F).tagged[T])
 
-    override def read(json: JsValue): F @@ T = underlying.read(json).tagged[T]
-  }
+      override def write(obj: F @@ T): JsValue = underlying.write(obj)
+
+      override def read(json: JsValue): F @@ T = transformReadValue(underlying.read(json))
+    }
 
   def NameInPath[T]: PathMatcher1[Name[T]] = new PathMatcher1[Name[T]] {
     def apply(path: Path) = path match {

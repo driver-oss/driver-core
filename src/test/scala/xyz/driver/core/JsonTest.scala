@@ -53,6 +53,13 @@ class JsonTest extends WordSpec with Matchers with Inspectors {
       val parsedId: Id[JsonTest] @@ Irrelevant = format.read(writtenJson)
       parsedId shouldBe reference
     }
+
+    "read and write correct JSON when there's an implicit conversion defined" in {
+      JsString(" some string ").convertTo[String @@ Trimmed] shouldBe "some string"
+
+      val trimmed: String @@ Trimmed = "  some string  "
+      trimmed.toJson shouldBe JsString("some string")
+    }
   }
 
   "Json format for Name" should {
@@ -65,6 +72,14 @@ class JsonTest extends WordSpec with Matchers with Inspectors {
 
       val parsedName = json.nameFormat.read(writtenJson)
       parsedName should be(referenceName)
+    }
+
+    "read and write correct JSON for Name @@ Trimmed" in {
+      trait Irrelevant
+      JsString(" some name ").convertTo[Name[Irrelevant] @@ Trimmed] shouldBe Name[Irrelevant]("some name")
+
+      val trimmed: Name[Irrelevant] @@ Trimmed = Name("  some name  ")
+      trimmed.toJson shouldBe JsString("some name")
     }
   }
 

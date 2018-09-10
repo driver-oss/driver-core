@@ -133,9 +133,9 @@ class GoogleBus(
       .bearer(await(getToken()))
     val result = await(request.send())
     result.body match {
-      case Right(error) if result.code != 409 => // 409 <=> topic already exists
-        throw new NoSuchElementException(s"Error creating topic: Status code ${result.code}: ${error}")
-      case Left(_) => ()
+      case Left(error) if result.code != 409 => // 409 <=> topic already exists
+        throw new NoSuchElementException(s"Error creating topic: Status code ${result.code}: $error")
+      case _ => ()
     }
   }
 
@@ -152,9 +152,9 @@ class GoogleBus(
       )
     val result = await(request.send())
     result.body match {
-      case Right(error) if result.code != 409 => // 409 <=> subscription already exists
-        throw new NoSuchElementException(s"Error creating subscription: Status code ${result.code}: ${error}")
-      case Left(_) => ()
+      case Left(error) if result.code != 409 => // 409 <=> subscription already exists
+        throw new NoSuchElementException(s"Error creating subscription: Status code ${result.code}: $error")
+      case _ => ()
     }
   }
 

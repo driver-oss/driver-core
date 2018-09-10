@@ -1,12 +1,14 @@
 package xyz.driver.core
 
 import java.text.SimpleDateFormat
+import java.time.{Clock, Instant, ZoneId, ZoneOffset}
 import java.util._
 import java.util.concurrent.TimeUnit
 
 import xyz.driver.core.date.Month
 
 import scala.concurrent.duration._
+import scala.language.implicitConversions
 import scala.util.Try
 
 object time {
@@ -40,6 +42,14 @@ object time {
       cal.setTimeInMillis(millis)
       date.Date(cal.get(Calendar.YEAR), date.Month(cal.get(Calendar.MONTH)), cal.get(Calendar.DAY_OF_MONTH))
     }
+
+    def toInstant: Instant = Instant.ofEpochMilli(millis)
+  }
+
+  object Time {
+    implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
+
+    implicit def apply(instant: Instant): Time = Time(instant.toEpochMilli)
   }
 
   /**
@@ -127,11 +137,6 @@ object time {
     }
   }
 
-  object Time {
-
-    implicit def timeOrdering: Ordering[Time] = Ordering.by(_.millis)
-  }
-
   final case class TimeRange(start: Time, end: Time) {
     def duration: Duration = FiniteDuration(end.millis - start.millis, MILLISECONDS)
   }
@@ -149,6 +154,18 @@ object time {
   def textualTime(timezone: TimeZone)(time: Time): String =
     make(new SimpleDateFormat("MMM dd, yyyy hh:mm:ss a"))(_.setTimeZone(timezone)).format(new Date(time.millis))
 
+  class ChangeableClock(@volatile var instant: Instant, val zone: ZoneId = ZoneOffset.UTC) extends Clock {
+
+    def tick(duration: FiniteDuration): Unit =
+      instant = instant.plusNanos(duration.toNanos)
+
+    val getZone: ZoneId = zone
+
+    def withZone(zone: ZoneId): Clock = new ChangeableClock(instant, zone = zone)
+
+    override def toString: String = "ChangeableClock(" + instant + "," + zone + ")"
+  }
+
   object provider {
 
     /**
@@ -159,17 +176,34 @@ object time {
       * All the calls to receive current time must be made using time
       * provider injected to the caller.
       */
+    @deprecated(
+      "Use java.time.Clock instead. Note that xyz.driver.core.Time and xyz.driver.core.date.Date will also be deprecated soon!",
+      "0.13.0")
     trait TimeProvider {
       def currentTime(): Time
+      def toClock: Clock
+    }
+
+    final implicit class ClockTimeProvider(clock: Clock) extends TimeProvider {
+      def currentTime(): Time = Time(clock.instant().toEpochMilli)
+
+      val toClock: Clock = clock
     }
 
     final class SystemTimeProvider extends TimeProvider {
       def currentTime() = Time(System.currentTimeMillis())
+
+      lazy val toClock: Clock = Clock.systemUTC()
     }
+
     final val SystemTimeProvider = new SystemTimeProvider
 
     final class SpecificTimeProvider(time: Time) extends TimeProvider {
-      def currentTime() = time
+
+      def currentTime(): Time = time
+
+      lazy val toClock: Clock = Clock.fixed(time.toInstant, ZoneOffset.UTC)
     }
+
   }
 }

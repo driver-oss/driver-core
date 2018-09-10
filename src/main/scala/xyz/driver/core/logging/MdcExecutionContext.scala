@@ -13,18 +13,16 @@ import scala.concurrent.ExecutionContext
 class MdcExecutionContext(executionContext: ExecutionContext) extends ExecutionContext {
   override def execute(runnable: Runnable): Unit = {
     val callerMdc = MDC.getCopyOfContextMap
-    executionContext.execute(new Runnable {
-      def run(): Unit = {
-        // copy caller thread diagnostic context to execution thread
-        Option(callerMdc).foreach(MDC.setContextMap)
-        try {
-          runnable.run()
-        } finally {
-          // the thread might be reused, so we clean up for the next use
-          MDC.clear()
-        }
+    executionContext.execute { () =>
+      // copy caller thread diagnostic context to execution thread
+      Option(callerMdc).foreach(MDC.setContextMap)
+      try {
+        runnable.run()
+      } finally {
+        // the thread might be reused, so we clean up for the next use
+        MDC.clear()
       }
-    })
+    }
   }
 
   override def reportFailure(cause: Throwable): Unit = executionContext.reportFailure(cause)

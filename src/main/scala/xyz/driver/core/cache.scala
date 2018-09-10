@@ -89,8 +89,8 @@ object cache {
 
   object AsyncCache {
     val DEFAULT_CAPACITY: Long             = 10000L
-    val DEFAULT_READ_EXPIRATION: Duration  = 10 minutes
-    val DEFAULT_WRITE_EXPIRATION: Duration = 1 hour
+    val DEFAULT_READ_EXPIRATION: Duration  = 10.minutes
+    val DEFAULT_WRITE_EXPIRATION: Duration = 1.hour
 
     def apply[K <: AnyRef, V <: AnyRef](
         name: String,

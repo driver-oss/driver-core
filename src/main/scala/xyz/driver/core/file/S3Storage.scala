@@ -64,20 +64,24 @@ class S3Storage(s3: AmazonS3, bucket: Name[Bucket], executionContext: ExecutionC
       def isInSubFolder(path: Path)(fileLink: FileLink) =
         fileLink.location.toString.replace(path.toString + "/", "").contains("/")
 
-      Iterator.continually(s3.listObjectsV2(req)).takeWhile { result =>
-        req.setContinuationToken(result.getNextContinuationToken)
-        result.isTruncated
-      } flatMap { result =>
-        result.getObjectSummaries.asScala.toList.map { summary =>
-          FileLink(
-            Name[File](summary.getKey),
-            Paths.get(path.toString + "/" + summary.getKey),
-            Revision[File](summary.getETag),
-            Time(summary.getLastModified.getTime),
-            summary.getSize
-          )
-        } filterNot isInSubFolder(path)
-      } toList
+      Iterator
+        .continually(s3.listObjectsV2(req))
+        .takeWhile { result =>
+          req.setContinuationToken(result.getNextContinuationToken)
+          result.isTruncated
+        }
+        .flatMap { result =>
+          result.getObjectSummaries.asScala.toList.map { summary =>
+            FileLink(
+              Name[File](summary.getKey),
+              Paths.get(path.toString + "/" + summary.getKey),
+              Revision[File](summary.getETag),
+              Time(summary.getLastModified.getTime),
+              summary.getSize
+            )
+          } filterNot isInSubFolder(path)
+        }
+        .toList
     })
 
   override def exists(path: Path): Future[Boolean] = Future {

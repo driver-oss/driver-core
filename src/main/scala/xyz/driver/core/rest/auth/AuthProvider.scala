@@ -4,6 +4,7 @@ import akka.http.scaladsl.server.directives.Credentials
 import com.typesafe.scalalogging.Logger
 import scalaz.OptionT
 import xyz.driver.core.auth.{AuthToken, Permission, User}
+import xyz.driver.core.rest.errors.{ExternalServiceException, UnauthorizedException}
 import xyz.driver.core.rest.{AuthorizedServiceRequestContext, ContextHeaders, ServiceRequestContext, serviceContext}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -34,7 +35,9 @@ abstract class AuthProvider[U <: User](
       log.info(s"Request (${context.trackingId}) missing authentication credentials")
       Future.successful(None)
     case Credentials.Provided(authToken) =>
-      authenticatedUser(context.withAuthToken(AuthToken(authToken))).run
+      authenticatedUser(context.withAuthToken(AuthToken(authToken))).run.recover({
+        case ExternalServiceException(_, _, Some(UnauthorizedException(_))) => None
+      })
   }
 
   /**

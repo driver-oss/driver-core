@@ -1,6 +1,7 @@
 package xyz.driver.core.app
 
 import java.nio.file.{Files, Paths}
+import java.time.Clock
 import java.util.concurrent.{Executor, Executors}
 
 import akka.actor.ActorSystem
@@ -9,11 +10,12 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import xyz.driver.core.logging.MdcExecutionContext
-import xyz.driver.core.time.provider.{SystemTimeProvider, TimeProvider}
+import xyz.driver.core.time.provider.TimeProvider
 import xyz.driver.tracing.{GoogleTracer, NoTracer, Tracer}
 
 import scala.concurrent.ExecutionContext
 import scala.util.Try
+import scala.language.reflectiveCalls
 
 object init {
 
@@ -23,7 +25,9 @@ object init {
     val gitHeadCommit: scala.Option[String]
   }
 
-  case class ApplicationContext(config: Config, time: TimeProvider, log: Logger)
+  case class ApplicationContext(config: Config, clock: Clock, log: Logger) {
+    val time: TimeProvider = clock
+  }
 
   /** NOTE: This needs to be the first that is run when application starts.
     * Otherwise if another command causes the logger to be instantiated,
@@ -68,9 +72,9 @@ object init {
     val actorSystem =
       ActorSystem(s"$serviceName-actors", Option(config), Option.empty[ClassLoader], Option(executionContext))
 
-    Runtime.getRuntime.addShutdownHook(new Thread() {
-      override def run(): Unit = Try(actorSystem.terminate())
-    })
+    sys.addShutdownHook {
+      Try(actorSystem.terminate())
+    }
 
     actorSystem
   }
@@ -81,14 +85,11 @@ object init {
   def newFixedMdcExecutionContext(capacity: Int): MdcExecutionContext =
     toMdcExecutionContext(Executors.newFixedThreadPool(capacity))
 
-  def defaultApplicationContext(): ApplicationContext = {
-    val config = getEnvironmentSpecificConfig()
-
-    val time = new SystemTimeProvider()
-    val log  = Logger(LoggerFactory.getLogger(classOf[DriverApp]))
-
-    ApplicationContext(config, time, log)
-  }
+  def defaultApplicationContext(): ApplicationContext =
+    ApplicationContext(
+      config = getEnvironmentSpecificConfig(),
+      clock = Clock.systemUTC(),
+      log = Logger(LoggerFactory.getLogger(classOf[DriverApp])))
 
   def createDefaultApplication(
       modules: Seq[Module],

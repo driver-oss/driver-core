@@ -1,3 +1,1 @@
-resolvers += "releases" at "https://drivergrp.jfrog.io/drivergrp/releases"
-
-addSbtPlugin("xyz.driver" % "sbt-settings" % "1.0.15")
+addSbtPlugin("xyz.driver" % "sbt-settings" % "2.0.7")

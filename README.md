@@ -1,12 +1,10 @@
-# Driver Core Library [![Build Status](https://travis-ci.com/drivergroup/driver-core.svg?token=sarWaLdsCrympszs6TRy&branch=master)](https://travis-ci.com/drivergroup/driver-core)
+# Driver Core Library [![Build Status](https://travis-ci.com/drivergroup/driver-core.svg?token=S4oyfBY3YoEdLmckujJx&branch=master)](https://travis-ci.com/drivergroup/driver-core)
 
 Core library is used to provide ways to implement practices established in [Driver service template](http://github.com/drivergroup/driver-template) (check its [README.md](https://github.com/drivergroup/driver-template/blob/master/README.md)).
 
 ## Components
 
  * `core package` provides `Id` and `Name` implementations (with equal and ordering), utils for ScalaZ `OptionT`, and also `make` and `using` functions,
- * `time` Primitives to deal with time, receive current times in code and basic formatting it to text,
- * `date ` Primitives to deal with typesafe date, contains ordering and basic ISO 8601 string formatting,
  * `config` Contains method `loadDefaultConfig` with default way of providing config to the application,
  * `domain` Common generic domain objects, e.g., `Email` and `PhoneNumber`,
  * `messages` Localization messages supporting different locales and methods to read from config,

@@ -17,6 +17,7 @@ class QueueBus(implicit system: ActorSystem) extends Bus {
 
   override type SubscriptionConfig = Long
   override val defaultSubscriptionConfig: Long = 0
+  override val executionContext                = system.dispatcher
 
   override type MessageId = (String, SubscriptionConfig, Long)
   type Message[A]         = BasicMessage[A]

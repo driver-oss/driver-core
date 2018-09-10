@@ -16,7 +16,7 @@ trait Bus {
 
   /** Most general kind of message. Any implementation of a message bus must provide
     * the fields and methods specified in this trait. */
-  trait BasicMessage[A] {
+  trait BasicMessage[A] { self: Message[A] =>
 
     /** All messages must have unique IDs so that they can be acknowledged unambiguously. */
     def id: MessageId
@@ -40,6 +40,9 @@ trait Bus {
 
   /** Maximum amount of messages handled in a single retrieval call. */
   val defaultMaxMessages = 64
+
+  /** Execution context that is used to query and dispatch messages from this bus. */
+  implicit val executionContext: ExecutionContext
 
   /** Retrieve any new messages in the mailbox of a subscription.
     *

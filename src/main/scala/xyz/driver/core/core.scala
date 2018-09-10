@@ -128,4 +128,11 @@ package core {
   }
 
   final case class Base64(value: String)
+
+  trait Trimmed
+
+  object Trimmed {
+    import tagging._
+    implicit def string2Trimmed(str: String): String @@ Trimmed = str.trim().tagged[Trimmed]
+  }
 }

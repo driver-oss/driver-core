@@ -11,6 +11,7 @@ import xyz.driver.core.date.Month
 import xyz.driver.core.time.{Time, _}
 
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class TimeTest extends FlatSpec with Matchers with Checkers {
 

@@ -38,31 +38,34 @@ object Refresh {
     * @param ec The execution context in which valeu computations will be run.
     * @return A zero-arg function that returns the cached value.
     */
-  def every[A](ttl: Duration)(compute: => Future[A])(implicit ec: ExecutionContext): () => Future[A] = {
-    val ref = new AtomicReference[(Future[A], Instant)](
+  def every[Out](ttl: Duration)(compute: => Future[Out])(implicit ec: ExecutionContext): () => Future[Out] =
+    () => every[Unit, Out](ttl)(_ => compute).apply(())
+
+  def every[In, Out](ttl: Duration)(compute: In => Future[Out])(implicit ec: ExecutionContext): In => Future[Out] = {
+    val ref = new AtomicReference[(Future[Out], Instant)](
       (Future.failed(new NoSuchElementException("Cached value was never computed")), Instant.MIN)
     )
-    def refresh(): Future[A] = {
+    def refresh(a: In): Future[Out] = {
       val tuple                        = ref.get
       val (cachedValue, lastRetrieved) = tuple
       val now                          = Instant.now
       if (now.getEpochSecond < lastRetrieved.getEpochSecond + ttl.toSeconds) {
         cachedValue
       } else {
-        val p         = Promise[A]
+        val p         = Promise[Out]
         val nextTuple = (p.future, now)
         if (ref.compareAndSet(tuple, nextTuple)) {
-          compute.onComplete { done =>
+          compute(a).onComplete { done =>
             if (done.isFailure) {
               ref.set((p.future, lastRetrieved)) // don't update retrieval time in case of failure
             }
             p.complete(done)
           }
         }
-        refresh()
+        refresh(a)
       }
     }
-    refresh _
+    refresh
   }
 
 }

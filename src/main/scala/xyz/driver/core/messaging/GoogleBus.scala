@@ -117,7 +117,7 @@ class GoogleBus(
   }
 
   // the token is cached a few minutes less than its validity to diminish latency of concurrent accesses at renewal time
-  private val getToken: () => Future[String] = Refresh.every(55.minutes)(freshAuthToken(60.minutes))
+  private val getToken: () => Future[String] = Refresh.every[String](55.minutes)(freshAuthToken(60.minutes))
 
   private val baseUri = uri"https://pubsub.googleapis.com/"
 

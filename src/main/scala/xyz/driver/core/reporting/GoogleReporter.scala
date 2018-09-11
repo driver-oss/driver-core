@@ -1,5 +1,6 @@
 package xyz.driver.core
 package reporting
+
 import java.security.Signature
 import java.time.Instant
 import java.util
@@ -9,8 +10,6 @@ import akka.stream.scaladsl.{Flow, RestartSink, Sink, Source, SourceQueueWithCom
 import akka.stream.{Materializer, OverflowStrategy}
 import com.google.auth.oauth2.ServiceAccountCredentials
 import com.softwaremill.sttp._
-import com.typesafe.scalalogging.Logger
-import org.slf4j.MDC
 import spray.json.DerivedJsonProtocol._
 import spray.json._
 import xyz.driver.core.reporting.Reporter.CausalRelation
@@ -18,22 +17,21 @@ import xyz.driver.core.reporting.Reporter.CausalRelation
 import scala.async.Async._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Random, Success, Try}
 import scala.util.control.NonFatal
+import scala.util.{Failure, Random, Success, Try}
 
 /** A reporter that collects traces and submits them to
   * [[https://cloud.google.com/trace/docs/reference/v2/rest/ Google's Stackdriver Trace API]].
   */
 class GoogleReporter(
-    credentials: ServiceAccountCredentials,
+    val credentials: ServiceAccountCredentials,
     namespace: String,
-    val logger: Logger,
     buffer: Int = GoogleReporter.DefaultBufferSize,
     interval: FiniteDuration = GoogleReporter.DefaultInterval)(
     implicit client: SttpBackend[Future, _],
     mat: Materializer,
     ec: ExecutionContext
-) extends Reporter with ScalaLoggerLike {
+) extends Reporter {
   import GoogleReporter._
 
   private val getToken: () => Future[String] = Refresh.every(55.minutes) {
@@ -156,10 +154,9 @@ class GoogleReporter(
   }
 
   override def log(severity: Reporter.Severity, message: String, reason: Option[Throwable])(
-      implicit ctx: SpanContext): Unit = {
-    MDC.put("trace", s"projects/${credentials.getProjectId}/traces/${ctx.traceId}")
-    super.log(severity, message, reason)
-  }
+      implicit ctx: SpanContext): Unit =
+    sys.error("Submitting logs directly to GCP is " +
+      "currently not supported. Messages should go to stdout.") // TODO: attach logs to traces and submit them directly
 
 }
 

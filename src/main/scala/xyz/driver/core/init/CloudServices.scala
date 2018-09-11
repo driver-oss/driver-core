@@ -3,14 +3,12 @@ package init
 
 import java.nio.file.Paths
 
-import xyz.driver.core.messaging.{GoogleBus, QueueBus, StreamBus}
+import xyz.driver.core.messaging.{CreateOnDemand, GoogleBus, QueueBus, StreamBus}
 import xyz.driver.core.reporting._
-import xyz.driver.core.reporting.ScalaLoggerLike.defaultScalaLogger
 import xyz.driver.core.rest.{DnsDiscovery, ServiceDescriptor}
 import xyz.driver.core.storage.{BlobStorage, FileSystemBlobStorage, GcsBlobStorage}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.ExecutionContext
 
 /** Mixin trait that provides essential cloud utilities. */
 trait CloudServices extends AkkaBootable { self =>
@@ -21,9 +19,8 @@ trait CloudServices extends AkkaBootable { self =>
   def platform: Platform = Platform.current
 
   /** Service discovery for the current platform.
-    *
     */
-  private lazy val discovery = {
+  private lazy val discovery: DnsDiscovery = {
     def getOverrides(): Map[String, String] = {
       val block = config.getObject("services.dev-overrides").unwrapped().asScala
       for ((key, value) <- block) yield {
@@ -33,7 +30,9 @@ trait CloudServices extends AkkaBootable { self =>
     }.toMap
     val overrides = platform match {
       case Platform.Dev => getOverrides()
-      case _            => Map.empty[String, String] // TODO we may want to provide a way to override deployed services as well
+      // TODO: currently, deployed services must be configured via Kubernetes DNS resolver. Maybe we may want to
+      // provide a way to override deployed services as well.
+      case _ => Map.empty[String, String]
     }
     new DnsDiscovery(clientTransport, overrides)
   }
@@ -47,13 +46,17 @@ trait CloudServices extends AkkaBootable { self =>
    * A potential fix would be to make the log format independent of the platform, and always log
    * as JSON for example.
    */
-  override lazy val reporter: Reporter with ScalaLoggerLike = {
+  override lazy val reporter: Reporter with ScalaLoggingCompat = {
     Console.println("determining platform") // scalastyle:ignore
     val r = platform match {
       case p @ Platform.GoogleCloud(_, _) =>
-        new GoogleReporter(p.credentials, p.namespace, defaultScalaLogger(true))
+        new GoogleReporter(p.credentials, p.namespace) with ScalaLoggingCompat with GoogleMdcLogger {
+          val logger = ScalaLoggingCompat.defaultScalaLogger(true)
+        }
       case Platform.Dev =>
-        new NoTraceReporter(defaultScalaLogger(false))
+        new NoTraceReporter with ScalaLoggingCompat {
+          val logger = ScalaLoggingCompat.defaultScalaLogger(false)
+        }
     }
     r.info(s"application started on platform '${platform}'")(SpanContext.fresh())
     r
@@ -78,11 +81,10 @@ trait CloudServices extends AkkaBootable { self =>
     * @group utilities
     */
   def messageBus: StreamBus = platform match {
-    case Platform.GoogleCloud(keyfile, namespace) => GoogleBus.fromKeyfile(keyfile, namespace)
+    case p @ Platform.GoogleCloud(_, namespace) =>
+      new GoogleBus(p.credentials, namespace) with StreamBus with CreateOnDemand
     case Platform.Dev =>
-      new QueueBus()(self.system) with StreamBus {
-        override def executionContext: ExecutionContext = self.executionContext
-      }
+      new QueueBus()(self.system) with StreamBus
   }
 
 }

@@ -14,7 +14,7 @@ import com.typesafe.config.Config
 import kamon.Kamon
 import kamon.statsd.StatsDReporter
 import kamon.system.SystemMetrics
-import xyz.driver.core.reporting.{NoTraceReporter, Reporter, ScalaLoggerLike, SpanContext}
+import xyz.driver.core.reporting.{NoTraceReporter, Reporter, ScalaLoggingCompat, SpanContext}
 import xyz.driver.core.rest.HttpRestServiceTransport
 
 import scala.concurrent.duration._
@@ -119,7 +119,10 @@ trait AkkaBootable {
     *
     * @group utilities
     */
-  def reporter: Reporter with ScalaLoggerLike = new NoTraceReporter(ScalaLoggerLike.defaultScalaLogger(json = false))
+  def reporter: Reporter with ScalaLoggingCompat =
+    new Reporter with NoTraceReporter with ScalaLoggingCompat {
+      val logger = ScalaLoggingCompat.defaultScalaLogger(json = false)
+    }
 
   /** Top-level application configuration.
     *

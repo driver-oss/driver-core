@@ -10,7 +10,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import xyz.driver.core.logging.MdcExecutionContext
-import xyz.driver.core.reporting.{NoTraceReporter, ScalaLoggerLike}
+import xyz.driver.core.reporting.{ScalaLoggingCompat, NoTraceReporter}
 import xyz.driver.core.time.provider.TimeProvider
 import xyz.driver.tracing.{GoogleTracer, NoTracer, Tracer}
 
@@ -26,7 +26,7 @@ object init {
     val gitHeadCommit: scala.Option[String]
   }
 
-  case class ApplicationContext(config: Config, clock: Clock, reporter: ScalaLoggerLike) {
+  case class ApplicationContext(config: Config, clock: Clock, reporter: ScalaLoggingCompat) {
     val time: TimeProvider = clock
   }
 
@@ -90,7 +90,10 @@ object init {
     ApplicationContext(
       config = getEnvironmentSpecificConfig(),
       clock = Clock.systemUTC(),
-      new NoTraceReporter(Logger(LoggerFactory.getLogger(classOf[DriverApp]))))
+      new NoTraceReporter with ScalaLoggingCompat {
+        val logger = Logger(LoggerFactory.getLogger(classOf[DriverApp]))
+      }
+    )
 
   def createDefaultApplication(
       modules: Seq[Module],

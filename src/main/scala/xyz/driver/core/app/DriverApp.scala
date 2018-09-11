@@ -91,8 +91,7 @@ class DriverApp(
       def route: Route = versionRt ~ healthRoute
     }
     val combinedRoute =
-      Route.seal(
-        modules.map(_.route).foldLeft(basicRoutes.routeWithDefaults)(_ ~ _) ~ swaggerRoute.route ~ defaultOptionsRoute)
+      Route.seal(modules.map(_.route).foldLeft(basicRoutes.routeWithDefaults)(_ ~ _) ~ swaggerRoute.route)
     (extractHost & extractClientIP & trace(tracer) & handleRejections(authenticationRejectionHandler)) {
       case (origin, ip) =>
         ctx =>

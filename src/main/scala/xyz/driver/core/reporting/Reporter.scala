@@ -1,8 +1,5 @@
-package xyz.driver.core.reporting
-
-import com.typesafe.scalalogging.Logger
-import org.slf4j.helpers.NOPLogger
-import xyz.driver.core.reporting.Reporter.{CausalRelation, Severity}
+package xyz.driver.core
+package reporting
 
 import scala.concurrent.Future
 
@@ -13,7 +10,7 @@ import scala.concurrent.Future
   * that led to a particular message. In synchronous systems, execution contexts can easily be determined by an
   * external observer, and, as such, do not need to be propagated explicitly to sub-components (e.g. a stack trace on
   * the JVM shows all relevant information). In asynchronous systems and especially distributed systems however,
-  * execution contexts are not easily determined by an external observer and hence need to be explcictly passed across
+  * execution contexts are not easily determined by an external observer and hence need to be explicitly passed across
   * service boundaries.
   *
   * This reporter provides tracing and logging utilities that explicitly require references to execution contexts
@@ -44,14 +41,15 @@ import scala.concurrent.Future
   * }
   * }}}
   *
-  * Note that computing traces may be a more expensive operation than traditional logging frameworks provide (in terms
-  * of memory and processing). It should be used in interesting and actionable code paths.
+  * '''Note that computing traces may be a more expensive operation than traditional logging frameworks provide (in terms
+  * of memory and processing). It should be used in interesting and actionable code paths.'''
   *
   * @define rootWarning Note: the idea of the reporting framework is to pass along references to traces as
   *                     implicit parameters. This method should only be used for top-level traces when no parent
   *                     traces are available.
   */
 trait Reporter {
+  import Reporter._
 
   def traceWithOptionalParent[A](
       name: String,
@@ -66,7 +64,7 @@ trait Reporter {
     *
     * $rootWarning
     */
-  def traceRoot[A](name: String, tags: Map[String, String] = Map.empty)(op: SpanContext => A): A =
+  final def traceRoot[A](name: String, tags: Map[String, String] = Map.empty)(op: SpanContext => A): A =
     traceWithOptionalParent(
       name,
       tags,
@@ -79,7 +77,8 @@ trait Reporter {
     *
     * @see traceRoot
     */
-  def traceRootAsync[A](name: String, tags: Map[String, String] = Map.empty)(op: SpanContext => Future[A]): Future[A] =
+  final def traceRootAsync[A](name: String, tags: Map[String, String] = Map.empty)(
+      op: SpanContext => Future[A]): Future[A] =
     traceWithOptionalParentAsync(
       name,
       tags,
@@ -102,8 +101,11 @@ trait Reporter {
     * @tparam A Return type of the operation.
     * @return The value of the child operation.
     */
-  def trace[A](name: String, tags: Map[String, String] = Map.empty, relation: CausalRelation = CausalRelation.Child)(
-      op: /* implicit (gotta wait for Scala 3) */ SpanContext => A)(implicit ctx: SpanContext): A =
+  final def trace[A](
+      name: String,
+      tags: Map[String, String] = Map.empty,
+      relation: CausalRelation = CausalRelation.Child)(op: /* implicit (gotta wait for Scala 3) */ SpanContext => A)(
+      implicit ctx: SpanContext): A =
     traceWithOptionalParent(
       name,
       tags,
@@ -117,7 +119,7 @@ trait Reporter {
     *
     * @see trace
     */
-  def traceAsync[A](
+  final def traceAsync[A](
       name: String,
       tags: Map[String, String] = Map.empty,
       relation: CausalRelation = CausalRelation.Child)(
@@ -132,30 +134,28 @@ trait Reporter {
   def log(severity: Severity, message: String, reason: Option[Throwable])(implicit ctx: SpanContext): Unit
 
   /** Log a debug message. */
-  def debug(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Debug, message, None)
-  def debug(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
+  final def debug(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Debug, message, None)
+  final def debug(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
     log(Severity.Debug, message, Some(reason))
 
   /** Log an informational message. */
-  def info(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Informational, message, None)
-  def info(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
+  final def info(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Informational, message, None)
+  final def info(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
     log(Severity.Informational, message, Some(reason))
 
   /** Log a warning message. */
-  def warn(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Warning, message, None)
-  def warn(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
+  final def warn(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Warning, message, None)
+  final def warn(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
     log(Severity.Warning, message, Some(reason))
 
   /** Log an error message. */
-  def error(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Error, message, None)
-  def error(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
+  final def error(message: String)(implicit ctx: SpanContext): Unit = log(Severity.Error, message, None)
+  final def error(message: String, reason: Throwable)(implicit ctx: SpanContext): Unit =
     log(Severity.Error, message, Some(reason))
 
 }
 
 object Reporter {
-
-  val NoReporter: Reporter = new NoTraceReporter(Logger.apply(NOPLogger.NOP_LOGGER))
 
   /** A relation in cause.
     *

@@ -81,4 +81,37 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     (bla === foo) should be(false)
     (foo === bla) should be(false)
   }
+
+  "String @@ Trimmed" should "produce from normal string" in {
+    val s: String @@ Trimmed = " trimmed "
+
+    s shouldBe "trimmed"
+  }
+
+  "String @@ Trimmed" should "produce from normal Name" in {
+    val n: Name[Int] @@ Trimmed = Name(" trimmed ")
+
+    n shouldBe Name[Int]("trimmed")
+  }
+
+  "String @@ Trimmed" should "produce from Options" in {
+    val maybeStringDirect: Option[String @@ Trimmed]  = Some(" trimmed ")
+    val maybeStringFromMap: Option[String @@ Trimmed] = Map("s" -> " trimmed ").get("s")
+
+    val maybeNameDirect: Option[Name[Int] @@ Trimmed]  = Some(Name(" trimmed "))
+    val maybeNameFromMap: Option[Name[Int] @@ Trimmed] = Map("s" -> Name[Int](" trimmed ")).get("s")
+
+    maybeStringDirect shouldBe Some("trimmed")
+    maybeStringFromMap shouldBe Some("trimmed")
+    maybeNameDirect shouldBe Some(Name[Int]("trimmed"))
+    maybeNameFromMap shouldBe Some(Name[Int]("trimmed"))
+  }
+
+  "String @@ Trimmed" should "produce from collections" in {
+    val strings = Seq("s" -> " trimmed1 ", "s" -> " trimmed2 ")
+
+    val trimmeds: Seq[String @@ Trimmed] = strings.groupBy(_._1)("s").map(_._2)
+
+    trimmeds shouldBe Seq("trimmed1", "trimmed2")
+  }
 }

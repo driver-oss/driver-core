@@ -1,16 +1,14 @@
 package xyz.driver
 
-import scalaz.{Equal, Monad, OptionT}
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
+import scalaz.{Equal, Monad, OptionT}
 import xyz.driver.core.rest.errors.ExternalServiceException
 
 import scala.concurrent.{ExecutionContext, Future}
 
 // TODO: this package seems too complex, look at all the features we need!
-import scala.language.reflectiveCalls
-import scala.language.higherKinds
-import scala.language.implicitConversions
+import scala.language.{higherKinds, implicitConversions, reflectiveCalls}
 
 package object core {
 
@@ -71,6 +69,7 @@ package object core {
 }
 
 package core {
+  import scala.collection.generic.CanBuildFrom
 
   final case class Id[+Tag](value: String) extends AnyVal {
     @inline def length: Int       = value.length
@@ -134,8 +133,19 @@ package core {
   object Trimmed {
     import tagging._
 
+    def apply[V](trimmable: V)(implicit conv: V => V @@ Trimmed): V @@ Trimmed = conv(trimmable)
+
     implicit def string2Trimmed(str: String): String @@ Trimmed = str.trim().tagged[Trimmed]
 
     implicit def name2Trimmed[T](name: Name[T]): Name[T] @@ Trimmed = Name[T](name.value.trim()).tagged[Trimmed]
+
+    implicit def option2Trimmed[V](option: Option[V])(implicit conv: V => V @@ Trimmed): Option[V @@ Trimmed] =
+      option.map(Trimmed(_))
+
+    implicit def coll2Trimmed[T, C[_] <: Traversable[_]](coll: C[T])(
+        implicit ev: C[T] => Traversable[T],
+        conv: T => T @@ Trimmed,
+        bf: CanBuildFrom[Nothing, T @@ Trimmed, C[T @@ Trimmed]]): C[T @@ Trimmed] =
+      ev(coll).map(Trimmed(_))(collection.breakOut)
   }
 }

@@ -23,6 +23,7 @@ import xyz.driver.core.time.provider.SystemTimeProvider
 import xyz.driver.core.time.{Time, TimeOfDay}
 
 import scala.collection.immutable.IndexedSeq
+import scala.language.postfixOps
 
 class JsonTest extends WordSpec with Matchers with Inspectors {
   import DefaultJsonProtocol._

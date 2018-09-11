@@ -62,17 +62,17 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
 
     val s3Storage = new S3Storage(amazonS3Mock, testBucket, scala.concurrent.ExecutionContext.global)
 
-    val filesBefore = Await.result(s3Storage.list(testDirPath).run, 10 seconds)
+    val filesBefore = Await.result(s3Storage.list(testDirPath).run, 10.seconds)
     filesBefore shouldBe empty
 
-    val fileExistsBeforeUpload = Await.result(s3Storage.exists(testFilePath), 10 seconds)
+    val fileExistsBeforeUpload = Await.result(s3Storage.exists(testFilePath), 10.seconds)
     fileExistsBeforeUpload should be(false)
 
-    Await.result(s3Storage.upload(sourceTestFile, testFilePath), 10 seconds)
+    Await.result(s3Storage.upload(sourceTestFile, testFilePath), 10.seconds)
 
-    val filesAfterUpload = Await.result(s3Storage.list(testDirPath).run, 10 seconds)
+    val filesAfterUpload = Await.result(s3Storage.list(testDirPath).run, 10.seconds)
     filesAfterUpload.size should be(1)
-    val fileExistsAfterUpload = Await.result(s3Storage.exists(testFilePath), 10 seconds)
+    val fileExistsAfterUpload = Await.result(s3Storage.exists(testFilePath), 10.seconds)
     fileExistsAfterUpload should be(true)
     val uploadedFileLine = filesAfterUpload.head
     uploadedFileLine.name should be(Name[File](testFileName))
@@ -80,15 +80,15 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
     uploadedFileLine.revision.id.length should be > 0
     uploadedFileLine.lastModificationDate.millis should be > 0L
 
-    val downloadedFile = Await.result(s3Storage.download(testFilePath).run, 10 seconds)
+    val downloadedFile = Await.result(s3Storage.download(testFilePath).run, 10.seconds)
     downloadedFile shouldBe defined
     downloadedFile.foreach {
       _.getAbsolutePath.endsWith(testFilePath.toString) should be(true)
     }
 
-    Await.result(s3Storage.delete(testFilePath), 10 seconds)
+    Await.result(s3Storage.delete(testFilePath), 10.seconds)
 
-    val filesAfterRemoval = Await.result(s3Storage.list(testDirPath).run, 10 seconds)
+    val filesAfterRemoval = Await.result(s3Storage.list(testDirPath).run, 10.seconds)
     filesAfterRemoval shouldBe empty
   }
 
@@ -103,18 +103,18 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
 
     val fileStorage = new FileSystemStorage(scala.concurrent.ExecutionContext.global)
 
-    val filesBefore = Await.result(fileStorage.list(testDirPath).run, 10 seconds)
+    val filesBefore = Await.result(fileStorage.list(testDirPath).run, 10.seconds)
     filesBefore shouldBe empty
 
-    val fileExistsBeforeUpload = Await.result(fileStorage.exists(testFilePath), 10 seconds)
+    val fileExistsBeforeUpload = Await.result(fileStorage.exists(testFilePath), 10.seconds)
     fileExistsBeforeUpload should be(false)
 
-    Await.result(fileStorage.upload(sourceTestFile, testFilePath), 10 seconds)
+    Await.result(fileStorage.upload(sourceTestFile, testFilePath), 10.seconds)
 
-    val filesAfterUpload = Await.result(fileStorage.list(testDirPath).run, 10 seconds)
+    val filesAfterUpload = Await.result(fileStorage.list(testDirPath).run, 10.seconds)
     filesAfterUpload.size should be(1)
 
-    val fileExistsAfterUpload = Await.result(fileStorage.exists(testFilePath), 10 seconds)
+    val fileExistsAfterUpload = Await.result(fileStorage.exists(testFilePath), 10.seconds)
     fileExistsAfterUpload should be(true)
 
     val uploadedFileLine = filesAfterUpload.head
@@ -123,13 +123,13 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
     uploadedFileLine.revision.id.length should be > 0
     uploadedFileLine.lastModificationDate.millis should be > 0L
 
-    val downloadedFile = Await.result(fileStorage.download(testFilePath).run, 10 seconds)
+    val downloadedFile = Await.result(fileStorage.download(testFilePath).run, 10.seconds)
     downloadedFile shouldBe defined
     downloadedFile.map(_.getAbsolutePath) should be(Some(testFilePath.toString))
 
-    Await.result(fileStorage.delete(testFilePath), 10 seconds)
+    Await.result(fileStorage.delete(testFilePath), 10.seconds)
 
-    val filesAfterRemoval = Await.result(fileStorage.list(testDirPath).run, 10 seconds)
+    val filesAfterRemoval = Await.result(fileStorage.list(testDirPath).run, 10.seconds)
     filesAfterRemoval shouldBe empty
   }
 
@@ -174,10 +174,10 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
       blobMock // after file is uploaded
     )
 
-    val filesBefore = Await.result(gcsStorage.list(testDirPath).run, 10 seconds)
+    val filesBefore = Await.result(gcsStorage.list(testDirPath).run, 10.seconds)
     filesBefore shouldBe empty
 
-    val fileExistsBeforeUpload = Await.result(gcsStorage.exists(testFilePath), 10 seconds)
+    val fileExistsBeforeUpload = Await.result(gcsStorage.exists(testFilePath), 10.seconds)
     fileExistsBeforeUpload should be(false)
 
     when(gcsMock.get(testBucket.value)).thenReturn(bucketMock)
@@ -185,23 +185,23 @@ class FileTest extends FlatSpec with Matchers with MockitoSugar {
     when(bucketMock.create(org.mockito.Matchers.eq(testFileName), any[FileInputStream], any[BlobWriteOption]))
       .thenReturn(blobMock)
 
-    Await.result(gcsStorage.upload(sourceTestFile, testFilePath), 10 seconds)
+    Await.result(gcsStorage.upload(sourceTestFile, testFilePath), 10.seconds)
 
-    val filesAfterUpload = Await.result(gcsStorage.list(testDirPath).run, 10 seconds)
+    val filesAfterUpload = Await.result(gcsStorage.list(testDirPath).run, 10.seconds)
     filesAfterUpload.size should be(1)
 
-    val fileExistsAfterUpload = Await.result(gcsStorage.exists(testFilePath), 10 seconds)
+    val fileExistsAfterUpload = Await.result(gcsStorage.exists(testFilePath), 10.seconds)
     fileExistsAfterUpload should be(true)
 
-    val downloadedFile = Await.result(gcsStorage.download(testFilePath).run, 10 seconds)
+    val downloadedFile = Await.result(gcsStorage.download(testFilePath).run, 10.seconds)
     downloadedFile shouldBe defined
     downloadedFile.foreach {
       _.getAbsolutePath should endWith(testFilePath.toString)
     }
 
-    Await.result(gcsStorage.delete(testFilePath), 10 seconds)
+    Await.result(gcsStorage.delete(testFilePath), 10.seconds)
 
-    val filesAfterRemoval = Await.result(gcsStorage.list(testDirPath).run, 10 seconds)
+    val filesAfterRemoval = Await.result(gcsStorage.list(testDirPath).run, 10.seconds)
     filesAfterRemoval shouldBe empty
   }
 

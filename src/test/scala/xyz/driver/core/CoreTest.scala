@@ -82,19 +82,42 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     (foo === bla) should be(false)
   }
 
-  "String @@ Trimmed" should "produce from normal string" in {
-    val s: String @@ Trimmed = " trimmed "
+  "V with Tagged[Tag]" should "resolve implicit evidences for untagged versions automatically" in {
+    trait Printer[T] {
+      def print(v: T): String
+    }
+    implicit object StringPrinter extends Printer[String] {
+      def print(v: String) = v + "!"
+    }
 
-    s shouldBe "trimmed"
+    def foo[T](w: T)(implicit ev: Printer[T]) = ev.print(w)
+
+    val trimmedString: String @@ Trimmed = Trimmed("hello")
+
+    """foo(trimmedString)""" should compile
+    foo(trimmedString) shouldBe "hello!"
   }
 
-  "String @@ Trimmed" should "produce from normal Name" in {
+  "@@ Trimmed" should "produce values transparently from Strings and Names (by default)" in {
+    val s: String @@ Trimmed    = " trimmed "
     val n: Name[Int] @@ Trimmed = Name(" trimmed ")
 
+    s shouldBe "trimmed"
     n shouldBe Name[Int]("trimmed")
   }
 
-  "String @@ Trimmed" should "produce from Options" in {
+  it should "produce values transparently from values that have an implicit conversion defined" in {
+    import tagging._
+    import scala.language.implicitConversions
+
+    implicit def stringSeq2Trimmed(stringSeq: Seq[String]): Seq[String] @@ Trimmed =
+      stringSeq.map(_.trim()).tagged[Trimmed]
+
+    val strings: Seq[String] @@ Trimmed = Seq(" trimmed1 ", " trimmed2 ")
+    strings shouldBe Seq("trimmed1", "trimmed2")
+  }
+
+  it should "produce values transparently from Options of values that have Trimmed implicits" in {
     val maybeStringDirect: Option[String @@ Trimmed]  = Some(" trimmed ")
     val maybeStringFromMap: Option[String @@ Trimmed] = Map("s" -> " trimmed ").get("s")
 
@@ -107,7 +130,7 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     maybeNameFromMap shouldBe Some(Name[Int]("trimmed"))
   }
 
-  "String @@ Trimmed" should "produce from collections" in {
+  it should "produce values transparently from collections of values that have Trimmed implicits" in {
     val strings = Seq("s" -> " trimmed1 ", "s" -> " trimmed2 ")
 
     val trimmeds: Seq[String @@ Trimmed] = strings.groupBy(_._1)("s").map(_._2)

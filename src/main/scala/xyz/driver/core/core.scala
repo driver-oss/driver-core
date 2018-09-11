@@ -33,7 +33,15 @@ package object core {
     implicit class Taggable[V <: Any](val v: V) extends AnyVal {
       def tagged[Tag]: V @@ Tag = v.asInstanceOf[V @@ Tag]
     }
+
+    object Tagged {
+      // "Untagged" implicit evidences cannot be resolved on tagged values even though they will
+      // work perfectly fine because a "V @@ Tag" IS-A "V"
+      implicit def taggedEvidenceMagnet[E[_], V: E, Tag]: E[V @@ Tag] =
+        implicitly[E[V]].asInstanceOf[E[V @@ Tag]]
+    }
   }
+
   type @@[+V, +Tag] = V with tagging.Tagged[V, Tag]
 
   implicit class OptionTExtensions[H[_]: Monad, T](optionTValue: OptionT[H, T]) {

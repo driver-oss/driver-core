@@ -62,14 +62,19 @@ lazy val `core-reporting` = project
   .dependsOn(`core-util`)
   .settings(testdeps)
 
-lazy val `core-cloud` = project
+lazy val `core-storage` = project
   .enablePlugins(LibraryPlugin)
-  .dependsOn(`core-util`)
+  .dependsOn(`core-reporting`)
+  .settings(testdeps)
+
+lazy val `core-messaging` = project
+  .enablePlugins(LibraryPlugin)
+  .dependsOn(`core-reporting`)
   .settings(testdeps)
 
 lazy val `core-init` = project
   .enablePlugins(LibraryPlugin)
-  .dependsOn(`core-util`)
+  .dependsOn(`core-reporting`, `core-storage`, `core-messaging`, `core-rest`)
   .settings(testdeps)
 
 lazy val core = project
@@ -86,5 +91,5 @@ lazy val core = project
       s"https://github.com/drivergroup/driver-core/blob/master€{FILE_PATH}.scala"
     )
   )
-  .dependsOn(`core-types`, `core-rest`, `core-reporting`, `core-cloud`, `core-init`)
+  .dependsOn(`core-types`, `core-rest`, `core-reporting`, `core-storage`, `core-messaging`, `core-init`)
   .settings(testdeps)

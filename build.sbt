@@ -1,8 +1,12 @@
 import sbt._
 import Keys._
 
-lazy val core = project
-  .in(file("."))
+val testdeps = libraryDependencies ++= Seq(
+  "org.mockito"                   % "mockito-core"           % "1.9.5" % "test",
+  "org.scalacheck"                %% "scalacheck"            % "1.14.0" % "test",
+  "org.scalatest"                 %% "scalatest"             % "3.0.5" % "test",
+)
+lazy val `core-util` = project
   .enablePlugins(LibraryPlugin)
   .settings(
     libraryDependencies ++= Seq(
@@ -36,14 +40,42 @@ lazy val core = project
       "io.kamon"                      %% "kamon-statsd"          % "1.0.0",
       "io.kamon"                      %% "kamon-system-metrics"  % "1.0.0",
       "javax.xml.bind"                % "jaxb-api"               % "2.2.8",
-      "org.mockito"                   % "mockito-core"           % "1.9.5" % "test",
       "org.scala-lang.modules"        %% "scala-async"           % "0.9.7",
-      "org.scalacheck"                %% "scalacheck"            % "1.14.0" % "test",
-      "org.scalatest"                 %% "scalatest"             % "3.0.5" % "test",
       "org.scalaz"                    %% "scalaz-core"           % "7.2.24",
       "xyz.driver"                    %% "spray-json-derivation" % "0.6.0",
       "xyz.driver"                    %% "tracing"               % "0.1.2"
-    ),
+    )
+  )
+
+lazy val `core-types` = project
+  .enablePlugins(LibraryPlugin)
+  .dependsOn(`core-util`)
+  .settings(testdeps)
+
+lazy val `core-rest` = project
+  .enablePlugins(LibraryPlugin)
+  .dependsOn(`core-util`, `core-types`)
+  .settings(testdeps)
+
+lazy val `core-reporting` = project
+  .enablePlugins(LibraryPlugin)
+  .dependsOn(`core-util`)
+  .settings(testdeps)
+
+lazy val `core-cloud` = project
+  .enablePlugins(LibraryPlugin)
+  .dependsOn(`core-util`)
+  .settings(testdeps)
+
+lazy val `core-init` = project
+  .enablePlugins(LibraryPlugin)
+  .dependsOn(`core-util`)
+  .settings(testdeps)
+
+lazy val core = project
+  .in(file("."))
+  .enablePlugins(LibraryPlugin)
+  .settings(
     scalacOptions in (Compile, doc) ++= Seq(
       "-groups", // group similar methods together based on the @group annotation.
       "-diagrams", // show classs hierarchy diagrams (requires 'dot' to be available on path)
@@ -54,3 +86,5 @@ lazy val core = project
       s"https://github.com/drivergroup/driver-core/blob/master€{FILE_PATH}.scala"
     )
   )
+  .dependsOn(`core-types`, `core-rest`, `core-reporting`, `core-cloud`, `core-init`)
+  .settings(testdeps)

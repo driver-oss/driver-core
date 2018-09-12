@@ -16,11 +16,17 @@ class AliyunBus(
     accessSecret: String,
     region: String,
     namespace: String,
-    pullTimeout: Int)(implicit val executionContext: ExecutionContext)
+    pullTimeout: Int
+)(implicit val executionContext: ExecutionContext)
     extends Bus {
-  val endpoint     = s"https://$accountId.mns.$region.aliyuncs.com"
-  val cloudAccount = new CloudAccount(accessId, accessSecret, endpoint)
-  val client       = cloudAccount.getMNSClient
+  private val endpoint     = s"https://$accountId.mns.$region.aliyuncs.com"
+  private val cloudAccount = new CloudAccount(accessId, accessSecret, endpoint)
+  private val client       = cloudAccount.getMNSClient
+
+  // When calling the asyncBatchPopMessage endpoint, alicloud returns an error if no message is received before the
+  // pullTimeout. This error is documented as MessageNotExist, however it's been observed to return InternalServerError
+  // occasionally. We mask both of these errors and return an empty list of messages
+  private val MaskedErrorCodes: Set[String] = Set("MessageNotExist", "InternalServerError")
 
   override val defaultMaxMessages: Int = 10
 
@@ -53,11 +59,14 @@ class AliyunBus(
       maxMessages,
       pullTimeout,
       new AsyncCallback[util.List[model.Message]] {
-        override def onSuccess(result: util.List[model.Message]): Unit = promise.success(result.asScala)
+        override def onSuccess(result: util.List[model.Message]): Unit = {
+          promise.success(result.asScala)
+        }
         override def onFail(ex: Exception): Unit = ex match {
-          case serviceException: ServiceException if serviceException.getErrorCode == "MessageNotExist" =>
+          case serviceException: ServiceException if MaskedErrorCodes(serviceException.getErrorCode) =>
             promise.success(Nil)
-          case _ => promise.failure(ex)
+          case _ =>
+            promise.failure(ex)
         }
       }
     )

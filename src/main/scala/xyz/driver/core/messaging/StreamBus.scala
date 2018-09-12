@@ -2,7 +2,8 @@ package xyz.driver.core
 package messaging
 
 import akka.NotUsed
-import akka.stream.scaladsl.{Flow, RestartSource, RunnableGraph, Sink, Source}
+import akka.stream.Materializer
+import akka.stream.scaladsl.{Flow, RestartSource, Sink, Source}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
@@ -59,14 +60,14 @@ trait StreamBus extends Bus {
       .mapConcat(messages => messages.toList)
   }
 
-  def subscribeWithRestart[A](
+  def runWithRestart[A](
       topic: Topic[A],
       config: SubscriptionConfig = defaultSubscriptionConfig,
       minBackoff: FiniteDuration = 3.seconds,
       maxBackoff: FiniteDuration = 30.seconds,
       randomFactor: Double = 0.2,
       maxRestarts: Int = 20
-  )(processMessage: Flow[Message[A], List[MessageId], NotUsed]): RunnableGraph[_] = {
+  )(processMessage: Flow[Message[A], List[MessageId], NotUsed])(implicit mat: Materializer): NotUsed = {
     RestartSource
       .withBackoff[MessageId](
         minBackoff,
@@ -80,9 +81,10 @@ trait StreamBus extends Bus {
           .mapConcat(identity)
       }
       .to(acknowledge)
+      .run()
   }
 
-  def basicSubscribeWithRestart[A](
+  def handleMessage[A](
       topic: Topic[A],
       config: SubscriptionConfig = defaultSubscriptionConfig,
       parallelism: Int = 1,
@@ -90,8 +92,8 @@ trait StreamBus extends Bus {
       maxBackoff: FiniteDuration = 30.seconds,
       randomFactor: Double = 0.2,
       maxRestarts: Int = 20
-  )(processMessage: A => Future[_]): RunnableGraph[_] = {
-    subscribeWithRestart(topic, config, minBackoff, maxBackoff, randomFactor, maxRestarts) {
+  )(processMessage: A => Future[_])(implicit mat: Materializer): NotUsed = {
+    runWithRestart(topic, config, minBackoff, maxBackoff, randomFactor, maxRestarts) {
       Flow[Message[A]].mapAsync(parallelism) { message =>
         processMessage(message.data).map(_ => message.id :: Nil)
       }

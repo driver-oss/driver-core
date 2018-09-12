@@ -4,6 +4,7 @@ import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
 import scalaz.{Equal, Monad, OptionT}
 import xyz.driver.core.rest.errors.ExternalServiceException
+import xyz.driver.core.tagging.Tagged
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -27,22 +28,7 @@ package object core {
     }
   }
 
-  object tagging {
-    private[core] trait Tagged[+V, +Tag]
-
-    implicit class Taggable[V <: Any](val v: V) extends AnyVal {
-      def tagged[Tag]: V @@ Tag = v.asInstanceOf[V @@ Tag]
-    }
-
-    object Tagged {
-      // "Untagged" implicit evidences cannot be resolved on tagged values even though they will
-      // work perfectly fine because a "V @@ Tag" IS-A "V"
-      implicit def taggedEvidenceMagnet[E[_], V: E, Tag]: E[V @@ Tag] =
-        implicitly[E[V]].asInstanceOf[E[V @@ Tag]]
-    }
-  }
-
-  type @@[+V, +Tag] = V with tagging.Tagged[V, Tag]
+  type @@[+V, +Tag] = V with Tagged[V, Tag]
 
   implicit class OptionTExtensions[H[_]: Monad, T](optionTValue: OptionT[H, T]) {
 
@@ -77,7 +63,6 @@ package object core {
 }
 
 package core {
-  import scala.collection.generic.CanBuildFrom
 
   final case class Id[+Tag](value: String) extends AnyVal {
     @inline def length: Int       = value.length
@@ -136,24 +121,4 @@ package core {
 
   final case class Base64(value: String)
 
-  trait Trimmed
-
-  object Trimmed {
-    import tagging._
-
-    def apply[V](trimmable: V)(implicit conv: V => V @@ Trimmed): V @@ Trimmed = conv(trimmable)
-
-    implicit def string2Trimmed(str: String): String @@ Trimmed = str.trim().tagged[Trimmed]
-
-    implicit def name2Trimmed[T](name: Name[T]): Name[T] @@ Trimmed = Name[T](name.value.trim()).tagged[Trimmed]
-
-    implicit def option2Trimmed[V](option: Option[V])(implicit conv: V => V @@ Trimmed): Option[V @@ Trimmed] =
-      option.map(Trimmed(_))
-
-    implicit def coll2Trimmed[T, C[_] <: Traversable[_]](coll: C[T])(
-        implicit ev: C[T] => Traversable[T],
-        conv: T => T @@ Trimmed,
-        bf: CanBuildFrom[Nothing, T @@ Trimmed, C[T @@ Trimmed]]): C[T @@ Trimmed] =
-      ev(coll).map(Trimmed(_))(collection.breakOut)
-  }
 }

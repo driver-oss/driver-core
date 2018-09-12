@@ -12,6 +12,7 @@ import xyz.driver.core.storage.{BlobStorage, FileSystemBlobStorage}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class BlobStorageTest extends FlatSpec with ScalaFutures {
 

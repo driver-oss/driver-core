@@ -18,7 +18,7 @@ import xyz.driver.core.auth.AuthCredentials
 import xyz.driver.core.domain.{Email, PhoneNumber}
 import xyz.driver.core.json._
 import xyz.driver.core.json.enumeratum.HasJsonFormat
-import xyz.driver.core.tagging.Taggable
+import xyz.driver.core.tagging._
 import xyz.driver.core.time.provider.SystemTimeProvider
 import xyz.driver.core.time.{Time, TimeOfDay}
 
@@ -56,10 +56,12 @@ class JsonTest extends WordSpec with Matchers with Inspectors {
     }
 
     "read and write correct JSON when there's an implicit conversion defined" in {
-      JsString(" some string ").convertTo[String @@ Trimmed] shouldBe "some string"
+      val input = "  some string  "
 
-      val trimmed: String @@ Trimmed = "  some string  "
-      trimmed.toJson shouldBe JsString("some string")
+      JsString(input).convertTo[String @@ Trimmed] shouldBe input.trim()
+
+      val trimmed: String @@ Trimmed = input
+      trimmed.toJson shouldBe JsString(trimmed)
     }
   }
 

@@ -1,6 +1,5 @@
 package xyz.driver.core.rest
 
-import akka.http.scaladsl.model.headers.CacheDirectives.`no-cache`
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model.{HttpMethod, StatusCodes}
 import akka.http.scaladsl.server.{Directives, Route}

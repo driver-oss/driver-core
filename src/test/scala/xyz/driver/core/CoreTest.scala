@@ -34,8 +34,10 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     (Id[String]("1234213") === Id[String]("213414")) should be(false)
     (Id[String]("213414") === Id[String]("1234213")) should be(false)
 
-    Seq(Id[String]("4"), Id[String]("3"), Id[String]("2"), Id[String]("1")).sorted should contain
-    theSameElementsInOrderAs(Seq(Id[String]("1"), Id[String]("2"), Id[String]("3"), Id[String]("4")))
+    val ids    = Seq(Id[String]("4"), Id[String]("3"), Id[String]("2"), Id[String]("1"))
+    val sorted = Seq(Id[String]("1"), Id[String]("2"), Id[String]("3"), Id[String]("4"))
+
+    ids.sorted should contain theSameElementsInOrderAs sorted
   }
 
   it should "have type-safe conversions" in {
@@ -68,8 +70,9 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     (Name[String]("foo") === Name[String]("bar")) should be(false)
     (Name[String]("bar") === Name[String]("foo")) should be(false)
 
-    Seq(Name[String]("d"), Name[String]("cc"), Name[String]("a"), Name[String]("bbb")).sorted should contain
-    theSameElementsInOrderAs(Seq(Name[String]("a"), Name[String]("bbb"), Name[String]("cc"), Name[String]("d")))
+    val names  = Seq(Name[String]("d"), Name[String]("cc"), Name[String]("a"), Name[String]("bbb"))
+    val sorted = Seq(Name[String]("a"), Name[String]("bbb"), Name[String]("cc"), Name[String]("d"))
+    names.sorted should contain theSameElementsInOrderAs sorted
   }
 
   "Revision" should "have equality working correctly" in {
@@ -82,59 +85,4 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     (foo === bla) should be(false)
   }
 
-  "V with Tagged[Tag]" should "resolve implicit evidences for untagged versions automatically" in {
-    trait Printer[T] {
-      def print(v: T): String
-    }
-    implicit object StringPrinter extends Printer[String] {
-      def print(v: String) = v + "!"
-    }
-
-    def foo[T](w: T)(implicit ev: Printer[T]) = ev.print(w)
-
-    val trimmedString: String @@ Trimmed = Trimmed("hello")
-
-    """foo(trimmedString)""" should compile
-    foo(trimmedString) shouldBe "hello!"
-  }
-
-  "@@ Trimmed" should "produce values transparently from Strings and Names (by default)" in {
-    val s: String @@ Trimmed    = " trimmed "
-    val n: Name[Int] @@ Trimmed = Name(" trimmed ")
-
-    s shouldBe "trimmed"
-    n shouldBe Name[Int]("trimmed")
-  }
-
-  it should "produce values transparently from values that have an implicit conversion defined" in {
-    import tagging._
-    import scala.language.implicitConversions
-
-    implicit def stringSeq2Trimmed(stringSeq: Seq[String]): Seq[String] @@ Trimmed =
-      stringSeq.map(_.trim()).tagged[Trimmed]
-
-    val strings: Seq[String] @@ Trimmed = Seq(" trimmed1 ", " trimmed2 ")
-    strings shouldBe Seq("trimmed1", "trimmed2")
-  }
-
-  it should "produce values transparently from Options of values that have Trimmed implicits" in {
-    val maybeStringDirect: Option[String @@ Trimmed]  = Some(" trimmed ")
-    val maybeStringFromMap: Option[String @@ Trimmed] = Map("s" -> " trimmed ").get("s")
-
-    val maybeNameDirect: Option[Name[Int] @@ Trimmed]  = Some(Name(" trimmed "))
-    val maybeNameFromMap: Option[Name[Int] @@ Trimmed] = Map("s" -> Name[Int](" trimmed ")).get("s")
-
-    maybeStringDirect shouldBe Some("trimmed")
-    maybeStringFromMap shouldBe Some("trimmed")
-    maybeNameDirect shouldBe Some(Name[Int]("trimmed"))
-    maybeNameFromMap shouldBe Some(Name[Int]("trimmed"))
-  }
-
-  it should "produce values transparently from collections of values that have Trimmed implicits" in {
-    val strings = Seq("s" -> " trimmed1 ", "s" -> " trimmed2 ")
-
-    val trimmeds: Seq[String @@ Trimmed] = strings.groupBy(_._1)("s").map(_._2)
-
-    trimmeds shouldBe Seq("trimmed1", "trimmed2")
-  }
 }

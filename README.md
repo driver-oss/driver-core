@@ -4,7 +4,8 @@ Core library is used to provide ways to implement practices established in [Driv
 
 ## Components
 
- * `core package` provides `Id` and `Name` implementations (with equal and ordering), utils for ScalaZ `OptionT`, and also `make` and `using` functions,
+ * `core package` provides `Id` and `Name` implementations (with equal and ordering), utils for ScalaZ `OptionT`, and also `make` and `using` functions and `@@` (tagged) type,
+ * `tagging` Utilities for tagging primitive types for extra type safety, as well as some tags that involve extra transformation upon deserializing with spray,
  * `config` Contains method `loadDefaultConfig` with default way of providing config to the application,
  * `domain` Common generic domain objects, e.g., `Email` and `PhoneNumber`,
  * `messages` Localization messages supporting different locales and methods to read from config,
@@ -75,7 +76,37 @@ for {
 } yield x
 ```
 
+### `@@` or Tagged types
+
+For type definitions, the only import required is
+
+```scala
+import xyz.driver.core.@@
+```
+
+which provides just the ability to tag types: `val value: String @@ Important`. Two `String`s with different tags will
+be distinguished by the compiler, helping reduce the possibility of mixing values passed into methods with several
+arguments of identical types.
+
+To work with tags in actual values, use the following convenience methods:
+
+```scala
+import xyz.driver.core.tagging._
+
+val str = "abc".tagged[Important]
+```
+
+or go back to plain (say, in case you have an implicit for untagged value)
+
+```scala
+// val trimmedExternalId: String @@ Trimmed = "123"
+
+Trials.filter(_.externalId === trimmedExternalId.untag)
+```
+
 ### `Time` and `TimeProvider`
+
+**NOTE: The contents of this section has been deprecated - use java.time.Clock instead**
 
 Usage examples for `Time` (also check [TimeTest](https://github.com/drivergroup/driver-core/blob/master/src/test/scala/xyz/driver/core/TimeTest.scala) for more examples).
 
@@ -175,8 +206,7 @@ Stats it gives access to are,
 
 2. Publish to local repository, to use changes in depending projects:
 
-        $ sbt publish-local
+        $ sbt publishLocal
 
-3. Release a new version of core:
-
-        $ sbt release
+3. In order to release a new version of core, merge your PR, tag the HEAD master commit with the next version
+   (don't forget the "v." prefix) and push tags - Travis will release the artifact automatically!

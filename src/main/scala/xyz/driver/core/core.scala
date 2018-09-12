@@ -1,16 +1,15 @@
 package xyz.driver
 
-import scalaz.{Equal, Monad, OptionT}
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
+import scalaz.{Equal, Monad, OptionT}
 import xyz.driver.core.rest.errors.ExternalServiceException
+import xyz.driver.core.tagging.Tagged
 
 import scala.concurrent.{ExecutionContext, Future}
 
 // TODO: this package seems too complex, look at all the features we need!
-import scala.language.reflectiveCalls
-import scala.language.higherKinds
-import scala.language.implicitConversions
+import scala.language.{higherKinds, implicitConversions, reflectiveCalls}
 
 package object core {
 
@@ -29,14 +28,7 @@ package object core {
     }
   }
 
-  object tagging {
-    private[core] trait Tagged[+V, +Tag]
-
-    implicit class Taggable[V <: Any](val v: V) extends AnyVal {
-      def tagged[Tag]: V @@ Tag = v.asInstanceOf[V @@ Tag]
-    }
-  }
-  type @@[+V, +Tag] = V with tagging.Tagged[V, Tag]
+  type @@[+V, +Tag] = V with Tagged[V, Tag]
 
   implicit class OptionTExtensions[H[_]: Monad, T](optionTValue: OptionT[H, T]) {
 
@@ -129,13 +121,4 @@ package core {
 
   final case class Base64(value: String)
 
-  trait Trimmed
-
-  object Trimmed {
-    import tagging._
-
-    implicit def string2Trimmed(str: String): String @@ Trimmed = str.trim().tagged[Trimmed]
-
-    implicit def name2Trimmed[T](name: Name[T]): Name[T] @@ Trimmed = Name[T](name.value.trim()).tagged[Trimmed]
-  }
 }

@@ -34,8 +34,10 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     (Id[String]("1234213") === Id[String]("213414")) should be(false)
     (Id[String]("213414") === Id[String]("1234213")) should be(false)
 
-    Seq(Id[String]("4"), Id[String]("3"), Id[String]("2"), Id[String]("1")).sorted should contain
-    theSameElementsInOrderAs(Seq(Id[String]("1"), Id[String]("2"), Id[String]("3"), Id[String]("4")))
+    val ids    = Seq(Id[String]("4"), Id[String]("3"), Id[String]("2"), Id[String]("1"))
+    val sorted = Seq(Id[String]("1"), Id[String]("2"), Id[String]("3"), Id[String]("4"))
+
+    ids.sorted should contain theSameElementsInOrderAs sorted
   }
 
   it should "have type-safe conversions" in {
@@ -68,8 +70,9 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     (Name[String]("foo") === Name[String]("bar")) should be(false)
     (Name[String]("bar") === Name[String]("foo")) should be(false)
 
-    Seq(Name[String]("d"), Name[String]("cc"), Name[String]("a"), Name[String]("bbb")).sorted should contain
-    theSameElementsInOrderAs(Seq(Name[String]("a"), Name[String]("bbb"), Name[String]("cc"), Name[String]("d")))
+    val names  = Seq(Name[String]("d"), Name[String]("cc"), Name[String]("a"), Name[String]("bbb"))
+    val sorted = Seq(Name[String]("a"), Name[String]("bbb"), Name[String]("cc"), Name[String]("d"))
+    names.sorted should contain theSameElementsInOrderAs sorted
   }
 
   "Revision" should "have equality working correctly" in {
@@ -81,4 +84,5 @@ class CoreTest extends FlatSpec with Matchers with MockitoSugar {
     (bla === foo) should be(false)
     (foo === bla) should be(false)
   }
+
 }

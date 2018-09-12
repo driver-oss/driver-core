@@ -5,7 +5,7 @@ import java.nio.file.Paths
 
 import xyz.driver.core.messaging.{CreateOnDemand, GoogleBus, QueueBus, StreamBus}
 import xyz.driver.core.reporting._
-import xyz.driver.core.rest.{DnsDiscovery, ServiceDescriptor}
+import xyz.driver.core.rest.DnsDiscovery
 import xyz.driver.core.storage.{BlobStorage, FileSystemBlobStorage, GcsBlobStorage}
 
 import scala.collection.JavaConverters._
@@ -19,8 +19,9 @@ trait CloudServices extends AkkaBootable { self =>
   def platform: Platform = Platform.current
 
   /** Service discovery for the current platform.
+    * @group utilities
     */
-  private lazy val discovery: DnsDiscovery = {
+  lazy val discovery: DnsDiscovery = {
     def getOverrides(): Map[String, String] = {
       val block = config.getObject("services.dev-overrides").unwrapped().asScala
       for ((key, value) <- block) yield {
@@ -36,8 +37,6 @@ trait CloudServices extends AkkaBootable { self =>
     }
     new DnsDiscovery(clientTransport, overrides)
   }
-
-  def discover[A: ServiceDescriptor]: A = discovery.discover[A]
 
   /* TODO: this reporter uses the platform to determine if JSON logging should be enabled.
    * Since the default logger uses slf4j, its settings must be specified before a logger

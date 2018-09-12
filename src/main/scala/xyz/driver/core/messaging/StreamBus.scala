@@ -69,20 +69,31 @@ trait StreamBus extends Bus {
       maxRestarts = 20
     )
 
+  def subscribeWithRestart[A](
+      topic: Topic[A],
+      config: SubscriptionConfig = defaultSubscriptionConfig,
+      restartSource: MessageRestartSource = defaultRestartSource
+  )(processMessage: Flow[(MessageId, A), List[MessageId], NotUsed]): RunnableGraph[_] = {
+    restartSource { () =>
+      subscribe(topic, config)
+        .map(message => message.id -> message.data)
+        .via(processMessage.recover({ case _ => Nil }))
+        .log(topic.name)
+        .mapConcat(identity)
+    }.to(acknowledge)
+  }
+
   def basicSubscribeWithRestart[A](
       topic: Topic[A],
       config: SubscriptionConfig = defaultSubscriptionConfig,
       restartSource: MessageRestartSource = defaultRestartSource,
-      batchSize: Long = 10L)(compute: A => Future[_]): RunnableGraph[_] = {
-    def processMessage(message: Message[A]): Future[Seq[MessageId]] =
-      compute(message.data).map(_ => Seq(message.id)).recover({ case _ => Nil })
-
-    restartSource { () =>
-      subscribe(topic, config)
-        .batch(batchSize, a => ListBuffer(a))(_ += _)
-        .mapAsync(1)(messages => Future.sequence(messages.map(processMessage)).map(_.flatten))
-        .log(topic.name)
-        .mapConcat(s => s.toList)
-    }.to(acknowledge)
+      parallelism: Int = 1
+  )(processMessage: A => Future[_]): RunnableGraph[_] = {
+    subscribeWithRestart(topic, config, restartSource) {
+      Flow[(MessageId, A)].mapAsync(parallelism) {
+        case (id, data) =>
+          processMessage(data).map(_ => id :: Nil)
+      }
+    }
   }
 }

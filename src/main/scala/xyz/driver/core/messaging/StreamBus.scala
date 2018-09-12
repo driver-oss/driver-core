@@ -2,9 +2,11 @@ package xyz.driver.core
 package messaging
 
 import akka.NotUsed
-import akka.stream.scaladsl.{Flow, Sink, Source}
+import akka.stream.scaladsl.{Flow, RestartSource, RunnableGraph, Sink, Source}
 
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 /** An extension to message buses that offers an Akka-Streams API.
   *
@@ -57,4 +59,30 @@ trait StreamBus extends Bus {
       .mapConcat(messages => messages.toList)
   }
 
+  type MessageRestartSource = (() => Source[MessageId, _]) => Source[MessageId, NotUsed]
+
+  val defaultRestartSource: MessageRestartSource =
+    RestartSource.withBackoff[MessageId](
+      minBackoff = 3.seconds,
+      maxBackoff = 30.seconds,
+      randomFactor = 0.2,
+      maxRestarts = 20
+    )
+
+  def basicSubscribeWithRestart[A](
+      topic: Topic[A],
+      config: SubscriptionConfig = defaultSubscriptionConfig,
+      restartSource: MessageRestartSource = defaultRestartSource,
+      batchSize: Long = 10L)(compute: A => Future[_]): RunnableGraph[_] = {
+    def processMessage(message: Message[A]): Future[Seq[MessageId]] =
+      compute(message.data).map(_ => Seq(message.id)).recover({ case _ => Nil })
+
+    restartSource { () =>
+      subscribe(topic, config)
+        .batch(batchSize, a => ListBuffer(a))(_ += _)
+        .mapAsync(1)(messages => Future.sequence(messages.map(processMessage)).map(_.flatten))
+        .log(topic.name)
+        .mapConcat(s => s.toList)
+    }.to(acknowledge)
+  }
 }

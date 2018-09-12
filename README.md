@@ -206,8 +206,7 @@ Stats it gives access to are,
 
 2. Publish to local repository, to use changes in depending projects:
 
-        $ sbt publish-local
+        $ sbt publishLocal
 
-3. Release a new version of core:
-
-        $ sbt release
+3. In order to release a new version of core, merge your PR, tag the HEAD master commit with the next version
+   (don't forget the "v." prefix) and push tags - Travis will release the artifact automatically!

@@ -3,10 +3,7 @@ package xyz.driver
 import eu.timepit.refined.api.{Refined, Validate}
 import eu.timepit.refined.collection.NonEmpty
 import scalaz.{Equal, Monad, OptionT}
-import xyz.driver.core.rest.errors.ExternalServiceException
 import xyz.driver.core.tagging.Tagged
-
-import scala.concurrent.{ExecutionContext, Future}
 
 // TODO: this package seems too complex, look at all the features we need!
 import scala.language.{higherKinds, implicitConversions, reflectiveCalls}
@@ -53,13 +50,6 @@ package object core {
       OptionT.optionT[H](monadT(monadicValue)(_ => Option(())))
   }
 
-  implicit class FutureExtensions[T](future: Future[T]) {
-    def passThroughExternalServiceException(implicit executionContext: ExecutionContext): Future[T] =
-      future.transform(identity, {
-        case ExternalServiceException(_, _, Some(e)) => e
-        case t: Throwable                            => t
-      })
-  }
 }
 
 package core {

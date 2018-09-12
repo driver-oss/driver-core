@@ -15,10 +15,11 @@ import scalaz.Scalaz.{intInstance, stringInstance}
 import scalaz.syntax.equal._
 import scalaz.{Functor, OptionT}
 import xyz.driver.core.rest.auth.AuthProvider
+import xyz.driver.core.rest.errors.ExternalServiceException
 import xyz.driver.core.rest.headers.Traceparent
 import xyz.driver.tracing.TracingDirectives
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 trait Service
@@ -72,6 +73,15 @@ object ListResponse {
 }
 
 object `package` {
+
+  implicit class FutureExtensions[T](future: Future[T]) {
+    def passThroughExternalServiceException(implicit executionContext: ExecutionContext): Future[T] =
+      future.transform(identity, {
+        case ExternalServiceException(_, _, Some(e)) => e
+        case t: Throwable                            => t
+      })
+  }
+
   implicit class OptionTRestAdditions[T](optionT: OptionT[Future, T]) {
     def responseOrNotFound(successCode: StatusCodes.Success = StatusCodes.OK)(
         implicit F: Functor[Future],

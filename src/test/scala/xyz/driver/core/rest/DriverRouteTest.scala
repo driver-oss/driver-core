@@ -8,7 +8,6 @@ import akka.http.scaladsl.server.{Directives, RejectionHandler, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.scalalogging.Logger
 import org.scalatest.{AsyncFlatSpec, Matchers}
-import xyz.driver.core.FutureExtensions
 import xyz.driver.core.json.serviceExceptionFormat
 import xyz.driver.core.logging.NoLogger
 import xyz.driver.core.rest.errors._

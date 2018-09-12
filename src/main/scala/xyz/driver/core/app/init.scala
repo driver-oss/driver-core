@@ -29,6 +29,16 @@ object init {
   case class ApplicationContext(config: Config, clock: Clock, reporter: ScalaLoggingCompat) {
     val time: TimeProvider = clock
   }
+  object ApplicationContext {
+    def apply(config: Config, clock: Clock, log0: Logger): ApplicationContext = {
+      val reporter = new NoTraceReporter with ScalaLoggingCompat {
+        val logger = log0
+      }
+      ApplicationContext(config, clock, reporter)
+    }
+    def apply(config: Config, time: TimeProvider, log0: Logger): ApplicationContext =
+      ApplicationContext(config, time.toClock, log0)
+  }
 
   /** NOTE: This needs to be the first that is run when application starts.
     * Otherwise if another command causes the logger to be instantiated,
@@ -90,9 +100,7 @@ object init {
     ApplicationContext(
       config = getEnvironmentSpecificConfig(),
       clock = Clock.systemUTC(),
-      new NoTraceReporter with ScalaLoggingCompat {
-        val logger = Logger(LoggerFactory.getLogger(classOf[DriverApp]))
-      }
+      Logger(LoggerFactory.getLogger(classOf[DriverApp]))
     )
 
   def createDefaultApplication(

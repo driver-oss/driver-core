@@ -59,40 +59,41 @@ trait StreamBus extends Bus {
       .mapConcat(messages => messages.toList)
   }
 
-  type MessageRestartSource = (() => Source[MessageId, _]) => Source[MessageId, NotUsed]
-
-  val defaultRestartSource: MessageRestartSource =
-    RestartSource.withBackoff[MessageId](
-      minBackoff = 3.seconds,
-      maxBackoff = 30.seconds,
-      randomFactor = 0.2,
-      maxRestarts = 20
-    )
-
   def subscribeWithRestart[A](
       topic: Topic[A],
       config: SubscriptionConfig = defaultSubscriptionConfig,
-      restartSource: MessageRestartSource = defaultRestartSource
-  )(processMessage: Flow[(MessageId, A), List[MessageId], NotUsed]): RunnableGraph[_] = {
-    restartSource { () =>
-      subscribe(topic, config)
-        .map(message => message.id -> message.data)
-        .via(processMessage.recover({ case _ => Nil }))
-        .log(topic.name)
-        .mapConcat(identity)
-    }.to(acknowledge)
+      minBackoff: FiniteDuration = 3.seconds,
+      maxBackoff: FiniteDuration = 30.seconds,
+      randomFactor: Double = 0.2,
+      maxRestarts: Int = 20
+  )(processMessage: Flow[Message[A], List[MessageId], NotUsed]): RunnableGraph[_] = {
+    RestartSource
+      .withBackoff[MessageId](
+        minBackoff,
+        maxBackoff,
+        randomFactor,
+        maxRestarts
+      ) { () =>
+        subscribe(topic, config)
+          .via(processMessage.recover({ case _ => Nil }))
+          .log(topic.name)
+          .mapConcat(identity)
+      }
+      .to(acknowledge)
   }
 
   def basicSubscribeWithRestart[A](
       topic: Topic[A],
       config: SubscriptionConfig = defaultSubscriptionConfig,
-      restartSource: MessageRestartSource = defaultRestartSource,
-      parallelism: Int = 1
+      parallelism: Int = 1,
+      minBackoff: FiniteDuration = 3.seconds,
+      maxBackoff: FiniteDuration = 30.seconds,
+      randomFactor: Double = 0.2,
+      maxRestarts: Int = 20
   )(processMessage: A => Future[_]): RunnableGraph[_] = {
-    subscribeWithRestart(topic, config, restartSource) {
-      Flow[(MessageId, A)].mapAsync(parallelism) {
-        case (id, data) =>
-          processMessage(data).map(_ => id :: Nil)
+    subscribeWithRestart(topic, config, minBackoff, maxBackoff, randomFactor, maxRestarts) {
+      Flow[Message[A]].mapAsync(parallelism) { message =>
+        processMessage(message.data).map(_ => message.id :: Nil)
       }
     }
   }

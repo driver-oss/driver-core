@@ -1,4 +1,25 @@
-# Driver Core Library [![Build Status](https://travis-ci.com/drivergroup/driver-core.svg?token=S4oyfBY3YoEdLmckujJx&branch=master)](https://travis-ci.com/drivergroup/driver-core)
+----
+
+Notice: the master branch is for development work on the **upcoming
+2.0 release**, which is still unstable. Any changes to a previous
+version of core should be developed against master and then
+cherry-picked onto the [1.x
+branch](https://github.com/drivergroup/driver-core/tree/1.x).
+
+----
+
+# Driver Core Library for Scala Services [![Build Status](https://travis-ci.com/drivergroup/driver-core.svg?token=S4oyfBY3YoEdLmckujJx&branch=master)](https://travis-ci.com/drivergroup/driver-core)
+
+Multi-cloud utilities and application initialization framework.
+
+This library offers many common utilities for building applications
+that run on multiple environments, including Google Cloud, Ali Cloud,
+and of course on development machines.
+
+
+# Overview
+
+*This section applies to the 1.x series of core. The current development master branch may include changes not described here.*
 
 Core library is used to provide ways to implement practices established in [Driver service template](http://github.com/drivergroup/driver-template) (check its [README.md](https://github.com/drivergroup/driver-template/blob/master/README.md)).
 

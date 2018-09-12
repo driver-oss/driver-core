@@ -54,7 +54,7 @@ lazy val `core-types` = project
 
 lazy val `core-rest` = project
   .enablePlugins(LibraryPlugin)
-  .dependsOn(`core-util`, `core-types`)
+  .dependsOn(`core-util`, `core-types`, `core-reporting`)
   .settings(testdeps)
 
 lazy val `core-reporting` = project

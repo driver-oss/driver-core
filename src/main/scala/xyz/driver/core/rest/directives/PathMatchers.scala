@@ -10,6 +10,7 @@ import akka.http.scaladsl.server.PathMatcher.{Matched, Unmatched}
 import akka.http.scaladsl.server.{PathMatcher, PathMatcher1, PathMatchers => AkkaPathMatchers}
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.refineV
+import xyz.driver.core.domain.PhoneNumber
 import xyz.driver.core.time.Time
 
 import scala.util.control.NonFatal
@@ -69,5 +70,16 @@ trait PathMatchers {
     PathMatcher("""[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}""".r) flatMap { string =>
       Some(Revision[T](string))
     }
+
+  def PhoneInPath: PathMatcher1[PhoneNumber] = new PathMatcher1[PhoneNumber] {
+    def apply(path: Path) = path match {
+      case Path.Segment(segment, tail) =>
+        PhoneNumber
+          .parse(segment)
+          .map(parsed => Matched(tail, Tuple1(parsed)))
+          .getOrElse(Unmatched)
+      case _ => Unmatched
+    }
+  }
 
 }

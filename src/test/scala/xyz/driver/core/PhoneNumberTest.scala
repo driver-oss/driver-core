@@ -44,6 +44,21 @@ class PhoneNumberTest extends FlatSpec with Matchers {
     PhoneNumber.parse("+86 134 52 52 2256") shouldBe Some(PhoneNumber("86", "13452522256"))
   }
 
+  it should "parse numbers with extensions in different formats" in {
+    // format: off
+    val numbers = List(
+      "+1 800 525 22 25 x23",
+      "+18005252225 ext. 23",
+      "+18005252225,23"
+    )
+    // format: on
+
+    val parsed = numbers.flatMap(PhoneNumber.parse)
+
+    parsed should have size numbers.size
+    parsed should contain only PhoneNumber("1", "8005252225", Some("23"))
+  }
+
   it should "return None on numbers that are shorter than the minimum number of digits for the country (i.e. US - 10, AR - 11)" in {
     withClue("US and CN numbers are 10 digits - 9 digit (and shorter) numbers should not fit") {
       // format: off
@@ -74,6 +89,11 @@ class PhoneNumberTest extends FlatSpec with Matchers {
 
     numbers.flatMap(PhoneNumber.parse) should contain theSameElementsAs
       List(PhoneNumber("45", "27452522"), PhoneNumber("86", "13452522256"))
+  }
+
+  "PhoneNumber.value" should "produce phone number in international format without whitespaces" in {
+    PhoneNumber.parse("+1 800 5252225").get.value shouldBe "+18005252225"
+    PhoneNumber.parse("+1 800 5252225 x23").get.value shouldBe "+18005252225 ext. 23"
   }
 
 }

@@ -247,6 +247,21 @@ class JsonTest extends WordSpec with Matchers with Inspectors {
         json.phoneNumberFormat.read(phoneJson)
       }.getMessage shouldBe "Invalid phone number"
     }
+
+    "parse phone number from string" in {
+      JsString("+14243039608").convertTo[PhoneNumber] shouldBe PhoneNumber("1", "4243039608")
+    }
+  }
+
+  "Path matcher for PhoneNumber" should {
+    "read valid phone number" in {
+      val string = "+14243039608x23"
+      val phone  = PhoneNumber("1", "4243039608", Some("23"))
+
+      val matcher = PathMatcher("foo") / PhoneInPath
+
+      matcher(Uri.Path("foo") / string / "bar") shouldBe Matched(Uri.Path./("bar"), Tuple1(phone))
+    }
   }
 
   "Json format for ADT mappings" should {

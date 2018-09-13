@@ -11,7 +11,7 @@ object domain {
 
   final case class Email(username: String, domain: String) {
 
-    val value: String = toString
+    def value: String = toString
 
     override def toString: String = username + "@" + domain
   }

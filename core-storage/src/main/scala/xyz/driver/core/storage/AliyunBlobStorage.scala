@@ -99,7 +99,7 @@ object AliyunBlobStorage {
     this(clientId, clientSecret, endpoint, bucketId, clock)
   }
 
-  def apply(clientId: String, clientSecret: String, region: String, bucketId: String, cloxk: Clock)(
+  def apply(clientId: String, clientSecret: String, region: String, bucketId: String, clock: Clock)(
       implicit ec: ExecutionContext): AliyunBlobStorage = {
     // https://www.alibabacloud.com/help/doc-detail/31837.htm
     val endpoint = s"https://oss-$region.aliyuncs.com"

@@ -76,8 +76,8 @@ trait CloudServices extends AkkaBootable { self =>
     platform match {
       case p @ Platform.GoogleCloud(keyfile, _) =>
         GcsBlobStorage.fromKeyfile(keyfile, s"${p.project}-$bucketName")
-      case Platform.AliCloud(_, accessId, accessKey, region, _) =>
-        AliyunBlobStorage(accessId, accessKey, region, bucketName, java.time.Clock.systemDefaultZone())
+      case Platform.AliCloud(project, _, accessId, accessKey, region, _) =>
+        AliyunBlobStorage(accessId, accessKey, region, s"$project-$bucketName", java.time.Clock.systemDefaultZone())
       case Platform.Dev =>
         new FileSystemBlobStorage(Paths.get(s".data-$bucketName"))
     }
@@ -88,7 +88,7 @@ trait CloudServices extends AkkaBootable { self =>
   def messageBus: StreamBus = platform match {
     case p @ Platform.GoogleCloud(_, namespace) =>
       new GoogleBus(p.credentials, namespace) with StreamBus with CreateOnDemand
-    case Platform.AliCloud(accountId, accessId, accessKey, region, namespace) =>
+    case Platform.AliCloud(_, accountId, accessId, accessKey, region, namespace) =>
       new AliyunBus(accountId, accessId, accessKey, region, namespace) with StreamBus with CreateOnDemand
     case Platform.Dev =>
       new QueueBus()(self.system) with StreamBus

@@ -29,12 +29,19 @@ object Platform {
     }
   }
 
-  case class AliCloud(accountId: String, accessId: String, accessKey: String, region: String, namespace: String)
+  case class AliCloud(
+      project: String,
+      accountId: String,
+      accessId: String,
+      accessKey: String,
+      region: String,
+      namespace: String)
       extends Platform
 
   object AliCloud {
     lazy val fromEnv: AliCloud = {
       AliCloud(
+        project = sys.env("CLOUD_PROJECT"),
         accountId = sys.env("ALICLOUD_ACCOUNT_ID"),
         accessId = sys.env("ALICLOUD_ACCESS_ID"),
         accessKey = sys.env("ALICLOUD_ACCESS_KEY"),

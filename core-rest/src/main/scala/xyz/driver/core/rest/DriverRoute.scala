@@ -88,9 +88,6 @@ trait DriverRoute {
       case e: ExternalServiceTimeoutException =>
         log.error("Service timeout error", e)
         StatusCodes.GatewayTimeout
-      case e: DatabaseException =>
-        log.error("Database error", e)
-        StatusCodes.InternalServerError
     }
 
     { (ctx: RequestContext) =>

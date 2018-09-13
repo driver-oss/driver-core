@@ -1,7 +1,5 @@
 package xyz.driver.core.database
 
-import xyz.driver.core.rest.errors.DatabaseException
-
 import scala.reflect.ClassTag
 
 /**
@@ -24,3 +22,4 @@ trait Converters {
     query.map(expectValid[ADT](mapper, _))
   }
 }
+final case class DatabaseException(message: String = "Database access error") extends RuntimeException(message)

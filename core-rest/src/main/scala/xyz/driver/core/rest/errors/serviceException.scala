@@ -22,6 +22,3 @@ final case class ExternalServiceException(
 
 final case class ExternalServiceTimeoutException(serviceName: String)
     extends ServiceException(s"$serviceName took too long to respond")
-
-final case class DatabaseException(override val message: String = "Database access error")
-    extends ServiceException(message)

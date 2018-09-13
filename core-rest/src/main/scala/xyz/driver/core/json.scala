@@ -383,7 +383,6 @@ object json extends PathMatchers with Unmarshallers {
       case _: ResourceNotFoundException       => "ResourceNotFoundException"
       case _: ExternalServiceException        => "ExternalServiceException"
       case _: ExternalServiceTimeoutException => "ExternalServiceTimeoutException"
-      case _: DatabaseException               => "DatabaseException"
     } {
       case "InvalidInputException"     => jsonFormat(InvalidInputException, "message")
       case "InvalidActionException"    => jsonFormat(InvalidActionException, "message")
@@ -392,7 +391,6 @@ object json extends PathMatchers with Unmarshallers {
       case "ExternalServiceException" =>
         jsonFormat(ExternalServiceException, "serviceName", "serviceMessage", "serviceException")
       case "ExternalServiceTimeoutException" => jsonFormat(ExternalServiceTimeoutException, "message")
-      case "DatabaseException"               => jsonFormat(DatabaseException, "message")
     }
 
 }

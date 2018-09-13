@@ -5,9 +5,14 @@ import scalaz.Equal
 import scalaz.std.string._
 import scalaz.syntax.equal._
 
+import scala.util.Try
+
 object domain {
 
   final case class Email(username: String, domain: String) {
+
+    val value: String = toString
+
     override def toString: String = username + "@" + domain
   }
 
@@ -23,7 +28,10 @@ object domain {
     }
   }
 
-  final case class PhoneNumber(countryCode: String = "1", number: String) {
+  final case class PhoneNumber(countryCode: String, number: String) {
+
+    def value: String = s"+$countryCode$number"
+
     override def toString: String = s"+$countryCode $number"
   }
 
@@ -32,9 +40,10 @@ object domain {
     private val phoneUtil = PhoneNumberUtil.getInstance()
 
     def parse(phoneNumber: String): Option[PhoneNumber] = {
-      val validated =
-        util.Try(phoneUtil.parseAndKeepRawInput(phoneNumber, "US")).toOption.filter(phoneUtil.isValidNumber)
-      validated.map(pn => PhoneNumber(pn.getCountryCode.toString, pn.getNationalNumber.toString))
+      val validated = Try(phoneUtil.parseAndKeepRawInput(phoneNumber, "US")).toOption.filter(phoneUtil.isValidNumber)
+      validated.map { pn =>
+        PhoneNumber(pn.getCountryCode.toString, pn.getNationalNumber.toString)
+      }
     }
   }
 }

@@ -76,4 +76,8 @@ class PhoneNumberTest extends FlatSpec with Matchers {
       List(PhoneNumber("45", "27452522"), PhoneNumber("86", "13452522256"))
   }
 
+  "PhoneNumber.value" should "produce phone number in international format without whitespaces" in {
+    PhoneNumber.parse("+1 800 5252225").get.value shouldBe "+18005252225"
+  }
+
 }

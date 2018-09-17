@@ -99,9 +99,14 @@ class PhoneNumberTest extends FlatSpec with Matchers {
     PhoneNumber.parse("+1 800 5252225 x23").get.toE164String shouldBe "+18005252225;ext=23"
   }
 
-  "PhoneNumber.toHumanReadableString" should "produce nice readable result" in {
+  "PhoneNumber.toHumanReadableString" should "produce nice readable result for different countries" in {
+    PhoneNumber.parse("+14154234567").get.toHumanReadableString shouldBe "+1 415-423-4567"
+    PhoneNumber.parse("+14154234567,23").get.toHumanReadableString shouldBe "+1 415-423-4567 ext. 23"
+
     PhoneNumber.parse("+78005252225").get.toHumanReadableString shouldBe "+7 800 525-22-25"
-    PhoneNumber.parse("+78005252225,23").get.toHumanReadableString shouldBe "+7 800 525-22-25 ext. 23"
+
+
+    PhoneNumber.parse("+41219437898").get.toHumanReadableString shouldBe "+41 21 943 78 98"
   }
 
   it should "throw an IllegalArgumentException if the PhoneNumber object is not parsable/valid" in {

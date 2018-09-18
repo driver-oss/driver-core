@@ -105,7 +105,6 @@ class PhoneNumberTest extends FlatSpec with Matchers {
 
     PhoneNumber.parse("+78005252225").get.toHumanReadableString shouldBe "+7 800 525-22-25"
 
-
     PhoneNumber.parse("+41219437898").get.toHumanReadableString shouldBe "+41 21 943 78 98"
   }
 

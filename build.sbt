@@ -96,3 +96,13 @@ lazy val core = project
     `core-database`,
     `core-init`
   )
+  .aggregate(
+    `core-types`,
+    `core-rest`,
+    `core-reporting`,
+    `core-storage`,
+    `core-messaging`,
+    `core-database`,
+    `core-init`,
+    `core-util`
+  )

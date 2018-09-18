@@ -1,0 +1,21 @@
+digraph core {
+
+	rankdir = BT;
+
+	"core-reporting";
+	"core-storage" -> "core-reporting";
+	"core-messaging" -> "core-reporting";
+	"core-database" -> "core-reporting";
+	"core-database" -> "core-types";
+	"core-rest" -> "core-reporting";
+	"core-rest" -> "core-types";
+	"core-init" -> "core-storage";
+	"core-init" -> "core-messaging";
+	"core-init" -> "core-database";
+	"core-init" -> "core-rest";
+	"core-init" -> "core-reporting";
+
+	core [color=red];
+	core -> "core-init" [color=red];
+
+}

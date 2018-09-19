@@ -44,6 +44,21 @@ class PhoneNumberTest extends FlatSpec with Matchers {
     PhoneNumber.parse("+86 134 52 52 2256") shouldBe Some(PhoneNumber("86", "13452522256"))
   }
 
+  it should "parse numbers with extensions in different formats" in {
+    // format: off
+    val numbers = List(
+      "+1 800 525 22 25 x23",
+      "+18005252225 ext. 23",
+      "+18005252225,23"
+    )
+    // format: on
+
+    val parsed = numbers.flatMap(PhoneNumber.parse)
+
+    parsed should have size numbers.size
+    parsed should contain only PhoneNumber("1", "8005252225", Some("23"))
+  }
+
   it should "return None on numbers that are shorter than the minimum number of digits for the country (i.e. US - 10, AR - 11)" in {
     withClue("US and CN numbers are 10 digits - 9 digit (and shorter) numbers should not fit") {
       // format: off
@@ -74,6 +89,29 @@ class PhoneNumberTest extends FlatSpec with Matchers {
 
     numbers.flatMap(PhoneNumber.parse) should contain theSameElementsAs
       List(PhoneNumber("45", "27452522"), PhoneNumber("86", "13452522256"))
+  }
+
+  "PhoneNumber.toCompactString/toE164String" should "produce phone number in international format without whitespaces" in {
+    PhoneNumber.parse("+1 800 5252225").get.toCompactString shouldBe "+18005252225"
+    PhoneNumber.parse("+1 800 5252225").get.toE164String shouldBe "+18005252225"
+
+    PhoneNumber.parse("+1 800 5252225 x23").get.toCompactString shouldBe "+18005252225;ext=23"
+    PhoneNumber.parse("+1 800 5252225 x23").get.toE164String shouldBe "+18005252225;ext=23"
+  }
+
+  "PhoneNumber.toHumanReadableString" should "produce nice readable result for different countries" in {
+    PhoneNumber.parse("+14154234567").get.toHumanReadableString shouldBe "+1 415-423-4567"
+    PhoneNumber.parse("+14154234567,23").get.toHumanReadableString shouldBe "+1 415-423-4567 ext. 23"
+
+    PhoneNumber.parse("+78005252225").get.toHumanReadableString shouldBe "+7 800 525-22-25"
+
+    PhoneNumber.parse("+41219437898").get.toHumanReadableString shouldBe "+41 21 943 78 98"
+  }
+
+  it should "throw an IllegalArgumentException if the PhoneNumber object is not parsable/valid" in {
+    intercept[IllegalStateException] {
+      PhoneNumber("+123", "1238123120938120938").toHumanReadableString
+    }.getMessage should include("+123 1238123120938120938 is not a valid number")
   }
 
 }

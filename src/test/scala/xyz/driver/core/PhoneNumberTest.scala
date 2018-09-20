@@ -76,4 +76,23 @@ class PhoneNumberTest extends FlatSpec with Matchers {
       List(PhoneNumber("45", "27452522"), PhoneNumber("86", "13452522256"))
   }
 
+  "PhoneNumber.toCompactString/toE164String" should "produce phone number in international format without whitespaces" in {
+    PhoneNumber.parse("+1 800 5252225").get.toCompactString shouldBe "+18005252225"
+    PhoneNumber.parse("+1 800 5252225").get.toE164String shouldBe "+18005252225"
+  }
+
+  "PhoneNumber.toHumanReadableString" should "produce nice readable result for different countries" in {
+    PhoneNumber.parse("+14154234567").get.toHumanReadableString shouldBe "+1 415-423-4567"
+
+    PhoneNumber.parse("+78005252225").get.toHumanReadableString shouldBe "+7 800 525-22-25"
+
+    PhoneNumber.parse("+41219437898").get.toHumanReadableString shouldBe "+41 21 943 78 98"
+  }
+
+  it should "throw an IllegalArgumentException if the PhoneNumber object is not parsable/valid" in {
+    intercept[IllegalStateException] {
+      PhoneNumber("+123", "1238123120938120938").toHumanReadableString
+    }.getMessage should include("+123 1238123120938120938 is not a valid number")
+  }
+
 }

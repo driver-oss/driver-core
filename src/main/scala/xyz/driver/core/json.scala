@@ -234,11 +234,30 @@ object json {
     }
   }
 
+  def PhoneInPath: PathMatcher1[PhoneNumber] = new PathMatcher1[PhoneNumber] {
+    def apply(path: Path) = path match {
+      case Path.Segment(segment, tail) =>
+        PhoneNumber
+          .parse(segment)
+          .map(parsed => Matched(tail, Tuple1(parsed)))
+          .getOrElse(Unmatched)
+      case _ => Unmatched
+    }
+  }
+
   implicit object phoneNumberFormat extends RootJsonFormat[PhoneNumber] {
-    private val basicFormat                       = jsonFormat2(PhoneNumber.apply)
-    override def write(obj: PhoneNumber): JsValue = basicFormat.write(obj)
-    override def read(json: JsValue): PhoneNumber = {
-      PhoneNumber.parse(basicFormat.read(json).toString).getOrElse(deserializationError("Invalid phone number"))
+
+    private val basicFormat = jsonFormat2(PhoneNumber.apply)
+
+    def write(obj: PhoneNumber): JsValue = basicFormat.write(obj)
+
+    def read(json: JsValue): PhoneNumber = {
+      val maybePhone = json match {
+        case JsString(number) => PhoneNumber.parse(number)
+        case obj: JsObject    => PhoneNumber.parse(basicFormat.read(obj).toString)
+        case _                => None
+      }
+      maybePhone.getOrElse(deserializationError("Invalid phone number"))
     }
   }
 

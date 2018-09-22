@@ -79,7 +79,7 @@ trait RestService extends Service {
       .find(_.name() === ContextHeaders.ResourceCount)
       .map(_.value().toInt)
       .getOrElse(0)
-    val meta = ListResponse.Meta(resourceCount, pagination.getOrElse(Pagination(resourceCount, 1)))
+    val meta = ListResponse.Meta(resourceCount, pagination.getOrElse(Pagination(resourceCount max 1, 1)))
     Unmarshal(response.entity).to[List[T]].map(ListResponse(_, meta))
   }
 

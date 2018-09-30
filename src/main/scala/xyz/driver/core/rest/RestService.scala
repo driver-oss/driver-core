@@ -6,8 +6,6 @@ import akka.stream.Materializer
 
 import scala.concurrent.{ExecutionContext, Future}
 import scalaz.{ListT, OptionT}
-import scalaz.syntax.equal._
-import scalaz.Scalaz.stringInstance
 
 trait RestService extends Service {
 
@@ -76,7 +74,7 @@ trait RestService extends Service {
       response: HttpResponse): Future[ListResponse[T]] = {
     import DefaultJsonProtocol._
     val resourceCount = response.headers
-      .find(_.name() === ContextHeaders.ResourceCount)
+      .find(_.name() equalsIgnoreCase ContextHeaders.ResourceCount)
       .map(_.value().toInt)
       .getOrElse(0)
     val meta = ListResponse.Meta(resourceCount, pagination.getOrElse(Pagination(resourceCount max 1, 1)))

@@ -13,17 +13,54 @@ object Platform {
     )
     def project: String = credentials.getProjectId
   }
-  // case object AliCloud   extends Platform
-  case object Dev extends Platform
 
-  lazy val fromEnv: Platform = {
-    def isGoogle = sys.env.get("GOOGLE_APPLICATION_CREDENTIALS").map { value =>
-      val keyfile = Paths.get(value)
-      require(Files.isReadable(keyfile), s"Google credentials file $value is not readable.")
+  object GoogleCloud {
+    lazy val fromEnv: GoogleCloud = {
+      val credentialsFile =
+        sys.env.getOrElse(
+          "GOOGLE_APPLICATION_CREDENTIALS",
+          sys.error("Expected GOOGLE_APPLICATION_CREDENTIALS file to be set in gcp environment"))
+
+      val keyfile = Paths.get(credentialsFile)
+      require(Files.isReadable(keyfile), s"Google credentials file $credentialsFile is not readable.")
+
       val namespace = sys.env.getOrElse("SERVICE_NAMESPACE", sys.error("Namespace not set"))
       GoogleCloud(keyfile, namespace)
     }
-    isGoogle.getOrElse(Dev)
+  }
+
+  case class AliCloud(
+      project: String,
+      accountId: String,
+      accessId: String,
+      accessKey: String,
+      region: String,
+      namespace: String)
+      extends Platform
+
+  object AliCloud {
+    lazy val fromEnv: AliCloud = {
+      AliCloud(
+        project = sys.env("CLOUD_PROJECT"),
+        accountId = sys.env("ALICLOUD_ACCOUNT_ID"),
+        accessId = sys.env("ALICLOUD_ACCESS_ID"),
+        accessKey = sys.env("ALICLOUD_ACCESS_KEY"),
+        region = sys.env("CLOUD_REGION"),
+        namespace = sys.env("SERVICE_NAMESPACE")
+      )
+    }
+  }
+
+  case object Dev extends Platform
+
+  lazy val fromEnv: Platform = {
+    sys.env.get("CLOUD_PROVIDER") match {
+      case Some("alicloud") => AliCloud.fromEnv
+      case Some("gcp")      => GoogleCloud.fromEnv
+
+      // For backwards compat, try instantiating GCP first, falling back to Dev
+      case _ => util.Try(GoogleCloud.fromEnv).getOrElse(Dev)
+    }
   }
 
   def current: Platform = fromEnv

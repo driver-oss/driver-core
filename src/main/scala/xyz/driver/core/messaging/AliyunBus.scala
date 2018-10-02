@@ -136,18 +136,22 @@ class AliyunBus(
 
   def createSubscription(topic: Topic[_], config: SubscriptionConfig): Future[Unit] = Future {
     val subscriptionName = rawSubscriptionName(config, topic)
-    val topicName        = rawTopicName(topic)
-    val topicRef         = client.getTopicRef(topicName)
+    val queueExists      = Option(client.listQueue(subscriptionName, "", 1)).exists(!_.getResult.isEmpty)
 
-    val queueMeta = new QueueMeta
-    queueMeta.setQueueName(subscriptionName)
-    queueMeta.setVisibilityTimeout(config.ackTimeout.toSeconds)
-    client.createQueue(queueMeta)
+    if (!queueExists) {
+      val topicName = rawTopicName(topic)
+      val topicRef  = client.getTopicRef(topicName)
 
-    val subscriptionMeta = new SubscriptionMeta
-    subscriptionMeta.setSubscriptionName(subscriptionName)
-    subscriptionMeta.setTopicName(topicName)
-    subscriptionMeta.setEndpoint(topicRef.generateQueueEndpoint(subscriptionName))
-    topicRef.subscribe(subscriptionMeta)
+      val queueMeta = new QueueMeta
+      queueMeta.setQueueName(subscriptionName)
+      queueMeta.setVisibilityTimeout(config.ackTimeout.toSeconds)
+      client.createQueue(queueMeta)
+
+      val subscriptionMeta = new SubscriptionMeta
+      subscriptionMeta.setSubscriptionName(subscriptionName)
+      subscriptionMeta.setTopicName(topicName)
+      subscriptionMeta.setEndpoint(topicRef.generateQueueEndpoint(subscriptionName))
+      topicRef.subscribe(subscriptionMeta)
+    }
   }
 }

@@ -76,7 +76,7 @@ trait StreamBus extends Bus {
         maxRestarts
       ) { () =>
         subscribe(topic, config)
-          .via(processMessage.recover({ case _ => Nil }))
+          .via(processMessage)
           .log(topic.name)
           .mapConcat(identity)
       }

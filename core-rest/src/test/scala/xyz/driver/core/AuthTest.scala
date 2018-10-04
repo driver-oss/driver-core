@@ -9,11 +9,12 @@ import akka.http.scaladsl.model.headers.{
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
+import com.typesafe.scalalogging.Logger
 import org.scalatest.{FlatSpec, Matchers}
+import org.slf4j.helpers.NOPLogger
 import pdi.jwt.{Jwt, JwtAlgorithm}
 import xyz.driver.core.auth._
 import xyz.driver.core.domain.Email
-import xyz.driver.core.logging._
 import xyz.driver.core.rest._
 import xyz.driver.core.rest.auth._
 import xyz.driver.core.time.Time
@@ -53,7 +54,7 @@ class AuthTest extends FlatSpec with Matchers with ScalatestRouteTest {
 
   val authorization = new ChainedAuthorization[User](tokenAuthorization, basicAuthorization)
 
-  val authStatusService = new AuthProvider[User](authorization, NoLogger) {
+  val authStatusService = new AuthProvider[User](authorization, Logger(NOPLogger.NOP_LOGGER)) {
     override def authenticatedUser(implicit ctx: ServiceRequestContext): OptionT[Future, User] =
       OptionT.optionT[Future] {
         if (ctx.contextHeaders.keySet.contains(AuthProvider.AuthenticationTokenHeader)) {

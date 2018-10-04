@@ -18,11 +18,11 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
 class AliyunBlobStorage(
-                         client: OSSClient,
-                         bucketId: String,
-                         clock: Clock,
-                         chunkSize: Int = AliyunBlobStorage.DefaultChunkSize)(implicit ec: ExecutionContext)
-  extends SignedBlobStorage {
+    client: OSSClient,
+    bucketId: String,
+    clock: Clock,
+    chunkSize: Int = AliyunBlobStorage.DefaultChunkSize)(implicit ec: ExecutionContext)
+    extends SignedBlobStorage {
   override def uploadContent(name: String, content: Array[Byte]): Future[String] = Future {
     client.putObject(bucketId, name, new ByteArrayInputStream(content))
     name
@@ -61,7 +61,7 @@ class AliyunBlobStorage(
         Future {
           client.putObject(bucketId, name, is)
           Done
-        })
+      })
   }
 
   override def delete(name: String): Future[String] = Future {
@@ -92,8 +92,7 @@ class AliyunBlobStorage(
 object AliyunBlobStorage {
   val DefaultChunkSize: Int = 8192
 
-  def apply(config: Config, bucketId: String, clock: Clock)(
-    implicit ec: ExecutionContext): AliyunBlobStorage = {
+  def apply(config: Config, bucketId: String, clock: Clock)(implicit ec: ExecutionContext): AliyunBlobStorage = {
     val clientId     = config.getString("storage.aliyun.clientId")
     val clientSecret = config.getString("storage.aliyun.clientSecret")
     val endpoint     = config.getString("storage.aliyun.endpoint")
@@ -101,7 +100,7 @@ object AliyunBlobStorage {
   }
 
   def apply(clientId: String, clientSecret: String, endpoint: String, bucketId: String, clock: Clock)(
-    implicit ec: ExecutionContext): AliyunBlobStorage = {
+      implicit ec: ExecutionContext): AliyunBlobStorage = {
     val client = new OSSClient(endpoint, clientId, clientSecret)
     new AliyunBlobStorage(client, bucketId, clock)
   }

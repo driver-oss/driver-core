@@ -8,8 +8,8 @@ import akka.http.scaladsl.server.{Directives, RejectionHandler, Route}
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.scalalogging.Logger
 import org.scalatest.{AsyncFlatSpec, Matchers}
+import org.slf4j.helpers.NOPLogger
 import xyz.driver.core.json.serviceExceptionFormat
-import xyz.driver.core.logging.NoLogger
 import xyz.driver.core.rest.errors._
 
 import scala.concurrent.Future
@@ -17,7 +17,7 @@ import scala.concurrent.Future
 class DriverRouteTest
     extends AsyncFlatSpec with ScalatestRouteTest with SprayJsonSupport with Matchers with Directives {
   class TestRoute(override val route: Route) extends DriverRoute {
-    override def log: Logger = NoLogger
+    override def log: Logger = Logger(NOPLogger.NOP_LOGGER)
   }
 
   "DriverRoute" should "respond with 200 OK for a basic route" in {
@@ -91,16 +91,6 @@ class DriverRouteTest
       handled shouldBe true
       status shouldBe StatusCodes.GatewayTimeout
       responseAs[ServiceException] shouldBe error
-    }
-  }
-
-  it should "respond with a 500 for DatabaseException" in {
-    val route = new TestRoute(akkaComplete(Future.failed[String](DatabaseException())))
-
-    Post("/api/v1/foo/bar") ~> route.routeWithDefaults ~> check {
-      handled shouldBe true
-      status shouldBe StatusCodes.InternalServerError
-      responseAs[ServiceException] shouldBe DatabaseException()
     }
   }
 

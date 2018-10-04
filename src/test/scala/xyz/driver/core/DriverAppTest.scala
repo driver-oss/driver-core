@@ -1,4 +1,4 @@
-package xyz.driver.core.rest
+package xyz.driver.core
 
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.model.{HttpMethod, StatusCodes}

@@ -2,6 +2,7 @@ package xyz.driver.core.database
 
 import org.scalatest.{FlatSpec, Matchers}
 import org.scalatest.prop.Checkers
+import xyz.driver.core.DatabaseException
 
 class DatabaseTest extends FlatSpec with Matchers with Checkers {
   import xyz.driver.core.generators._

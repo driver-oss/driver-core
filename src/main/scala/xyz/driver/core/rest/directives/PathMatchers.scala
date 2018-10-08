@@ -27,6 +27,12 @@ trait PathMatchers {
     }
   }
 
+  def UuidIdInPath[T]: PathMatcher1[UuidId[T]] =
+    AkkaPathMatchers.JavaUUID.map((id: UUID) => UuidId[T](id))
+
+  def NumericIdInPath[T]: PathMatcher1[NumericId[T]] =
+    AkkaPathMatchers.LongNumber.map((id: Long) => NumericId[T](id))
+
   def NameInPath[T]: PathMatcher1[Name[T]] = new PathMatcher1[Name[T]] {
     def apply(path: Path) = path match {
       case Path.Segment(segment, tail) => Matched(tail, Tuple1(Name[T](segment)))

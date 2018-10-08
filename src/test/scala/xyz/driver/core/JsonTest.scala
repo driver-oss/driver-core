@@ -2,6 +2,7 @@ package xyz.driver.core
 
 import java.net.InetAddress
 import java.time.{Instant, LocalDate}
+import java.util.UUID
 
 import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.server.PathMatcher
@@ -37,6 +38,32 @@ class JsonTest extends WordSpec with Matchers with Inspectors {
       writtenJson.prettyPrint should be("\"1312-34A\"")
 
       val parsedId = json.idFormat.read(writtenJson)
+      parsedId should be(referenceId)
+    }
+  }
+
+  "Json format for UuidId" should {
+    "read and write correct JSON" in {
+
+      val referenceId = UuidId[String](UUID.fromString("c21c0ba6-05a2-4d4b-87ba-2405a5e83e64"))
+
+      val writtenJson = json.uuidIdFormat.write(referenceId)
+      writtenJson.prettyPrint should be("\"c21c0ba6-05a2-4d4b-87ba-2405a5e83e64\"")
+
+      val parsedId = json.uuidIdFormat.read(writtenJson)
+      parsedId should be(referenceId)
+    }
+  }
+
+  "Json format for NumericId" should {
+    "read and write correct JSON" in {
+
+      val referenceId = NumericId[String](1312)
+
+      val writtenJson = json.numericIdFormat.write(referenceId)
+      writtenJson.prettyPrint should be("\"1312\"")
+
+      val parsedId = json.numericIdFormat.read(writtenJson)
       parsedId should be(referenceId)
     }
   }

@@ -37,6 +37,24 @@ object json extends PathMatchers with Unmarshallers {
     }
   }
 
+  implicit def uuidIdFormat[T]: RootJsonFormat[UuidId[T]] = new RootJsonFormat[UuidId[T]] {
+    def write(id: UuidId[T]) = JsString(id.toString)
+
+    def read(value: JsValue): UuidId[T] = value match {
+      case JsString(id) if Try(UUID.fromString(id)).isSuccess => UuidId[T](UUID.fromString(id))
+      case _                                                  => throw DeserializationException("Id expects UUID")
+    }
+  }
+
+  implicit def numericIdFormat[T]: RootJsonFormat[NumericId[T]] = new RootJsonFormat[NumericId[T]] {
+    def write(id: NumericId[T]) = JsString(id.toString)
+
+    def read(value: JsValue): NumericId[T] = value match {
+      case JsString(id) if Try(id.toLong).isSuccess => NumericId[T](id.toLong)
+      case _                                        => throw DeserializationException("Id expects number")
+    }
+  }
+
   implicit def taggedFormat[F, T](implicit underlying: JsonFormat[F], convert: F => F @@ T = null): JsonFormat[F @@ T] =
     new JsonFormat[F @@ T] {
       import tagging._

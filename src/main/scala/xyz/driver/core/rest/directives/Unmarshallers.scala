@@ -16,6 +16,16 @@ trait Unmarshallers {
       Id[A](UUID.fromString(str).toString)
     }
 
+  implicit def uuidIdUnmarshaller[A]: Unmarshaller[String, UuidId[A]] =
+    Unmarshaller.strict[String, UuidId[A]] { str =>
+      UuidId[A](UUID.fromString(str))
+    }
+
+  implicit def numericIdUnmarshaller[A]: Unmarshaller[Long, NumericId[A]] =
+    Unmarshaller.strict[Long, NumericId[A]] { x =>
+      NumericId[A](x)
+    }
+
   implicit def paramUnmarshaller[T](implicit reader: JsonReader[T]): Unmarshaller[String, T] =
     Unmarshaller.firstOf(
       Unmarshaller.strict((JsString(_: String)) andThen reader.read),

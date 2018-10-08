@@ -65,6 +65,8 @@ object generators {
 
   def nextNumericId[T](maxValue: Int): Id[T] = Id[T](nextInt(maxValue).toString)
 
+  def nextUuidId[T](): UuidId[T] = UuidId[T](nextUuid())
+
   def nextName[T](maxLength: Int = DefaultMaxLength): Name[T] = Name[T](nextString(maxLength))
 
   def nextNonEmptyName[T](maxLength: Int = DefaultMaxLength): NonEmptyName[T] =

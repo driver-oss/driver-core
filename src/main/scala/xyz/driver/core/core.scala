@@ -64,7 +64,15 @@ package object core {
 
 package core {
 
-  final case class Id[+Tag](value: String) extends AnyVal {
+  import java.util.UUID
+
+  sealed trait GenericId[+Tag, IdType] extends Any {
+    def value: IdType
+    def length: Int
+    def toString: String
+  }
+
+  final case class Id[+Tag](value: String) extends AnyVal with GenericId[Tag, String] {
     @inline def length: Int       = value.length
     override def toString: String = value
   }
@@ -83,6 +91,48 @@ package core {
     }
     implicit def convertRE[R, E](id: Id[R])(implicit mapper: Mapper[E, R]): Id[E] = mapper[E](id)
     implicit def convertER[E, R](id: Id[E])(implicit mapper: Mapper[E, R]): Id[R] = mapper[R](id)
+  }
+
+  final case class UuidId[+Tag](value: UUID) extends AnyVal with GenericId[Tag, UUID] {
+    @inline def length: Int       = value.toString.length
+    override def toString: String = value.toString
+  }
+
+  @SuppressWarnings(Array("org.wartremover.warts.ImplicitConversion"))
+  object UuidId {
+    implicit def idEqual[T]: Equal[UuidId[T]]       = Equal.equal[UuidId[T]](_ == _)
+    implicit def idOrdering[T]: Ordering[UuidId[T]] = Ordering.by[UuidId[T], UUID](_.value)
+
+    sealed class Mapper[E, R] {
+      def apply[T >: E](id: UuidId[R]): UuidId[T]                                = UuidId[E](id.value)
+      def apply[T >: R](id: UuidId[E])(implicit dummy: DummyImplicit): UuidId[T] = UuidId[R](id.value)
+    }
+    object Mapper {
+      def apply[E, R] = new Mapper[E, R]
+    }
+    implicit def convertRE[R, E](id: UuidId[R])(implicit mapper: Mapper[E, R]): UuidId[E] = mapper[E](id)
+    implicit def convertER[E, R](id: UuidId[E])(implicit mapper: Mapper[E, R]): UuidId[R] = mapper[R](id)
+  }
+
+  final case class NumericId[+Tag](value: Long) extends AnyVal with GenericId[Tag, Long] {
+    @inline def length: Int       = value.toString.length
+    override def toString: String = value.toString
+  }
+
+  @SuppressWarnings(Array("org.wartremover.warts.ImplicitConversion"))
+  object NumericId {
+    implicit def idEqual[T]: Equal[NumericId[T]]       = Equal.equal[NumericId[T]](_ == _)
+    implicit def idOrdering[T]: Ordering[NumericId[T]] = Ordering.by[NumericId[T], Long](_.value)
+
+    sealed class Mapper[E, R] {
+      def apply[T >: E](id: NumericId[R]): NumericId[T]                                = NumericId[E](id.value)
+      def apply[T >: R](id: NumericId[E])(implicit dummy: DummyImplicit): NumericId[T] = NumericId[R](id.value)
+    }
+    object Mapper {
+      def apply[E, R] = new Mapper[E, R]
+    }
+    implicit def convertRE[R, E](id: NumericId[R])(implicit mapper: Mapper[E, R]): NumericId[E] = mapper[E](id)
+    implicit def convertER[E, R](id: NumericId[E])(implicit mapper: Mapper[E, R]): NumericId[R] = mapper[R](id)
   }
 
   final case class Name[+Tag](value: String) extends AnyVal {

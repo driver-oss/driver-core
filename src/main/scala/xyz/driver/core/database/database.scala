@@ -126,6 +126,33 @@ package database {
     }
   }
 
+  trait GenericIdColumnTypes[IdType] extends ColumnTypes {
+    import profile.api._
+    implicit def `xyz.driver.core.GenericId.columnType`[T]: BaseColumnType[GenericId[T, IdType]]
+  }
+
+  object GenericIdColumnTypes {
+    trait UUID extends GenericIdColumnTypes[java.util.UUID] {
+      import profile.api._
+
+      override implicit def `xyz.driver.core.GenericId.columnType`[T]: BaseColumnType[GenericId[T, java.util.UUID]] =
+        MappedColumnType
+          .base[GenericId[T, java.util.UUID], java.util.UUID](id => id.value, uuid => UuidId[T](uuid))
+    }
+    trait SerialId extends GenericIdColumnTypes[Long] {
+      import profile.api._
+
+      override implicit def `xyz.driver.core.GenericId.columnType`[T]: BaseColumnType[GenericId[T, Long]] =
+        MappedColumnType.base[GenericId[T, Long], Long](_.value, serialId => NumericId[T](serialId))
+    }
+    trait NaturalId extends GenericIdColumnTypes[String] {
+      import profile.api._
+
+      override implicit def `xyz.driver.core.GenericId.columnType`[T]: BaseColumnType[GenericId[T, String]] =
+        MappedColumnType.base[GenericId[T, String], String](_.value, Id[T])
+    }
+  }
+
   trait TimestampColumnTypes extends ColumnTypes {
     import profile.api._
     implicit def `xyz.driver.core.time.Time.columnType`: BaseColumnType[Time]
@@ -163,6 +190,16 @@ package database {
       MappedColumnType
         .base[Id[T], java.util.UUID](id => java.util.UUID.fromString(id.value), uuid => Id[T](uuid.toString))
     def serialKeyMapper[T]  = MappedColumnType.base[Id[T], Long](_.value.toLong, serialId => Id[T](serialId.toString))
+    def naturalKeyMapper[T] = MappedColumnType.base[Id[T], String](_.value, Id[T])
+  }
+
+  trait GenericKeyMappers extends ColumnTypes {
+    import profile.api._
+
+    def uuidKeyMapper[T] =
+      MappedColumnType
+        .base[UuidId[T], java.util.UUID](id => id.value, uuid => UuidId[T](uuid))
+    def serialKeyMapper[T]  = MappedColumnType.base[NumericId[T], Long](_.value, serialId => NumericId[T](serialId))
     def naturalKeyMapper[T] = MappedColumnType.base[Id[T], String](_.value, Id[T])
   }
 

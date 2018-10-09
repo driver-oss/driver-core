@@ -11,6 +11,9 @@ scalacOptions in ThisBuild in (Compile, doc) ++= Seq(
   s"https://github.com/drivergroup/driver-core/blob/master€{FILE_PATH}.scala"
 )
 
+val mockito = "org.mockito"                   % "mockito-core"           % "1.9.5"
+val scalatest = "org.scalatest"                 %% "scalatest"             % "3.0.5"
+
 // TODO these shouldn't be declared in the build scope. They should be moved to the individual
 // sub-projects that actually depend on them.
 libraryDependencies in ThisBuild ++= Seq(
@@ -44,11 +47,11 @@ libraryDependencies in ThisBuild ++= Seq(
   "io.kamon"                      %% "kamon-statsd"          % "1.0.0",
   "io.kamon"                      %% "kamon-system-metrics"  % "1.0.0",
   "javax.xml.bind"                % "jaxb-api"               % "2.2.8",
-  "org.mockito"                   % "mockito-core"           % "1.9.5" % "test",
+  mockito % "test",
   "org.scala-lang.modules"        %% "scala-async"           % "0.9.7",
   "org.scalacheck"                %% "scalacheck"            % "1.14.0" % "test",
-  "org.scalatest"                 %% "scalatest"             % "3.0.5" % "test",
   "org.scalaz"                    %% "scalaz-core"           % "7.2.24",
+  scalatest % "test",
   "xyz.driver"                    %% "spray-json-derivation" % "0.6.0",
   "xyz.driver"                    %% "tracing"               % "0.1.2"
 )
@@ -83,6 +86,18 @@ lazy val `core-database` = project
 lazy val `core-init` = project
   .enablePlugins(LibraryPlugin)
   .dependsOn(`core-reporting`, `core-storage`, `core-messaging`, `core-rest`, `core-database`)
+
+lazy val `core-testkit` = project
+  .enablePlugins(LibraryPlugin)
+  .dependsOn(`core-rest`, `core-database`)
+  .settings(
+    libraryDependencies ++= Seq(
+      "com.spotify"       % "docker-client"                % "8.11.7" classifier "shaded",
+      "org.postgresql"    % "postgresql"                   % "9.4.1212",
+      "org.scalamock"     %% "scalamock-scalatest-support" % "3.6.0",
+      scalatest
+    )
+  )
 
 lazy val core = project
   .in(file("."))

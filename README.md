@@ -49,6 +49,7 @@ Project          | Description
 `core-reporting` | Combined tracing and logging library.
 `core-rest`      | Abstractions to represent RESTful services, discovery and client implementations.
 `core-storage`   | Object storage utilities.
+`core-testkit`   | Mixins for scalatest.
 `core-types`     | Type definitions that are commonly used by applications.
 `core-util`      | Other utilities that do not belong anywhere else. **Note that this is a staging place for code that does not have its own submodule yet. Do not depend on it externally!**
 

@@ -82,7 +82,31 @@ libraries used are:
 
 ## Example Usage
 
-*TODO*
+The following implements a simple key-value store that uses object
+storage ("buckets") when running in the cloud and a local filesystem
+when running on a development machine.
+```scala
+import xyz.driver.core.init
+
+object Main extends init.SimpleHttpApp {
+
+  lazy val fs = storage("data")
+
+  override def applicationRoute = path("data" / Segment) { key =>
+    post {
+      entity(as[Array[Byte]]) { value =>
+        complete(fs.uploadContent(key, value))
+      }
+    } ~ get {
+      rejectEmptyResponse{
+        complete(fs.content(key))
+      }
+    }
+  }
+
+}
+```
+See [this example project](documentation/example) for a more details.
 
 ## Building
 

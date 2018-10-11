@@ -10,7 +10,7 @@ private[init] object BuildInfoReflection {
 
   final val BuildInfoName = "xyz.driver.BuildInfo"
 
-  lazy val name: String            = get[String]("name")
+  lazy val name: String            = find[String]("name").getOrElse("unknown")
   lazy val version: Option[String] = find[String]("version")
 
   /** Lookup a given field in the build configuration. This field is required to exist. */

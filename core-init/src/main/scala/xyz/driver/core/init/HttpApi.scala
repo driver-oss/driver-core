@@ -27,7 +27,7 @@ trait HttpApi extends CloudServices with Directives with SprayJsonSupport { self
   /** Classes with Swagger annotations.
     * @group hooks
     */
-  def swaggerRouteClasses: Set[Class[_]]
+  def swaggerRouteClasses: Set[Class[_]] = Set(self.getClass)
 
   private val healthRoute = path("health") {
     complete(Map("status" -> "good").toJson)

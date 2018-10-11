@@ -10,6 +10,7 @@ scalacOptions in ThisBuild in (Compile, doc) ++= Seq(
   "-doc-source-url",
   s"https://github.com/drivergroup/driver-core/blob/master€{FILE_PATH}.scala"
 )
+abiVersion in ThisBuild := "2.0.0-M3"
 
 val mockito   = "org.mockito"   % "mockito-core" % "1.9.5"
 val scalatest = "org.scalatest" %% "scalatest"   % "3.0.5"

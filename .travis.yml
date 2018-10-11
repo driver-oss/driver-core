@@ -8,5 +8,5 @@ scala:
 
 script:
   - echo 'credentials += Credentials("Artifactory Realm", "drivergrp.jfrog.io", "sbt-publisher", sys.env("ARTIFACTORY_PASSWORD"))' > project/credentials.sbt
-  - sbt clean +test
+  - sbt clean compile checkAbi +test
   - if [[ "$TRAVIS_PULL_REQUEST" == "false" && "$TRAVIS_TAG" =~ ^v[0-9].* ]]; then sbt publish; fi

@@ -14,7 +14,7 @@ package object test {
   type DriverFunctionalTest = testkit.DriverFunctionalTest
 
   @deprecated("moved to package `xyz.driver.core.testkit`", "2.0")
-  type FixtureDatabase[P <: BasicProfile]  = testkit.FixtureDatabase[P]
+  type FixtureDatabase[P <: BasicProfile] = testkit.FixtureDatabase[P]
 
   @deprecated("moved to package `xyz.driver.core.testkit`", "2.0")
   type CreateAndDropSchemaForEach[P <: RelationalProfile] = testkit.CreateAndDropSchemaForEach[P]

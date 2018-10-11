@@ -179,7 +179,7 @@ trait AkkaBootable {
 
     syslog("binding to network interface")
     val binding = Await.result(
-      Http().bindAndHandle(route, "::", port),
+      Http().bindAndHandle(route, "0.0.0.0", port),
       2.seconds
     )
     syslog(s"listening to ${binding.localAddress}")

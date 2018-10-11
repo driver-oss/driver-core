@@ -42,16 +42,16 @@ specific functionality.
 
 Project          | Description
 -----------------|------------
-`core`           | *(deprecated)* Previous application initialization framework.
-`core-database`  | Utilities for working with databases, slick in particular.
-`core-init`      | Mini-framework that offers default instances of many utilities, configured for the current platform.
-`core-messaging` | Library for abstracting over message buses such as Google PubSub.
-`core-reporting` | Combined tracing and logging library.
-`core-rest`      | Abstractions to represent RESTful services, discovery and client implementations.
-`core-storage`   | Object storage utilities.
-`core-testkit`   | Mixins for scalatest.
-`core-types`     | Type definitions that are commonly used by applications.
-`core-util`      | Other utilities that do not belong anywhere else. **Note that this is a staging place for code that does not have its own submodule yet. Do not depend on it externally!**
+core           | *(deprecated)* Previous application initialization framework.
+core&#8209;database  | Utilities for working with databases, slick in particular.
+core&#8209;init      | Mini-framework that offers default instances of many utilities, configured for the current platform.
+core&#8209;messaging | Library for abstracting over message buses such as Google PubSub.
+core&#8209;reporting | Combined tracing and logging library.
+core&#8209;rest      | Abstractions to represent RESTful services, discovery and client implementations.
+core&#8209;storage   | Object storage utilities.
+core&#8209;testkit   | Mixins for scalatest.
+core&#8209;types     | Type definitions that are commonly used by applications.
+core&#8209;util      | Other utilities that do not belong anywhere else. **Note that this is a staging place for code that does not have its own submodule yet. Do not depend on it externally!**
 
 These components and their internal dependencies can be represented
 with the following graph.
